@@ -328,7 +328,7 @@ async function checkAuth() {
         console.log('✅ Autenticação válida! Usuário:', userData.email);
         currentUser = userData;
 
-        if (currentUser !== 'admin') {
+        if (currentUser.type !== 'admin') {
             alert('Acesso restrito a administradores');
             window.location.href = 'index.html';
             return;
