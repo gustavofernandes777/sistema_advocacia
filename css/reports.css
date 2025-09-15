@@ -1,0 +1,274 @@
+body {
+    background-color: #f8f9fa;
+}
+
+.card-dashboard {
+    transition: transform 0.2s;
+    border-left: 4px solid #6948D3;
+}
+
+.card-dashboard:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.card-receita {
+    border-left: 4px solid #198754 !important;
+}
+
+.card-despesa {
+    border-left: 4px solid #dc3545 !important;
+}
+
+.card-saldo {
+    border-left: 4px solid #6f42c1 !important;
+}
+
+.stats-icon {
+    font-size: 1.8rem;
+    opacity: 0.8;
+}
+
+.chart-container {
+    position: relative;
+    height: 300px;
+    margin-bottom: 20px;
+}
+
+.table-responsive {
+    max-height: 400px;
+}
+
+.badge-ativa {
+    background-color: #6948D3;
+}
+
+.badge-suspensa {
+    background-color: #ffc107;
+    color: #000;
+}
+
+.badge-entregue {
+    background-color: #198754;
+}
+
+.badge-finalizada {
+    background-color: #dc3545;
+}
+
+.badge-fechada {
+    background-color: #6c757d;  /* Cor cinza para status fechada */
+    color: white;
+}
+
+tr[data-status="fechada"] {
+    background-color: #f8f9fa !important;
+}
+
+tr[data-status="fechada"] td {
+    opacity: 0.8;
+}
+
+.readonly-value {
+    font-weight: 500;
+    color: #495057;
+    padding: 0.25rem 0.5rem;
+    background-color: #f8f9fa;
+    border-radius: 0.25rem;
+    display: inline-block;
+    min-width: 80px;
+}
+
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(255, 255, 255, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+}
+
+.filter-section {
+    background-color: #f8f9fa;
+    border-radius: 5px;
+    padding: 15px;
+    margin-bottom: 20px;
+}
+
+.custom-date-fields {
+    display: none;
+}
+
+.custom-notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 9999;
+    min-width: 300px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    animation: slideInRight 0.3s ease-out;
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* Adicione ao reports.css */
+.modal-content {
+    border-radius: 10px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+}
+
+.modal-header {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.modal-title {
+    color: #495057;
+    font-weight: 600;
+}
+
+.modal-body h6 {
+    color: #495057;
+    font-weight: 600;
+    margin-bottom: 15px;
+    padding-bottom: 5px;
+    border-bottom: 2px solid #0d6efd;
+}
+
+/* Adicione ao reports.css */
+.configure-financial {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+}
+
+.close-report {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+}
+
+.btn-outline-secondary.close-report {
+    background-color: #6c757d;
+    color: white;
+    border-color: #6c757d;
+}
+
+.btn-outline-warning.close-report:hover {
+    background-color: #ffc107;
+    color: black;
+}
+
+.btn-primary {
+  --bs-btn-color: #fff;
+  --bs-btn-bg: #6948D3;
+  --bs-btn-border-color: #6948D3;
+  --bs-btn-hover-color: #fff;
+  --bs-btn-hover-bg: #4e32a9;
+  --bs-btn-hover-border-color: #3d2786;
+  --bs-btn-focus-shadow-rgb: 49, 132, 253;
+  --bs-btn-active-color: #fff;
+  --bs-btn-active-bg: #3d2786;
+  --bs-btn-active-border-color: #2b1b5d;
+  --bs-btn-active-shadow: inset 0 3px 5px rgba(0, 0, 0, 0.125);
+  --bs-btn-disabled-color: #fff;
+  --bs-btn-disabled-bg: #6948D3;
+  --bs-btn-disabled-border-color: #6948D3;
+}
+
+.btn-outline-primary {
+  --bs-btn-color: #6948D3;
+  --bs-btn-border-color: #6948D3;
+  --bs-btn-hover-color: #fff;
+  --bs-btn-hover-bg: #6948D3;
+  --bs-btn-hover-border-color: #6948D3;
+  --bs-btn-focus-shadow-rgb: 13, 110, 253;
+  --bs-btn-active-color: #fff;
+  --bs-btn-active-bg: #6948D3;
+  --bs-btn-active-border-color: #6948D3;
+  --bs-btn-active-shadow: inset 0 3px 5px rgba(0, 0, 0, 0.125);
+  --bs-btn-disabled-color: #6948D3;
+  --bs-btn-disabled-bg: transparent;
+  --bs-btn-disabled-border-color: #6948D3;
+  --bs-gradient: none;
+}
+
+.profit-cell.text-success {
+    font-weight: bold;
+    color: #198754 !important;
+}
+
+.profit-cell.text-danger {
+    font-weight: bold;
+    color: #dc3545 !important;
+}
+
+.form-control-sm {
+    height: calc(1.5em + 0.5rem + 2px);
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+}
+
+#detalhesTable th:nth-child(7),
+#detalhesTable th:nth-child(8),
+#detalhesTable th:nth-child(9),
+#detalhesTable th:nth-child(10) {
+    background-color: #f4f0ff;
+    font-weight: 600;
+}
+
+#detalhesTable td:nth-child(7),
+#detalhesTable td:nth-child(8),
+#detalhesTable td:nth-child(9),
+#detalhesTable td:nth-child(10) {
+    background-color: #f4f0ff;
+}
+
+/* Adicione ao reports.css */
+.variation {
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.variation.text-success {
+    color: #198754 !important;
+}
+
+.variation.text-danger {
+    color: #dc3545 !important;
+}
+
+.variation.text-warning {
+    color: #ffc107 !important;
+}
+
+.stats-icon {
+    font-size: 1.8rem;
+    opacity: 0.8;
+}
+
+/* Melhorar a visibilidade dos cards */
+.card-dashboard .card-body {
+    padding: 1.2rem;
+}
+
+.card-dashboard h3 {
+    font-size: 1.8rem;
+    font-weight: 700;
+}
+
+.card-dashboard h6 {
+    font-size: 0.9rem;
+    color: #6c757d !important;
+}

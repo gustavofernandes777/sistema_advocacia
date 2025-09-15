@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+    <meta name="description" content="Dashboard de Registros" />
+    <meta name="author" content="" />
+    <title>Dashboard - Sistema de Diligências</title>
+    <link href="https://cdn.jsdelivr.net/npm/simple-datatables@7.1.2/dist/style.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://use.fontawesome.com/releases/v6.3.0/js/all.js" crossorigin="anonymous"></script>
+    <link href="css/dashboard.css" rel="stylesheet" />
+    <link href="css/reports.css" rel="stylesheet">
+</head>
+
+<body class="sb-nav-fixed">
+    <nav class="sb-topnav navbar navbar-expand navbar-dark bg-dark">
+        <!-- Navbar Brand-->
+        <a class="navbar-brand ps-3" href="dashboard.html">Sistema de Diligências</a>
+        <!-- Sidebar Toggle-->
+        <button class="btn btn-link btn-sm order-1 order-lg-0 me-4 me-lg-0 ml-5" id="sidebarToggle" href="#!"
+            style="margin-left: 1em;">
+            <i class="fas fa-bars"></i>
+        </button>
+        <ul class="navbar-nav ms-auto ms-md-0 me-3 me-lg-4">
+            <li class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle" id="userDropdown" href="#" role="button" data-bs-toggle="dropdown"
+                    aria-expanded="false">
+                    <i class="fas fa-user fa-fw"></i> Bem-vinda(o),
+                    <span id="navbar-username">Usuário</span>
+                </a>
+                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                    <li><a class="dropdown-item" href="/profile.html">Perfil</a></li>
+                    <li>
+                        <hr class="dropdown-divider" />
+                    </li>
+                    <li><a class="dropdown-item logout-btn" onclick="logout()">Sair</a></li>
+                </ul>
+            </li>
+        </ul>
+    </nav>
+
+    <div id="layoutSidenav">
+        <div id="layoutSidenav_nav">
+            <nav class="sb-sidenav accordion sb-sidenav-dark" id="sidenavAccordion">
+                <div class="sb-sidenav-menu">
+                    <div class="nav">
+                        <div class="sb-sidenav-menu-heading">Principal</div>
+                        <a class="nav-link active" href="dashboard.html">
+                            <div class="sb-nav-link-icon"><i class="fas fa-tachometer-alt"></i></div>
+                            Dashboard
+                        </a>
+                        <a class="nav-link" href="#" id="newClientBtn">
+                            <div class="sb-nav-link-icon"><i class="fa-solid fa-user-tie"></i></div>
+                            Novo Cliente
+                        </a>
+                        <div class="sb-sidenav-menu-heading">Gestão</div>
+                        <a class="nav-link collapsed" id="adminLink" href="#" data-bs-toggle="collapse"
+                            data-bs-target="#collapseLayouts" aria-expanded="false" aria-controls="collapseLayouts">
+                            <div class="sb-nav-link-icon"><i class="fas fa-user-cog"></i>
+                            </div>
+                            Administração
+                            <div class="sb-sidenav-collapse-arrow"><i class="fas fa-angle-down"></i></div>
+                        </a>
+                        <div class="collapse" id="collapseLayouts" aria-labelledby="headingOne"
+                            data-bs-parent="#sidenavAccordion">
+                            <nav class="sb-sidenav-menu-nested nav">
+                                <a class="nav-link" href="#" id="newRecordBtn">
+                                    <div class="sb-nav-link-icon"><i class="fas fa-plus"></i></div>
+                                    Novo Registro
+                                </a>
+                                <a class="nav-link" href="#" id="newUserBtn">
+                                    <div class="sb-nav-link-icon"><i class="fas fa-user-plus"></i></div>
+                                    Novo Usuário
+                                </a>
+                                <a class="nav-link" id="reportsLink" href="reports.html">
+                                    <div class="sb-nav-link-icon"><i class="fas fa-chart-bar"></i></div>
+                                    Relatórios
+                                </a>
+                                <a class="nav-link" id="userListLink" href="users.html" id="usersLink">
+                                    <div class="sb-nav-link-icon"><i class="fas fa-users"></i></div>
+                                    Lista de Usuários
+                                </a>
+                            </nav>
+                        </div>
+                    </div>
+                </div>
+                <div class="sb-sidenav-footer">
+                    <div class="small">Logado como:</div>
+                    <span id="sidenav-username">Carregando...</span>
+                </div>
+            </nav>
+        </div>
+
+        <div id="layoutSidenav_content">
+            <main>
+                <div class="container-fluid px-4">
+                    <h1 class="mt-4">Dashboard</h1>
+                    <ol class="breadcrumb mb-4">
+                        <li class="breadcrumb-item active">Visão Geral</li>
+                    </ol>
+
+                    <!-- Cards de Status -->
+                    <div class="row">
+                        <div class="col-xl-3 col-md-6">
+                            <div class="card bg-primary text-white mb-4">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h6 class="mb-0">Registros Ativos</h6>
+                                            <h2 class="mt-2 mb-0" id="active-count">0</h2>
+                                        </div>
+                                        <i class="fas fa-clipboard-list fa-2x"></i>
+                                    </div>
+                                </div>
+                                <div class="card-footer d-flex align-items-center justify-content-between">
+                                    <a class="small text-white stretched-link" href="#"
+                                        onclick="filterRecords('ativa')">Ver Detalhes</a>
+                                    <div class="small text-white"><i class="fas fa-angle-right"></i></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-xl-3 col-md-6">
+                            <div class="card bg-warning text-white mb-4">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h6 class="mb-0">Registros Suspensos</h6>
+                                            <h2 class="mt-2 mb-0" id="suspended-count">0</h2>
+                                        </div>
+                                        <i class="fas fa-pause-circle fa-2x"></i>
+                                    </div>
+                                </div>
+                                <div class="card-footer d-flex align-items-center justify-content-between">
+                                    <a class="small text-white stretched-link" href="#"
+                                        onclick="filterRecords('suspensa')">Ver Detalhes</a>
+                                    <div class="small text-white"><i class="fas fa-angle-right"></i></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-xl-3 col-md-6">
+                            <div class="card bg-success text-white mb-4">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h6 class="mb-0">Registros Entregues</h6>
+                                            <h2 class="mt-2 mb-0" id="delivered-count">0</h2>
+                                        </div>
+                                        <i class="fas fa-check-circle fa-2x"></i>
+                                    </div>
+                                </div>
+                                <div class="card-footer d-flex align-items-center justify-content-between">
+                                    <a class="small text-white stretched-link" href="#"
+                                        onclick="filterRecords('entregue')">Ver Detalhes</a>
+                                    <div class="small text-white"><i class="fas fa-angle-right"></i></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-xl-3 col-md-6">
+                            <div class="card bg-danger text-white mb-4">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h6 class="mb-0">Registros Finalizados</h6>
+                                            <h2 class="mt-2 mb-0" id="completed-count">0</h2>
+                                        </div>
+                                        <i class="fas fa-flag-checkered fa-2x"></i>
+                                    </div>
+                                </div>
+                                <div class="card-footer d-flex align-items-center justify-content-between">
+                                    <a class="small text-white stretched-link" href="#"
+                                        onclick="filterRecords('finalizada')">Ver Detalhes</a>
+                                    <div class="small text-white"><i class="fas fa-angle-right"></i></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tabela de Registros -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <i class="fas fa-table me-1"></i>
+                                    Registros
+                                </div>
+                                <button type="button" class="btn btn-primary" id="addRecordBtn">
+                                    <i class="fas fa-plus me-1"></i> Novo Registro
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="loading" id="loading-records">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Carregando...</span>
+                                </div>
+                                <span class="ms-2">Carregando Registros...</span>
+                            </div>
+                            <table id="datatablesSimple recordsTable" class="table table-striped table-bordered"
+                                style="width:100%">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Status</th>
+                                        <th>Prestador</th>
+                                        <th>Prioridade</th>
+                                        <th>Tipo Doc.</th>
+                                        <th>Cliente</th>
+                                        <th>Pesquisado</th>
+                                        <th>Cadastrado em</th>
+                                        <th>Última Atualização</th> <!-- Nova coluna -->
+                                        <th>Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="records-body"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </main>
+
+            <footer class="py-4 bg-light mt-auto">
+                <div class="container-fluid px-4">
+                    <div class="d-flex align-items-center justify-content-between small">
+                        <div class="text-muted">Copyright &copy; Sistema de Registros 2025</div>
+                        <div>
+                            <a href="#">Política de Privacidade</a>
+                            &middot;
+                            <a href="#">Termos &amp; Condições</a>
+                        </div>
+                    </div>
+                </div>
+            </footer>
+        </div>
+    </div>
+
+    <!-- Modal para Novo Registro -->
+    <div class="modal fade" id="recordModal" tabindex="-1" aria-labelledby="recordModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="recordModalLabel">Novo Registro</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="recordForm">
+                        <div class="row mb-3">
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="record_id" class="form-label">ID do registro</label>
+                                    <input type="text" class="form-control" id="record_id" required>
+                                    <div class="invalid-feedback" id="record-id-feedback"></div>
+                                    <div class="form-text">ID personalizado do registro (deve ser único)</div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="register_date" class="form-label">Data de Registro</label>
+                                    <input type="date" class="form-control" id="register_date" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="name" class="form-label">Descrição do registro</label>
+                                <input type="text" class="form-control" id="name" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="document_type" class="form-label">Tipo de Documento</label>
+                                <input type="text" class="form-control" id="document_type" required>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="client_id" class="form-label">Cliente</label>
+                            <div class="input-group">
+                                <select class="form-select" id="client_id" required>
+                                    <option value="">Selecione um cliente</option>
+                                </select>
+                                <button class="btn btn-outline-secondary" type="button" id="addClientBtn">
+                                    <i class="fas fa-plus"></i> Novo
+                                </button>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-8">
+                                <label for="researchedName" class="form-label">Nome do Pesquisado</label>
+                                <input type="text" class="form-control" id="researchedName" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="researchedCpf_cnpj" class="form-label">CPF/CNPJ do Pesquisado</label>
+                                <input type="text" class="form-control" id="researchedCpf_cnpj" required>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="state" class="form-label">Estado</label>
+                                <select class="form-select" id="state">
+                                    <option value="ac">AC</option>
+                                    <option value="al">AL</option>
+                                    <option value="ap">AP</option>
+                                    <option value="am">AM</option>
+                                    <option value="ba">BA</option>
+                                    <option value="ce">CE</option>
+                                    <option value="df">DF</option>
+                                    <option value="es">ES</option>
+                                    <option value="go">GO</option>
+                                    <option value="ma">MA</option>
+                                    <option value="mt">MT</option>
+                                    <option value="ms">MS</option>
+                                    <option value="mg">MG</option>
+                                    <option value="pa">PA</option>
+                                    <option value="pb">PB</option>
+                                    <option value="pr">PR</option>
+                                    <option value="pe">PE</option>
+                                    <option value="pi">PI</option>
+                                    <option value="rj">RJ</option>
+                                    <option value="rn">RN</option>
+                                    <option value="rs">RS</option>
+                                    <option value="ro">RO</option>
+                                    <option value="rr">RR</option>
+                                    <option value="sc">SC</option>
+                                    <option value="sp">SP</option>
+                                    <option value="se">SE</option>
+                                    <option value="to">TO</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="city" class="form-label">Cidade</label>
+                                <input type="text" class="form-control" id="city" required>
+                            </div>
+                            <div class="col-md">
+                                <label for="info" class="form-label">Informações adicionais</label>
+                                <textarea type="text" class="form-control" id="info" required></textarea>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <div class="form-check form-switch mb-2">
+                                <input class="form-check-input" type="checkbox" id="toggleAttachment">
+                                <label class="form-check-label" for="toggleAttachment">Adicionar Anexos</label>
+                            </div>
+                            <div id="attachmentsContainer" style="display: none;">
+                                <div class="attachment-group mb-3 p-3 border rounded">
+                                    <div class="row mb-3">
+                                        <div class="col-md-5">
+                                            <label class="form-label">Título do Anexo</label>
+                                            <input type="text" class="form-control attachment-title" required>
+                                        </div>
+                                        <div class="col-md-5">
+                                            <label class="form-label">Descrição (Opcional)</label>
+                                            <input type="text" class="form-control attachment-description">
+                                        </div>
+                                        <div class="col-md-2 d-flex align-items-end">
+                                            <button type="button" class="btn btn-danger btn-sm remove-attachment"
+                                                style="display: none;">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Arquivo do Anexo (Obrigatório)</label>
+                                        <input type="file" class="form-control attachment-file" required>
+                                    </div>
+                                </div>
+                                <button type="button" class="btn btn-secondary btn-sm mb-3" id="addAttachmentBtn">
+                                    <i class="fas fa-plus"></i> Adicionar Anexo
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Adicione no modal de Registro, antes do botão de salvar -->
+                        <div class="mb-3">
+                            <div class="form-check form-switch mb-2">
+                                <input class="form-check-input" type="checkbox" id="toggleCost">
+                                <label class="form-check-label" for="toggleCost">Adicionar Custas</label>
+                            </div>
+                            <div id="costsContainer" style="display: none;">
+                                <div class="cost-group mb-3 p-3 border rounded">
+                                    <div class="row mb-3">
+                                        <div class="col-md-5">
+                                            <label class="form-label">Título do Custas</label>
+                                            <input type="text" class="form-control cost-title" required>
+                                        </div>
+                                        <div class="col-md-5">
+                                            <label class="form-label">Valor</label>
+                                            <input type="text" class="form-control cost-value" required>
+                                        </div>
+                                        <div class="col-md-2 d-flex align-items-end">
+                                            <button type="button" class="btn btn-danger btn-sm remove-cost"
+                                                style="display: none;">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Arquivo do Custa (Obrigatório)</label>
+                                        <input type="file" class="form-control cost-file" required>
+                                    </div>
+                                </div>
+                                <button type="button" class="btn btn-secondary btn-sm mb-3" id="addCostBtn">
+                                    <i class="fas fa-plus"></i> Adicionar Custa
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <div class="form-check form-switch mb-2">
+                                <input class="form-check-input" type="checkbox" id="toggleExpense">
+                                <label class="form-check-label" for="toggleExpense">Adicionar Despesas</label>
+                            </div>
+                            <div id="expensesContainer" style="display: none;">
+                                <div class="expense-group mb-3 p-3 border rounded">
+                                    <div class="row mb-3">
+                                        <div class="col-md-5">
+                                            <label class="form-label">Título da Despesa</label>
+                                            <input type="text" class="form-control expense-title" required>
+                                        </div>
+                                        <div class="col-md-5">
+                                            <label class="form-label">Valor</label>
+                                            <input type="text" class="form-control expense-value" required>
+                                        </div>
+                                        <div class="col-md-2 d-flex align-items-end">
+                                            <button type="button" class="btn btn-danger btn-sm remove-expense"
+                                                style="display: none;">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Arquivo da Despesa (Obrigatório)</label>
+                                        <input type="file" class="form-control expense-file" required>
+                                    </div>
+                                </div>
+                                <button type="button" class="btn btn-secondary btn-sm mb-3" id="addExpenseBtn">
+                                    <i class="fas fa-plus"></i> Adicionar Despesa
+                                </button>
+                            </div>
+                        </div>
+
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="status" class="form-label">Status</label>
+                                <select class="form-select" id="status" required>
+                                    <option value="ativa">Ativa</option>
+                                    <option value="suspensa">Suspensa</option>
+                                    <option value="entregue">Entregue</option>
+                                    <option value="finalizada">Finalizada</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="priority" class="form-label">Prioridade</label>
+                                <select class="form-select" id="priority" required>
+                                    <option value="baixa">Baixa</option>
+                                    <option value="media" selected>Média</option>
+                                    <option value="alta">Alta</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="provider_id" class="form-label">Prestador</label>
+                            <select class="form-select" id="provider_id" required>
+                                <option value="">Selecione um prestador</option>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" id="saveRecordBtn">Salvar registro</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="clientModal" tabindex="-1" aria-labelledby="clientModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="clientModalLabel">Novo Cliente</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="clientForm">
+                        <div class="mb-3">
+                            <label for="client_name" class="form-label">Nome</label>
+                            <input type="text" class="form-control" id="client_name" required minlength="2"
+                                maxlength="100">
+                        </div>
+                        <div class="mb-3">
+                            <label for="client_cpf_cnpj" class="form-label">CPF/CNPJ</label>
+                            <input type="text" class="form-control" id="client_cpf_cnpj" required minlength="11"
+                                maxlength="20">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" id="saveClientBtn">Salvar Cliente</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal fade" id="userModal" tabindex="-1" aria-labelledby="userModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="userModalLabel">Novo Usuário</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="userForm">
+                        <div class="mb-3">
+                            <label for="user_name" class="form-label">Nome</label>
+                            <input type="text" class="form-control" id="user_name" required minlength="2"
+                                maxlength="50">
+                        </div>
+                        <div class="mb-3">
+                            <label for="user_last_name" class="form-label">Sobrenome</label>
+                            <input type="text" class="form-control" id="user_last_name" required minlength="2"
+                                maxlength="50">
+                        </div>
+                        <div class="mb-3">
+                            <label for="user_email" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="user_email" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="user_password" class="form-label">Senha</label>
+                            <input type="password" class="form-control" id="user_password" required minlength="8">
+                        </div>
+                        <div class="mb-3">
+                            <label for="user_password_confirm" class="form-label">Confirmar Senha</label>
+                            <input type="password" class="form-control" id="user_password_confirm" required
+                                minlength="8">
+                        </div>
+                        <div class="mb-3">
+                            <label for="user_type" class="form-label">Tipo de Usuário</label>
+                            <select class="form-select" id="user_type" required>
+                                <option value="provedor">Prestador</option>
+                                <option value="admin">Administrador</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="user_birthday" class="form-label">Data de Nascimento</label>
+                            <input type="date" class="form-control" id="user_birthday" required>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" id="saveUserBtn">Salvar Usuário</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/simple-datatables@7.1.2/dist/umd/simple-datatables.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="js/dashboard.js"></script>
+
+    <!--
+            <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"
+        crossorigin="anonymous"></script>
+    <script src="js/scripts.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.8.0/Chart.min.js" crossorigin="anonymous"></script>
+    <script src="assets/demo/chart-area-demo.js"></script>
+    <script src="assets/demo/chart-bar-demo.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/simple-datatables@7.1.2/dist/umd/simple-datatables.min.js"
+        crossorigin="anonymous"></script>
+    <script src="js/datatables-simple-demo.js"></script>
+    -->
+</body>
+
+</html>
