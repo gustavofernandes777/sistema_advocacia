@@ -3,7 +3,7 @@ let currentUser = null;
 let clientsData = [];
 let recordsData = [];
 let dataTable;
-const apiBaseUrl = 'https://383933ff5c0d.ngrok-free.app';
+const apiBaseUrl = 'https://c1b8d2bcf4e1.ngrok-free.app';
 
 // Verifica autenticação
 async function checkAuth() {
