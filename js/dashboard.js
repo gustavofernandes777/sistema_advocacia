@@ -485,24 +485,6 @@ async function loadProviders() {
     }
 }
 
-// Carrega clientes para o select
-async function loadClients() {
-    try {
-        const response = await fetch(`${apiBaseUrl}/clients/`, {
-            headers: {
-                'Authorization': `Bearer ${localStorage.getItem('access_token')}`
-            }
-        });
-
-        if (!response.ok) throw new Error('Erro ao carregar clientes');
-
-        clientsData = await response.json();
-        updateClientSelect();
-    } catch (error) {
-        showError(error);
-    }
-}
-
 // Atualiza o select de clientes
 function updateClientSelect() {
     const select = document.getElementById('client_id');
