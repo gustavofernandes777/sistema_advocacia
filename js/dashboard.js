@@ -45,11 +45,6 @@ async function checkAuth() {
         
     } catch (error) {
         console.error('❌ Erro na verificação de autenticação:', error);
-
-        for (let i = 0; i < 5; i++) {
-            console.log(`Waiting ${i} seconds...`);
-            await sleep(i * 1000);
-        }
         
         // Mostrar feedback para o usuário
         showError('Sessão expirada. Faça login novamente.');
@@ -65,11 +60,6 @@ async function checkAuth() {
         return false;
     }
 }
-
-function sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-}
-
 
 // Carrega dados do usuário
 async function loadUserData() {
