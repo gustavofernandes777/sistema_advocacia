@@ -322,37 +322,51 @@ function initDataTable() {
 }
 
 async function safeFetch(url, options = {}) {
-    // Headers padrão
-    const defaultOptions = {
-        headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json',
-            ...options.headers
-        },
-        credentials: 'include',
-        ...options
-    };
+    try {
+        // Fazer a requisição
+        const response = await fetch(url, {
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                ...options.headers
+            },
+            credentials: 'include',
+            ...options
+        });
 
-    const response = await fetch(url, defaultOptions);
-    
-    // Verificar tipo de conteúdo
-    const contentType = response.headers.get('content-type');
-    if (!contentType || !contentType.includes('application/json')) {
-        const text = await response.text();
-        
-        if (text.includes('<!DOCTYPE') || text.includes('<html')) {
-            throw new Error(`Servidor retornou HTML em vez de JSON. Status: ${response.status}`);
+        // Verificar se response é válido
+        if (!response) {
+            throw new Error('Nenhuma resposta recebida do servidor');
+        }
+
+        // Verificar se headers existe
+        if (!response.headers) {
+            throw new Error('Resposta sem headers do servidor');
+        }
+
+        // Verificar tipo de conteúdo
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            const text = await response.text();
+            
+            if (text.includes('<!DOCTYPE') || text.includes('<html')) {
+                throw new Error(`Servidor retornou HTML em vez de JSON. Status: ${response.status}`);
+            }
+            
+            throw new Error(`Resposta inesperada: ${contentType}. Status: ${response.status}`);
         }
         
-        throw new Error(`Resposta inesperada: ${contentType}. Status: ${response.status}`);
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.detail || `HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        return response.json();
+        
+    } catch (error) {
+        console.error('Erro no safeFetch:', error);
+        throw error; // Re-lançar o erro para ser tratado pelo chamador
     }
-    
-    if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.detail || `HTTP ${response.status}: ${response.statusText}`);
-    }
-    
-    return response.json();
 }
 
 function handleApiError(error) {
@@ -374,16 +388,34 @@ async function loadProviders() {
             return;
         }
 
-        const response = await safeFetch(`${apiBaseUrl}/users/`, {
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Accept': 'application/json' // Exigir JSON explicitamente
-            },
-            credentials: 'include'
-        });
+        console.log('🔄 Fazendo requisição para:', `${apiBaseUrl}/users/`);
+        
+        // Fazer a requisição com tratamento de erro melhorado
+        let response;
+        try {
+            response = await fetch(`${apiBaseUrl}/users/`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Accept': 'application/json'
+                },
+                credentials: 'include'
+            });
+        } catch (fetchError) {
+            console.error('❌ Erro na requisição fetch:', fetchError);
+            throw new Error(`Falha na conexão: ${fetchError.message}`);
+        }
 
-        // Verificar se a resposta é JSON
-        const contentType = response.headers.get('content-type');
+        // Verificar se response existe e é válido
+        if (!response) {
+            throw new Error('Resposta da API não recebida');
+        }
+
+        console.log('📊 Status da resposta:', response.status);
+        console.log('✅ Response recebido:', response);
+
+        // Verificar se a resposta é JSON - AGORA COM VERIFICAÇÃO DE SEGURANÇA
+        const contentType = response.headers ? response.headers.get('content-type') : null;
+        
         if (!contentType || !contentType.includes('application/json')) {
             const errorText = await response.text();
             console.error('❌ Resposta não-JSON:', errorText.substring(0, 200));
@@ -404,6 +436,11 @@ async function loadProviders() {
         const users = await response.json();
         const providerSelect = document.getElementById('provider_id');
 
+        if (!providerSelect) {
+            console.error('❌ Elemento provider_id não encontrado no DOM');
+            return;
+        }
+
         // Limpar select
         providerSelect.innerHTML = '<option value="">Selecione um prestador</option>';
         
@@ -417,9 +454,18 @@ async function loadProviders() {
             }
         });
 
+        console.log('✅ Provedores carregados com sucesso');
+
     } catch (error) {
-        console.error('Erro:', error);
-        handleApiError(error);
+        console.error('Erro ao carregar prestadores:', error);
+        
+        if (error.message.includes('Não autorizado') || error.message.includes('401')) {
+            // Token inválido ou expirado
+            localStorage.removeItem('access_token');
+            window.location.href = 'login.html';
+        } else {
+            showError('Erro ao carregar lista de prestadores: ' + error.message);
+        }
     }
 }
 
