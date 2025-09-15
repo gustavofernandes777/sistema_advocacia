@@ -321,6 +321,49 @@ function initDataTable() {
     });
 }
 
+async function safeFetch(url, options = {}) {
+    // Headers padrão
+    const defaultOptions = {
+        headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            ...options.headers
+        },
+        credentials: 'include',
+        ...options
+    };
+
+    const response = await fetch(url, defaultOptions);
+    
+    // Verificar tipo de conteúdo
+    const contentType = response.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+        const text = await response.text();
+        
+        if (text.includes('<!DOCTYPE') || text.includes('<html')) {
+            throw new Error(`Servidor retornou HTML em vez de JSON. Status: ${response.status}`);
+        }
+        
+        throw new Error(`Resposta inesperada: ${contentType}. Status: ${response.status}`);
+    }
+    
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || `HTTP ${response.status}: ${response.statusText}`);
+    }
+    
+    return response.json();
+}
+
+function handleApiError(error) {
+    if (error.message.includes('401') || error.message.includes('Não autorizado')) {
+        localStorage.removeItem('access_token');
+        window.location.href = 'login.html';
+    } else {
+        showError('Erro: ' + error.message);
+    }
+}
+
 // Carrega prestadores para o select
 async function loadProviders() {
     try {
@@ -331,7 +374,7 @@ async function loadProviders() {
             return;
         }
 
-        const response = await fetch(`${apiBaseUrl}/users/`, {
+        const response = await safeFetch(`${apiBaseUrl}/users/`, {
             headers: {
                 'Authorization': `Bearer ${token}`,
                 'Accept': 'application/json' // Exigir JSON explicitamente
@@ -375,15 +418,8 @@ async function loadProviders() {
         });
 
     } catch (error) {
-        console.error('Erro ao carregar prestadores:', error);
-        
-        if (error.message.includes('Não autorizado') || error.message.includes('401')) {
-            // Token inválido ou expirado
-            localStorage.removeItem('access_token');
-            window.location.href = 'login.html';
-        } else {
-            showError('Erro ao carregar lista de prestadores: ' + error.message);
-        }
+        console.error('Erro:', error);
+        handleApiError(error);
     }
 }
 
