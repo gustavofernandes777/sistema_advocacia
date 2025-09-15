@@ -1,6 +1,6 @@
 // Variáveis globais
 let currentRecord = null;
-const apiBaseUrl = 'http://localhost:8000';
+const apiBaseUrl = 'https://8829cbba56b9.ngrok-free.app';
 
 const attachmentTemplate = (index, data = null) => {
     const title = data?.title || '';

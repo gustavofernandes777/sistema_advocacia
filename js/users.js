@@ -1,4 +1,4 @@
-const apiBaseUrl = 'http://localhost:8000';
+const apiBaseUrl = 'https://8829cbba56b9.ngrok-free.app';
 let currentUser = null;
 
 async function checkAuth() {

@@ -5,7 +5,7 @@ let filteredData = [];
 let previousPeriodData = [];
 let currentPeriodData = [];
 let comparisonPeriod = 'month'; // month, quarter, year
-const apiBaseUrl = 'http://localhost:8000';
+const apiBaseUrl = 'https://8829cbba56b9.ngrok-free.app';
 
 const statusMap = {
     'ativa': 'Ativa',
