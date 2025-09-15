@@ -45,6 +45,8 @@ async function checkAuth() {
         
     } catch (error) {
         console.error('❌ Erro na verificação de autenticação:', error);
+
+        await new Promise(r => setTimeout(r, 2000));
         
         // Mostrar feedback para o usuário
         showError('Sessão expirada. Faça login novamente.');
