@@ -627,13 +627,7 @@ async function viewRecordDetails(recordId) {
             }
         });
 
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.detail || `Erro ao carregar detalhes: ${response.status}`);
-        }
-
-        const record = response;
-        showRecordModal(record);
+        showRecordModal(response);
 
     } catch (error) {
         console.error('Erro ao carregar detalhes:', error);
