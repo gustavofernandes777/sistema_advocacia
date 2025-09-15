@@ -324,25 +324,34 @@ function initDataTable() {
 // Carrega prestadores para o select
 async function loadProviders() {
     try {
+        const token = localStorage.getItem('access_token');
         const response = await fetch(`${apiBaseUrl}/users/`, {
             headers: {
-                'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                'Authorization': `Bearer ${token}`
             }
         });
 
-        if (!response.ok) throw new Error('Erro ao carregar prestadores');
+        if (!response.ok) {
+            throw new Error(`Erro ${response.status} ao carregar prestadores`);
+        }
 
-        const users = await response.json();
+        const users = await response.json(); // ✅ Agora funciona
         const providerSelect = document.getElementById('provider_id');
+
+        // Manter apenas a primeira option (placeholder)
+        while (providerSelect.options.length > 1) {
+            providerSelect.remove(1);
+        }
 
         users.forEach(user => {
             if (user.type === 'provedor' || user.type === 'admin') {
                 const option = document.createElement('option');
                 option.value = user.id;
-                option.textContent = `${user.name} (${user.type})`;
+                option.textContent = `${user.name} ${user.last_name || ''} (${user.type})`.trim();
                 providerSelect.appendChild(option);
             }
         });
+
     } catch (error) {
         console.error('Erro ao carregar prestadores:', error);
     }
