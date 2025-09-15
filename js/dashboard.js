@@ -281,6 +281,7 @@ async function loadRecords() {
         loadingElement.style.display = 'none';
     }
 }
+
 // Renderiza registros na tabela (corrigido)
 function renderRecords(records) {
     const tableBody = document.getElementById('records-body');

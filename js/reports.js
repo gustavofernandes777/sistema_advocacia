@@ -16,8 +16,8 @@ const statusMap = {
 };
 
 // Inicialização
-document.addEventListener('DOMContentLoaded', function () {
-    checkAuth();
+document.addEventListener('DOMContentLoaded', async () => {
+    await checkAuth();
     setupEventListeners();
     loadDataFromAPI();
 });
@@ -324,16 +324,16 @@ async function checkAuth() {
             throw new Error(`Erro HTTP: ${response.status}`);
         }
 
-        const user = await response.json();
-        if (user.type !== 'admin') {
+        const userData = await response.json();
+        console.log('✅ Autenticação válida! Usuário:', userData.email);
+        currentUser = userData;
+
+        if (currentUser !== 'admin') {
             alert('Acesso restrito a administradores');
             window.location.href = 'index.html';
             return;
         }
 
-        const userData = await response.json();
-        console.log('✅ Autenticação válida! Usuário:', userData.email);
-        currentUser = userData;
         return true;
         
     } catch (error) {
