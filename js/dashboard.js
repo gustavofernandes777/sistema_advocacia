@@ -7,26 +7,57 @@ const apiBaseUrl = 'https://c1b8d2bcf4e1.ngrok-free.app';
 
 // Verifica autenticação
 async function checkAuth() {
+    console.log('🔐 Verificando autenticação...');
+    
     const token = localStorage.getItem('access_token');
+    console.log('📦 Token no localStorage:', token ? `Encontrado (${token.length} chars)` : 'Não encontrado');
+    
     if (!token) {
+        console.log('❌ Nenhum token encontrado, redirecionando para login...');
         window.location.href = 'login.html';
-        return;
+        return false;
     }
 
     try {
+        console.log('🌐 Testando token com API...');
         const response = await fetch(`${apiBaseUrl}/users/me/`, {
+            method: 'GET',
             headers: {
                 'Authorization': `Bearer ${token}`
-            }
+            },
+            credentials: 'include' // 🔥 IMPORTANTE!
         });
 
+        console.log('📊 Status da resposta:', response.status);
+        
         if (!response.ok) {
-            throw new Error('Não autorizado');
+            if (response.status === 401) {
+                console.log('❌ Token inválido ou expirado (401)');
+                throw new Error('Token inválido');
+            }
+            throw new Error(`Erro HTTP: ${response.status}`);
         }
 
-        currentUser = await response.json();
+        const userData = await response.json();
+        console.log('✅ Autenticação válida! Usuário:', userData.email);
+        currentUser = userData;
+        return true;
+        
     } catch (error) {
-        logout();
+        console.error('❌ Erro na verificação de autenticação:', error);
+        
+        // Mostrar feedback para o usuário
+        showError('Sessão expirada. Faça login novamente.');
+        
+        // Limpar token inválido
+        localStorage.removeItem('access_token');
+        
+        // Redirecionar para login
+        setTimeout(() => {
+            window.location.href = 'login.html';
+        }, 2000);
+        
+        return false;
     }
 }
 
@@ -57,7 +88,9 @@ async function loadUserData() {
 
 // Função de logout
 function logout() {
+    console.log('🚪 Efetuando logout...');
     localStorage.removeItem('access_token');
+    localStorage.removeItem('token_type');
     window.location.href = 'login.html';
 }
 
