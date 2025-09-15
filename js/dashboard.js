@@ -117,7 +117,7 @@ async function createUser() {
     }
 
     try {
-        const response = await fetch(`${apiBaseUrl}/users/`, {
+        const response = await safeFetch(`${apiBaseUrl}/users/`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -126,12 +126,12 @@ async function createUser() {
             body: JSON.stringify(userData)
         });
 
-        if (!response.ok) {
+        if (!response) {
             const errorData = await response.json();
             throw new Error(errorData.detail || 'Erro ao criar usuário');
         }
 
-        const result = await response.json();
+        //const result = response;
 
         Swal.fire({
             icon: 'success',
@@ -199,7 +199,7 @@ async function createClient() {
     };
 
     try {
-        const response = await fetch(`${apiBaseUrl}/clients/`, {
+        const response = await safeFetch(`${apiBaseUrl}/clients/`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -208,12 +208,12 @@ async function createClient() {
             body: JSON.stringify(clientData)
         });
 
-        if (!response.ok) {
+        if (!response) {
             const errorData = await response.json();
             throw new Error(errorData.detail || 'Erro ao criar cliente');
         }
 
-        const result = await response.json();
+        //const result = response;
 
         Swal.fire({
             icon: 'success',
@@ -422,7 +422,7 @@ async function loadProviders() {
         // Fazer a requisição com tratamento de erro melhorado
         let response;
         try {
-            response = await fetch(`${apiBaseUrl}/users/`, {
+            response = await safeFetch(`${apiBaseUrl}/users/`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Accept': 'application/json'
@@ -655,7 +655,7 @@ function setupEventListeners() {
         });
 
         try {
-            const response = await fetch(`${apiBaseUrl}/records/`, {
+            const response = await safeFetch(`${apiBaseUrl}/records/`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('access_token')}`
@@ -663,12 +663,12 @@ function setupEventListeners() {
                 body: formData
             });
 
-            if (!response.ok) {
+            if (!response) {
                 const errorData = await response.json();
                 throw new Error(errorData.detail || 'Erro ao criar registro');
             }
 
-            const newRecord = await response.json();
+            const newRecord = response;
             console.log('Registro criado:', newRecord); // Para depuração
 
             Swal.fire({
@@ -774,14 +774,14 @@ function setupEventListeners() {
 
             if (result.isConfirmed) {
                 try {
-                    const response = await fetch(`${apiBaseUrl}/records/${record.id}`, {
+                    const response = await safeFetch(`${apiBaseUrl}/records/${record.id}`, {
                         method: 'DELETE',
                         headers: {
                             'Authorization': `Bearer ${localStorage.getItem('access_token')}`
                         }
                     });
 
-                    if (!response.ok) throw new Error('Erro ao excluir registro');
+                    if (!response) throw new Error('Erro ao excluir registro');
 
                     Swal.fire({
                         icon: 'success',
