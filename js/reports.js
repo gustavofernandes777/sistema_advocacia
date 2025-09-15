@@ -22,6 +22,54 @@ document.addEventListener('DOMContentLoaded', async () => {
     loadDataFromAPI();
 });
 
+async function safeFetch(url, options = {}) {
+    try {
+        // Fazer a requisição
+        const response = await fetch(url, {
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                ...options.headers
+            },
+            credentials: 'include',
+            ...options
+        });
+
+        // Verificar se response é válido
+        if (!response) {
+            throw new Error('Nenhuma resposta recebida do servidor');
+        }
+
+        // Verificar se headers existe
+        if (!response.headers) {
+            throw new Error('Resposta sem headers do servidor');
+        }
+
+        // Verificar tipo de conteúdo
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            const text = await response.text();
+            
+            if (text.includes('<!DOCTYPE') || text.includes('<html')) {
+                throw new Error(`Servidor retornou HTML em vez de JSON. Status: ${response.status}`);
+            }
+            
+            throw new Error(`Resposta inesperada: ${contentType}. Status: ${response.status}`);
+        }
+        
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.detail || `HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        return response.json();
+        
+    } catch (error) {
+        console.error('Erro no safeFetch:', error);
+        throw error; // Re-lançar o erro para ser tratado pelo chamador
+    }
+}
+
 async function loadDataFromAPI() {
     showLoading();
 
@@ -33,19 +81,19 @@ async function loadDataFromAPI() {
 
         // Buscar registros e clientes em paralelo
         const [recordsResponse, clientsResponse, usersResponse] = await Promise.all([
-            fetch(`${apiBaseUrl}/records/reports/`, {
+            safeFetch(`${apiBaseUrl}/records/reports/`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
                 }
             }),
-            fetch(`${apiBaseUrl}/clients/`, {
+            safeFetch(`${apiBaseUrl}/clients/`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
                 }
             }),
-            fetch(`${apiBaseUrl}/users/`, {
+            safeFetch(`${apiBaseUrl}/users/`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
