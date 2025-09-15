@@ -160,18 +160,34 @@ function openUserModal() {
 // Função para carregar clientes
 async function loadClients() {
     try {
-        const response = await fetch(`${apiBaseUrl}/clients/`, {
+        console.log('🔄 Carregando clientes...');
+        
+        const token = localStorage.getItem('access_token');
+        if (!token) {
+            throw new Error('Token não encontrado');
+        }
+
+        clientsData = await safeFetch(`${apiBaseUrl}/clients/`, {
             headers: {
-                'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                'Authorization': `Bearer ${token}`
             }
         });
 
-        if (!response.ok) throw new Error('Erro ao carregar clientes');
-
-        clientsData = await response.json();
+        console.log(`✅ ${clientsData.length} clientes carregados`);
         updateClientSelect();
+        return clientsData;
+        
     } catch (error) {
-        showError(error);
+        console.error('❌ Erro ao carregar clientes:', error);
+        
+        if (error.message.includes('Não autorizado') || error.message.includes('401')) {
+            localStorage.removeItem('access_token');
+            window.location.href = 'login.html';
+        } else {
+            showError('Erro ao carregar clientes: ' + error.message);
+        }
+        
+        return [];
     }
 }
 
