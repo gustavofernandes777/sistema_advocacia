@@ -324,6 +324,13 @@ async function checkAuth() {
             throw new Error(`Erro HTTP: ${response.status}`);
         }
 
+        const user = await response.json();
+        if (user.type !== 'admin') {
+            alert('Acesso restrito a administradores');
+            window.location.href = 'index.html';
+            return;
+        }
+
         const userData = await response.json();
         console.log('✅ Autenticação válida! Usuário:', userData.email);
         currentUser = userData;
