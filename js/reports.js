@@ -627,6 +627,11 @@ async function viewRecordDetails(recordId) {
             }
         });
 
+        if (!response) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.detail || `Erro ao carregar detalhes: ${response.status}`);
+        }
+
         showRecordModal(response);
 
     } catch (error) {
@@ -1849,7 +1854,7 @@ async function saveFinancialData(recordId) {
         }
 
         // Primeiro, salvar as informações financeiras
-        const financialResponse = await fetch(`${apiBaseUrl}/records/${recordId}/financial`, {
+        const financialResponse = await safeFetch(`${apiBaseUrl}/records/${recordId}/financial`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
@@ -1863,7 +1868,7 @@ async function saveFinancialData(recordId) {
         });
 
         // Verificar se a resposta é OK
-        if (!financialResponse.ok) {
+        if (!financialResponse) {
             let errorDetail = 'Erro ao salvar dados financeiros';
             try {
                 const errorData = await financialResponse.json();
@@ -1875,7 +1880,7 @@ async function saveFinancialData(recordId) {
         }
 
         // Depois de salvar as informações financeiras com sucesso, fechar o registro
-        const closeResponse = await fetch(`${apiBaseUrl}/records/${recordId}/close`, {
+        const closeResponse = await safeFetch(`${apiBaseUrl}/records/${recordId}/close`, {
             method: 'PATCH',
             headers: {
                 'Authorization': `Bearer ${token}`,
@@ -1884,7 +1889,7 @@ async function saveFinancialData(recordId) {
         });
 
         // Verificar se a resposta de fechamento é OK
-        if (!closeResponse.ok) {
+        if (!closeResponse) {
             let errorDetail = 'Erro ao fechar registro';
             try {
                 const errorData = await closeResponse.json();
