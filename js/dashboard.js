@@ -462,7 +462,7 @@ async function loadProviders() {
             throw new Error(`Erro HTTP: ${response.status}`);
         }
 
-        const users = await response.json();
+        const users = response;
         const providerSelect = document.getElementById('provider_id');
 
         if (!providerSelect) {
