@@ -240,31 +240,43 @@ async function loadRecords() {
         loadingElement.style.display = 'flex';
         tableBody.innerHTML = '';
 
-        const response = await fetch(`${apiBaseUrl}/records/`, {
+        console.log('🔄 Carregando registros...');
+        
+        const token = localStorage.getItem('access_token');
+        if (!token) {
+            throw new Error('Token não encontrado');
+        }
+
+        recordsData = await safeFetch(`${apiBaseUrl}/records/`, {
             headers: {
-                'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                'Authorization': `Bearer ${token}`
             }
         });
 
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.detail || 'Erro ao carregar registros');
-        }
-
-        recordsData = await response.json();
+        console.log(`✅ ${recordsData.length} registros carregados`);
 
         // Filtra os registros no frontend também para consistência
         if (currentUser && currentUser.type !== 'admin') {
             recordsData = recordsData.filter(record =>
                 record.provider?.id === currentUser.id
             );
+            console.log(`📊 ${recordsData.length} registros após filtro`);
         }
 
         renderRecords(recordsData);
         updateStatusCounts();
 
     } catch (error) {
-        showError(error);
+        console.error('❌ Erro ao carregar registros:', error);
+        showError(error.message);
+        
+        // Se for erro de autenticação, redirecionar para login
+        if (error.message.includes('Não autorizado') || error.message.includes('401')) {
+            localStorage.removeItem('access_token');
+            setTimeout(() => {
+                window.location.href = 'login.html';
+            }, 2000);
+        }
     } finally {
         loadingElement.style.display = 'none';
     }
