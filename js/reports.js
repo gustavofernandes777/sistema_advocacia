@@ -620,7 +620,7 @@ async function viewRecordDetails(recordId) {
             throw new Error('Token de autenticação não encontrado');
         }
 
-        const response = await fetch(`${apiBaseUrl}/records/${recordId}`, {
+        const response = await safeFetch(`${apiBaseUrl}/records/${recordId}`, {
             headers: {
                 'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json'
@@ -632,7 +632,7 @@ async function viewRecordDetails(recordId) {
             throw new Error(errorData.detail || `Erro ao carregar detalhes: ${response.status}`);
         }
 
-        const record = await response.json();
+        const record = response;
         showRecordModal(record);
 
     } catch (error) {
