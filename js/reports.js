@@ -12,7 +12,7 @@ const statusMap = {
     'suspensa': 'Suspensa',
     'entregue': 'Entregue',
     'finalizada': 'Finalizada',
-    'fechada': 'Fechada'  // Novo status
+    'fechada': 'Fechada'
 };
 
 // Inicialização
@@ -27,23 +27,44 @@ async function loadDataFromAPI() {
 
     try {
         const token = localStorage.getItem('access_token');
+        if (!token) {
+            throw new Error('Token de autenticação não encontrado');
+        }
 
         // Buscar registros e clientes em paralelo
         const [recordsResponse, clientsResponse, usersResponse] = await Promise.all([
             fetch(`${apiBaseUrl}/records/reports/`, {
-                headers: { 'Authorization': `Bearer ${token}` }
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
             }),
             fetch(`${apiBaseUrl}/clients/`, {
-                headers: { 'Authorization': `Bearer ${token}` }
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
             }),
             fetch(`${apiBaseUrl}/users/`, {
-                headers: { 'Authorization': `Bearer ${token}` }
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
             })
         ]);
 
-
+        // Verificar todas as respostas
         if (!recordsResponse.ok) {
-            throw new Error('Erro ao carregar registros');
+            const errorData = await recordsResponse.json().catch(() => ({}));
+            throw new Error(errorData.detail || `Erro ao carregar registros: ${recordsResponse.status}`);
+        }
+
+        if (!clientsResponse.ok) {
+            console.warn('Erro ao carregar clientes, usando lista vazia');
+        }
+
+        if (!usersResponse.ok) {
+            console.warn('Erro ao carregar usuários, usando lista vazia');
         }
 
         const records = await recordsResponse.json();
@@ -56,7 +77,7 @@ async function loadDataFromAPI() {
 
         // Atualizar filtro de clientes
         updateClientFilter(clients);
-        updateProviderFilter(users)
+        updateProviderFilter(users);
 
         updateDashboard();
         createCharts();
@@ -65,7 +86,7 @@ async function loadDataFromAPI() {
     } catch (error) {
         console.error('Erro ao carregar dados:', error);
         hideLoading();
-        showNotification('Erro ao carregar dados. Usando dados de exemplo.', 'warning');
+        showNotification('Erro ao carregar dados: ' + error.message, 'error');
     }
 }
 
@@ -82,12 +103,15 @@ async function transformRecordsData(records) {
                 try {
                     const financialResponse = await fetch(`${apiBaseUrl}/records/${record.id}/financial`, {
                         headers: {
-                            'Authorization': `Bearer ${token}`
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
                         }
                     });
 
                     if (financialResponse.ok) {
                         financialData = await financialResponse.json();
+                    } else {
+                        console.warn(`Erro ao buscar dados financeiros para registro ${record.id}: ${financialResponse.status}`);
                     }
                 } catch (error) {
                     console.error('Erro ao buscar dados financeiros:', error);
@@ -106,7 +130,7 @@ async function transformRecordsData(records) {
                 company: record.client.name,
                 city: record.city,
                 state: record.state,
-                expense: totalExpenses, // Apenas despesas
+                expense: totalExpenses,
                 status: record.status,
                 document_type: record.document_type,
                 provider: record.provider.name,
@@ -115,8 +139,8 @@ async function transformRecordsData(records) {
                 info: record.info,
                 priority: record.priority,
                 last_update: record.last_update,
-                financial: financialData, // Informações financeiras
-                expenses: record.expenses || [] // Manter array de despesas para cálculo
+                financial: financialData,
+                expenses: record.expenses || []
             });
 
         } catch (error) {
@@ -131,28 +155,35 @@ async function transformRecordsData(records) {
 async function fetchAdditionalData() {
     try {
         const token = localStorage.getItem('access_token');
+        if (!token) return;
 
         // Buscar clientes para filtro
         const clientsResponse = await fetch(`${apiBaseUrl}/clients/`, {
             headers: {
-                'Authorization': `Bearer ${token}`
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
             }
         });
 
         const usersResponse = await fetch(`${apiBaseUrl}/users/`, {
             headers: {
-                'Authorization': `Bearer ${token}`
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
             }
         });
 
         if (clientsResponse.ok) {
             const clients = await clientsResponse.json();
             updateClientFilter(clients);
+        } else {
+            console.warn('Erro ao buscar clientes para filtro');
         }
 
         if (usersResponse.ok) {
-            const users = await clientsResponse.json();
+            const users = await usersResponse.json();
             updateProviderFilter(users);
+        } else {
+            console.warn('Erro ao buscar usuários para filtro');
         }
 
     } catch (error) {
@@ -272,22 +303,33 @@ async function checkAuth() {
         // Verificar se o usuário é admin
         const response = await fetch(`${apiBaseUrl}/users/me/`, {
             headers: {
-                'Authorization': `Bearer ${token}`
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
             }
         });
 
         if (!response.ok) {
-            throw new Error('Não autorizado');
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.detail || `HTTP ${response.status} - ${response.statusText}`);
         }
 
         const user = await response.json();
         if (user.type !== 'admin') {
             alert('Acesso restrito a administradores');
             window.location.href = 'index.html';
+            return;
         }
+
+        // Se chegou aqui, é admin, pode carregar os dados
+        setupEventListeners();
+        loadDataFromAPI();
+
     } catch (error) {
         console.error('Erro de autenticação:', error);
-        window.location.href = 'login.html';
+        showNotification('Erro de autenticação. Redirecionando para login...', 'error');
+        setTimeout(() => {
+            window.location.href = 'login.html';
+        }, 2000);
     }
 }
 
@@ -519,14 +561,20 @@ async function viewRecordDetails(recordId) {
 
     try {
         const token = localStorage.getItem('access_token');
+        if (!token) {
+            throw new Error('Token de autenticação não encontrado');
+        }
+
         const response = await fetch(`${apiBaseUrl}/records/${recordId}`, {
             headers: {
-                'Authorization': `Bearer ${token}`
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
             }
         });
 
         if (!response.ok) {
-            throw new Error('Erro ao carregar detalhes do registro');
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.detail || `Erro ao carregar detalhes: ${response.status}`);
         }
 
         const record = await response.json();
@@ -534,12 +582,11 @@ async function viewRecordDetails(recordId) {
 
     } catch (error) {
         console.error('Erro ao carregar detalhes:', error);
-        showNotification('Erro ao carregar detalhes do registro', 'error');
+        showNotification('Erro ao carregar detalhes do registro: ' + error.message, 'error');
     }
 
     hideLoading();
 }
-
 // Função para mostrar modal com detalhes do registro
 function showRecordModal(record) {
     // Calcular totais
@@ -1724,7 +1771,6 @@ function showFinancialFormModal(recordId, expense, financialData) {
 }
 
 // Função para salvar dados financeiros E fechar o registro
-// Função para salvar dados financeiros E fechar o registro
 async function saveFinancialData(recordId) {
     const diligenceValue = parseFloat(document.getElementById('diligenceValue').value);
     const providerPayment = parseFloat(document.getElementById('providerPayment').value);
@@ -1815,13 +1861,17 @@ async function saveFinancialData(recordId) {
 
     } catch (error) {
         console.error('Erro detalhado ao salvar dados financeiros:', error);
-
-        // Mensagens de erro mais específicas
+        
         let errorMessage = error.message;
         if (error.message.includes('Failed to fetch')) {
             errorMessage = 'Erro de conexão com o servidor. Verifique se a API está rodando.';
         } else if (error.message.includes('NetworkError')) {
             errorMessage = 'Erro de rede. Verifique sua conexão com a internet.';
+        } else if (error.message.includes('401')) {
+            errorMessage = 'Sessão expirada. Faça login novamente.';
+            setTimeout(() => {
+                window.location.href = 'login.html';
+            }, 2000);
         }
 
         showNotification(errorMessage, 'error');
