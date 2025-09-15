@@ -293,43 +293,57 @@ function applyFilters() {
 
 // Verificar autenticação
 async function checkAuth() {
+    console.log('🔐 Verificando autenticação...');
+    
     const token = localStorage.getItem('access_token');
+    console.log('📦 Token no localStorage:', token ? `Encontrado (${token.length} chars)` : 'Não encontrado');
+    
     if (!token) {
+        console.log('❌ Nenhum token encontrado, redirecionando para login...');
         window.location.href = 'login.html';
-        return;
+        return false;
     }
 
     try {
-        // Verificar se o usuário é admin
+        console.log('🌐 Testando token com API...');
         const response = await fetch(`${apiBaseUrl}/users/me/`, {
+            method: 'GET',
             headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            }
+                'Authorization': `Bearer ${token}`
+            },
+            credentials: 'include' // 🔥 IMPORTANTE!
         });
 
+        console.log('📊 Status da resposta:', response.status);
+        
         if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.detail || `HTTP ${response.status} - ${response.statusText}`);
+            if (response.status === 401) {
+                console.log('❌ Token inválido ou expirado (401)');
+                throw new Error('Token inválido');
+            }
+            throw new Error(`Erro HTTP: ${response.status}`);
         }
 
-        const user = await response.json();
-        if (user.type !== 'admin') {
-            alert('Acesso restrito a administradores');
-            window.location.href = 'index.html';
-            return;
-        }
-
-        // Se chegou aqui, é admin, pode carregar os dados
-        setupEventListeners();
-        loadDataFromAPI();
-
+        const userData = await response.json();
+        console.log('✅ Autenticação válida! Usuário:', userData.email);
+        currentUser = userData;
+        return true;
+        
     } catch (error) {
-        console.error('Erro de autenticação:', error);
-        showNotification('Erro de autenticação. Redirecionando para login...', 'error');
+        console.error('❌ Erro na verificação de autenticação:', error);
+        
+        // Mostrar feedback para o usuário
+        showError('Sessão expirada. Faça login novamente.');
+        
+        // Limpar token inválido
+        localStorage.removeItem('access_token');
+        
+        // Redirecionar para login
         setTimeout(() => {
             window.location.href = 'login.html';
         }, 2000);
+        
+        return false;
     }
 }
 
