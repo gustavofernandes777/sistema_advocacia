@@ -632,7 +632,7 @@ async function viewRecordDetails(recordId) {
             throw new Error(errorData.detail || `Erro ao carregar detalhes: ${response.status}`);
         }
 
-        const record = response;
+        const record = await response.json();
         showRecordModal(record);
 
     } catch (error) {
