@@ -101,20 +101,6 @@ async function loadDataFromAPI() {
             })
         ]);
 
-        // Verificar todas as respostas
-        if (!recordsResponse.ok) {
-            const errorData = await recordsResponse.json().catch(() => ({}));
-            throw new Error(errorData.detail || `Erro ao carregar registros: ${recordsResponse.status}`);
-        }
-
-        if (!clientsResponse.ok) {
-            console.warn('Erro ao carregar clientes, usando lista vazia');
-        }
-
-        if (!usersResponse.ok) {
-            console.warn('Erro ao carregar usuários, usando lista vazia');
-        }
-
         const records = await recordsResponse.json();
         const clients = clientsResponse.ok ? await clientsResponse.json() : [];
         const users = usersResponse.ok ? await usersResponse.json() : [];
