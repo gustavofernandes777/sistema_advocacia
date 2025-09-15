@@ -283,7 +283,7 @@ async function checkAuth() {
         const user = await response.json();
         if (user.type !== 'admin') {
             alert('Acesso restrito a administradores');
-            window.location.href = 'dashboard.html';
+            window.location.href = 'index.html';
         }
     } catch (error) {
         console.error('Erro de autenticação:', error);

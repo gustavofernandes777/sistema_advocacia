@@ -24,7 +24,7 @@ async function checkAuth() {
         // Verificar se é admin
         if (currentUser.type !== 'admin') {
             alert('Acesso restrito a administradores');
-            window.location.href = 'dashboard.html';
+            window.location.href = 'index.html';
             return;
         }
 

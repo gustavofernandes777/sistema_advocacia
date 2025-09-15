@@ -139,7 +139,7 @@ async function loadRecordData(recordId) {
             icon: 'error',
             title: 'Erro',
             text: error.message
-        }).then(() => window.location.href = 'dashboard.html');
+        }).then(() => window.location.href = 'index.html');
     }
 }
 
@@ -496,7 +496,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const recordId = urlParams.get('id');
 
     if (!recordId) {
-        window.location.href = 'dashboard.html';
+        window.location.href = 'index.html';
         return;
     }
 
@@ -519,7 +519,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             title: 'Erro',
             text: 'Não foi possível carregar a página de edição'
         }).then(() => {
-            window.location.href = 'dashboard.html';
+            window.location.href = 'index.html';
         });
     }
 
@@ -554,7 +554,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Botão cancelar
     document.getElementById('cancel-edit').addEventListener('click', () => {
         // Redireciona SEM enviar dados para o backend
-        window.location.href = 'dashboard.html';
+        window.location.href = 'index.html';
     });
 
 
@@ -944,7 +944,7 @@ async function saveAllChanges() {
             title: 'Sucesso!',
             text: 'Registro atualizado com sucesso'
         }).then(() => {
-            window.location.href = 'dashboard.html';
+            window.location.href = 'index.html';
         });
     } catch (error) {
         console.error('Erro no salvamento completo:', error);
