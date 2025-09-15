@@ -101,9 +101,9 @@ async function loadDataFromAPI() {
             })
         ]);
 
-        const records = await recordsResponse.json();
-        const clients = clientsResponse.ok ? await clientsResponse.json() : [];
-        const users = usersResponse.ok ? await usersResponse.json() : [];
+        const records = recordsResponse;
+        const clients = clientsResponse.ok ? clientsResponse : [];
+        const users = usersResponse.ok ? usersResponse : [];
 
         // Transformar dados
         allData = await transformRecordsData(records);
