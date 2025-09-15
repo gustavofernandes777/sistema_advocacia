@@ -135,7 +135,7 @@ async function transformRecordsData(records) {
             let financialData = null;
             if (record.status === 'finalizada' || record.status === 'fechada') {
                 try {
-                    const financialResponse = await fetch(`${apiBaseUrl}/records/${record.id}/financial`, {
+                    const financialResponse = await safeFetch(`${apiBaseUrl}/records/${record.id}/financial`, {
                         headers: {
                             'Authorization': `Bearer ${token}`,
                             'Content-Type': 'application/json'
@@ -143,7 +143,7 @@ async function transformRecordsData(records) {
                     });
 
                     if (financialResponse.ok) {
-                        financialData = await financialResponse.json();
+                        financialData = financialResponse;
                     } else {
                         console.warn(`Erro ao buscar dados financeiros para registro ${record.id}: ${financialResponse.status}`);
                     }
@@ -192,14 +192,14 @@ async function fetchAdditionalData() {
         if (!token) return;
 
         // Buscar clientes para filtro
-        const clientsResponse = await fetch(`${apiBaseUrl}/clients/`, {
+        const clientsResponse = await safeFetch(`${apiBaseUrl}/clients/`, {
             headers: {
                 'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json'
             }
         });
 
-        const usersResponse = await fetch(`${apiBaseUrl}/users/`, {
+        const usersResponse = await safeFetch(`${apiBaseUrl}/users/`, {
             headers: {
                 'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json'
@@ -207,14 +207,14 @@ async function fetchAdditionalData() {
         });
 
         if (clientsResponse.ok) {
-            const clients = await clientsResponse.json();
+            const clients = clientsResponse;
             updateClientFilter(clients);
         } else {
             console.warn('Erro ao buscar clientes para filtro');
         }
 
         if (usersResponse.ok) {
-            const users = await usersResponse.json();
+            const users = usersResponse;
             updateProviderFilter(users);
         } else {
             console.warn('Erro ao buscar usuários para filtro');
@@ -632,7 +632,7 @@ async function viewRecordDetails(recordId) {
             throw new Error(errorData.detail || `Erro ao carregar detalhes: ${response.status}`);
         }
 
-        const record = await response.json();
+        const record = response;
         showRecordModal(record);
 
     } catch (error) {
