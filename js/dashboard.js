@@ -443,7 +443,7 @@ async function loadProviders() {
         console.log('✅ Response recebido:', response);
 
         // Verificar se a resposta é JSON - AGORA COM VERIFICAÇÃO DE SEGURANÇA
-        const contentType = response.headers ? response.headers.get('content-type') : null;
+        /*const contentType = response.headers ? response.headers.get('content-type') : null;
         
         if (!contentType || !contentType.includes('application/json')) {
             const errorText = await response.text();
@@ -457,8 +457,8 @@ async function loadProviders() {
                 throw new Error(`Resposta inesperada do servidor: ${response.status}`);
             }
         }
-
-        if (!response.ok) {
+*/
+        if (!response) {
             throw new Error(`Erro HTTP: ${response.status}`);
         }
 
