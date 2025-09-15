@@ -1,4 +1,4 @@
-const apiBaseUrl = 'https://8829cbba56b9.ngrok-free.app';
+const apiBaseUrl = 'https://c1b8d2bcf4e1.ngrok-free.app';
 let currentUser = null;
 
 async function checkAuth() {
