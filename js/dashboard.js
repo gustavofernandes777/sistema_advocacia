@@ -325,24 +325,46 @@ function initDataTable() {
 async function loadProviders() {
     try {
         const token = localStorage.getItem('access_token');
+        if (!token) {
+            showError('Faça login primeiro');
+            window.location.href = 'login.html';
+            return;
+        }
+
         const response = await fetch(`${apiBaseUrl}/users/`, {
             headers: {
-                'Authorization': `Bearer ${token}`
-            }
+                'Authorization': `Bearer ${token}`,
+                'Accept': 'application/json' // Exigir JSON explicitamente
+            },
+            credentials: 'include'
         });
 
-        if (!response.ok) {
-            throw new Error(`Erro ${response.status} ao carregar prestadores`);
+        // Verificar se a resposta é JSON
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            const errorText = await response.text();
+            console.error('❌ Resposta não-JSON:', errorText.substring(0, 200));
+            
+            if (response.status === 401) {
+                throw new Error('Não autorizado. Faça login novamente.');
+            } else if (response.status === 404) {
+                throw new Error('Endpoint não encontrado. Verifique a URL.');
+            } else {
+                throw new Error(`Resposta inesperada do servidor: ${response.status}`);
+            }
         }
 
-        const users = await response.json(); // ✅ Agora funciona
+        if (!response.ok) {
+            throw new Error(`Erro HTTP: ${response.status}`);
+        }
+
+        const users = await response.json();
         const providerSelect = document.getElementById('provider_id');
 
-        // Manter apenas a primeira option (placeholder)
-        while (providerSelect.options.length > 1) {
-            providerSelect.remove(1);
-        }
-
+        // Limpar select
+        providerSelect.innerHTML = '<option value="">Selecione um prestador</option>';
+        
+        // Adicionar provedores
         users.forEach(user => {
             if (user.type === 'provedor' || user.type === 'admin') {
                 const option = document.createElement('option');
@@ -354,6 +376,14 @@ async function loadProviders() {
 
     } catch (error) {
         console.error('Erro ao carregar prestadores:', error);
+        
+        if (error.message.includes('Não autorizado') || error.message.includes('401')) {
+            // Token inválido ou expirado
+            localStorage.removeItem('access_token');
+            window.location.href = 'login.html';
+        } else {
+            showError('Erro ao carregar lista de prestadores: ' + error.message);
+        }
     }
 }
 
