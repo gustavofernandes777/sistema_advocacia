@@ -23,6 +23,7 @@ function getTokenInfo() {
 
 // Verifica autenticação
 async function checkAuth() {
+    debugger;
     console.log('🔐 Verificando autenticação...');
     
     const token = localStorage.getItem('access_token');
