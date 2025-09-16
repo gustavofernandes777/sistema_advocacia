@@ -103,7 +103,7 @@ function logout() {
     console.log('🚪 Efetuando logout...');
     localStorage.removeItem('access_token');
     localStorage.removeItem('token_type');
-    window.location.href = 'login.html';
+    //window.location.href = 'login.html';
 }
 
 // Função para criar usuário
