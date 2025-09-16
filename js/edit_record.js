@@ -2,6 +2,54 @@
 let currentRecord = null;
 const apiBaseUrl = 'https://c1b8d2bcf4e1.ngrok-free.app';
 
+async function safeFetch(url, options = {}) {
+    try {
+        // Fazer a requisição
+        const response = await fetch(url, {
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                ...options.headers
+            },
+            credentials: 'include',
+            ...options
+        });
+
+        // Verificar se response é válido
+        if (!response) {
+            throw new Error('Nenhuma resposta recebida do servidor');
+        }
+
+        // Verificar se headers existe
+        if (!response.headers) {
+            throw new Error('Resposta sem headers do servidor');
+        }
+
+        // Verificar tipo de conteúdo
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            const text = await response.text();
+            
+            if (text.includes('<!DOCTYPE') || text.includes('<html')) {
+                throw new Error(`Servidor retornou HTML em vez de JSON. Status: ${response.status}`);
+            }
+            
+            throw new Error(`Resposta inesperada: ${contentType}. Status: ${response.status}`);
+        }
+        
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.detail || `HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        return response.json();
+        
+    } catch (error) {
+        console.error('Erro no safeFetch:', error);
+        throw error; // Re-lançar o erro para ser tratado pelo chamador
+    }
+}
+
 const attachmentTemplate = (index, data = null) => {
     const title = data?.title || '';
     const description = data?.description || '';
@@ -113,15 +161,15 @@ const costExpenseTemplate = (type, index, data = null) => {
 // Carrega os dados do registro
 async function loadRecordData(recordId) {
     try {
-        const response = await fetch(`${apiBaseUrl}/records/${recordId}`, {
+        const response = await safeFetch(`${apiBaseUrl}/records/${recordId}`, {
             headers: {
                 'Authorization': `Bearer ${localStorage.getItem('access_token')}`
             }
         });
 
-        if (!response.ok) throw new Error('Erro ao carregar registro');
+        if (!response) throw new Error('Erro ao carregar registro');
 
-        currentRecord = await response.json();
+        currentRecord = response;
 
         // CORREÇÃO: Garante que sempre são arrays
         if (!currentRecord.costs || currentRecord.costs === null) {
@@ -264,7 +312,7 @@ function populateForm() {
 
 async function removeFile(fileUrl, type, id = null) {
     try {
-        const response = await fetch(`${apiBaseUrl}/records/${currentRecord.id}/files`, {
+        const response = await safeFetch(`${apiBaseUrl}/records/${currentRecord.id}/files`, {
             method: 'DELETE',
             headers: {
                 'Content-Type': 'application/json',
@@ -277,7 +325,7 @@ async function removeFile(fileUrl, type, id = null) {
             })
         });
 
-        if (!response.ok) {
+        if (!response) {
             throw new Error('Erro ao remover arquivo');
         }
 
@@ -322,19 +370,19 @@ async function removeFile(fileUrl, type, id = null) {
 
 async function removeAttachment(attachmentTitle) {
     try {
-        const response = await fetch(`${apiBaseUrl}/records/${currentRecord.id}/attachments/?attachment_title=${encodeURIComponent(attachmentTitle)}`, {
+        const response = await safeFetch(`${apiBaseUrl}/records/${currentRecord.id}/attachments/?attachment_title=${encodeURIComponent(attachmentTitle)}`, {
             method: 'DELETE',
             headers: {
                 'Authorization': `Bearer ${localStorage.getItem('access_token')}`
             }
         });
 
-        if (!response.ok) {
+        if (!response) {
             const errorData = await response.json();
             throw new Error(errorData.detail || 'Erro ao remover anexo');
         }
 
-        return await response.json();
+        return response;
     } catch (error) {
         console.error('Erro ao remover anexo:', error);
         throw error;
@@ -346,7 +394,7 @@ async function removeCost(costTitle) {
     try {
         console.log(`Removendo custa: ${costTitle}`);
 
-        const response = await fetch(`${apiBaseUrl}/records/${currentRecord.id}/costs/?cost_title=${encodeURIComponent(costTitle)}`, {
+        const response = await safeFetch(`${apiBaseUrl}/records/${currentRecord.id}/costs/?cost_title=${encodeURIComponent(costTitle)}`, {
             method: 'DELETE',
             headers: {
                 'Authorization': `Bearer ${localStorage.getItem('access_token')}`
@@ -355,7 +403,7 @@ async function removeCost(costTitle) {
 
         console.log('Resposta da remoção:', response.status);
 
-        if (!response.ok) {
+        if (!response) {
             let errorDetail = 'Erro ao remover custa';
             try {
                 const errorData = await response.json();
@@ -366,7 +414,7 @@ async function removeCost(costTitle) {
             throw new Error(errorDetail);
         }
 
-        return await response.json();
+        return response;
     } catch (error) {
         console.error('Erro ao remover custa:', error);
         throw error;
@@ -378,7 +426,7 @@ async function removeExpense(expenseTitle) {
     try {
         console.log(`Removendo despesa: ${expenseTitle}`);
 
-        const response = await fetch(`${apiBaseUrl}/records/${currentRecord.id}/expenses/?expense_title=${encodeURIComponent(expenseTitle)}`, {
+        const response = await safeFetch(`${apiBaseUrl}/records/${currentRecord.id}/expenses/?expense_title=${encodeURIComponent(expenseTitle)}`, {
             method: 'DELETE',
             headers: {
                 'Authorization': `Bearer ${localStorage.getItem('access_token')}`
@@ -387,7 +435,7 @@ async function removeExpense(expenseTitle) {
 
         console.log('Resposta da remoção:', response.status);
 
-        if (!response.ok) {
+        if (!response) {
             let errorDetail = 'Erro ao remover despesa';
             try {
                 const errorData = await response.json();
@@ -398,7 +446,7 @@ async function removeExpense(expenseTitle) {
             throw new Error(errorDetail);
         }
 
-        return await response.json();
+        return response;
     } catch (error) {
         console.error('Erro ao remover despesa:', error);
         throw error;
@@ -414,7 +462,7 @@ async function addNewAttachment(title, description, file) {
             formData.append('file', file);
         }
 
-        const response = await fetch(`${apiBaseUrl}/records/${currentRecord.id}/attachments/`, {
+        const response = await safeFetch(`${apiBaseUrl}/records/${currentRecord.id}/attachments/`, {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${localStorage.getItem('access_token')}`
@@ -422,11 +470,11 @@ async function addNewAttachment(title, description, file) {
             body: formData
         });
 
-        if (!response.ok) {
+        if (!response) {
             throw new Error('Erro ao adicionar anexo');
         }
 
-        return await response.json();
+        return response;
     } catch (error) {
         console.error('Erro ao adicionar anexo:', error);
         throw error;
@@ -443,7 +491,7 @@ async function addNewCost(title, value, file) {
             formData.append('file', file);
         }
 
-        const response = await fetch(`${apiBaseUrl}/records/${currentRecord.id}/costs/`, {
+        const response = await safeFetch(`${apiBaseUrl}/records/${currentRecord.id}/costs/`, {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${localStorage.getItem('access_token')}`
@@ -451,11 +499,11 @@ async function addNewCost(title, value, file) {
             body: formData
         });
 
-        if (!response.ok) {
+        if (!response) {
             throw new Error('Erro ao adicionar custa');
         }
 
-        return await response.json();
+        return response;
     } catch (error) {
         console.error('Erro ao adicionar custa:', error);
         throw error;
@@ -471,7 +519,7 @@ async function addNewExpense(title, value, file) {
             formData.append('file', file);
         }
 
-        const response = await fetch(`${apiBaseUrl}/records/${currentRecord.id}/expenses/`, {
+        const response = await safeFetch(`${apiBaseUrl}/records/${currentRecord.id}/expenses/`, {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${localStorage.getItem('access_token')}`
@@ -479,11 +527,11 @@ async function addNewExpense(title, value, file) {
             body: formData
         });
 
-        if (!response.ok) {
+        if (!response) {
             throw new Error('Erro ao adicionar despesa');
         }
 
-        return await response.json();
+        return response;
     } catch (error) {
         console.error('Erro ao adicionar despesa:', error);
         throw error;
@@ -632,7 +680,7 @@ async function saveBasicChanges() {
     formData.append('provider_id', recordData.provider_id);
 
     try {
-        const response = await fetch(`${apiBaseUrl}/records/${currentRecord.id}`, {
+        const response = await safeFetch(`${apiBaseUrl}/records/${currentRecord.id}`, {
             method: 'PUT',
             headers: {
                 'Authorization': `Bearer ${localStorage.getItem('access_token')}`
@@ -640,12 +688,12 @@ async function saveBasicChanges() {
             body: formData
         });
 
-        if (!response.ok) {
+        if (!response) {
             const errorData = await response.json();
             throw new Error(errorData.detail || 'Erro ao atualizar registro');
         }
 
-        return await response.json();
+        return response;
     } catch (error) {
         console.error('Erro ao salvar dados básicos:', error);
         throw error;
@@ -654,15 +702,15 @@ async function saveBasicChanges() {
 
 async function loadClients() {
     try {
-        const response = await fetch(`${apiBaseUrl}/clients/`, {
+        const response = await safeFetch(`${apiBaseUrl}/clients/`, {
             headers: {
                 'Authorization': `Bearer ${localStorage.getItem('access_token')}`
             }
         });
 
-        if (!response.ok) throw new Error('Erro ao carregar clientes');
+        if (!response) throw new Error('Erro ao carregar clientes');
 
-        const clients = await response.json();
+        const clients = response;
         const clientSelect = document.getElementById('edit-client-id');
 
         clients.forEach(client => {
@@ -678,15 +726,15 @@ async function loadClients() {
 
 async function loadProviders() {
     try {
-        const response = await fetch(`${apiBaseUrl}/users/`, {
+        const response = await safeFetch(`${apiBaseUrl}/users/`, {
             headers: {
                 'Authorization': `Bearer ${localStorage.getItem('access_token')}`
             }
         });
 
-        if (!response.ok) throw new Error('Erro ao carregar prestadores');
+        if (!response) throw new Error('Erro ao carregar prestadores');
 
-        const users = await response.json();
+        const users = response;
         const providerSelect = document.getElementById('edit-provider-id');
 
         // Limpa options existentes
@@ -845,7 +893,7 @@ async function checkAuth() {
 
     try {
         console.log('🌐 Testando token com API...');
-        const response = await fetch(`${apiBaseUrl}/users/me/`, {
+        const response = await safeFetch(`${apiBaseUrl}/users/me/`, {
             method: 'GET',
             headers: {
                 'Authorization': `Bearer ${token}`
@@ -855,7 +903,7 @@ async function checkAuth() {
 
         console.log('📊 Status da resposta:', response.status);
         
-        if (!response.ok) {
+        if (!response) {
             if (response.status === 401) {
                 console.log('❌ Token inválido ou expirado (401)');
                 throw new Error('Token inválido');
@@ -863,7 +911,7 @@ async function checkAuth() {
             throw new Error(`Erro HTTP: ${response.status}`);
         }
 
-        const userData = await response.json();
+        const userData = response;
         console.log('✅ Autenticação válida! Usuário:', userData.email);
         currentUser = userData;
         return true;
