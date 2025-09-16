@@ -123,55 +123,70 @@
         })();
 
         // 2. Função segura para fetch
-async function safeFetch(url, options = {}) {
+        async function safeFetch(url, options = {}) {
     try {
-        // Fazer a requisição
-        const response = await fetch(url, {
-            headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json',
-                ...options.headers
-            },
-            //credentials: 'include',
-            ...options
-        });
+        const response = await fetch(url, options);
 
-        // Verificar se response é válido
-        if (!response) {
-            throw new Error('Nenhuma resposta recebida do servidor');
-        }
-
-        // Verificar se headers existe
-        if (!response.headers) {
-            throw new Error('Resposta sem headers do servidor');
-        }
-
-        // Verificar tipo de conteúdo
-        const contentType = response.headers.get('content-type');
-        if (!contentType || !contentType.includes('application/json')) {
-            const text = await response.text();
+        if (!response) throw new Error('Nenhuma resposta recebida do servidor');
+        
+        // Primeiro, ler a resposta como texto para verificar o conteúdo
+        const responseText = await response.text();
+        
+        // Verificar se a resposta é HTML
+        if (responseText.trim().startsWith('<!DOCTYPE') || 
+            responseText.trim().startsWith('<html') || 
+            responseText.includes('</html>') ||
+            responseText.includes('<head>')) {
             
-            if (text.includes('<!DOCTYPE') || text.includes('<html')) {
-                throw new Error(`Servidor retornou HTML em vez de JSON. Status: ${response.status}`);
+            console.error("⚠️ Servidor retornou HTML em vez de JSON:", {
+                status: response.status,
+                url: url,
+                htmlPreview: responseText.substring(0, 200) + '...'
+            });
+
+            // Analisar o HTML para tentar entender o erro
+            let errorMessage = 'Servidor retornou página HTML. ';
+            
+            // Verificar se é página de erro do ngrok
+            if (responseText.includes('ngrok')) {
+                errorMessage += 'Possível erro de tunnel ngrok.';
+            } 
+            // Verificar se é erro de CORS
+            else if (responseText.includes('CORS') || responseText.includes('Origin')) {
+                errorMessage += 'Erro de CORS no servidor.';
+            }
+            // Verificar se é erro 404/500
+            else if (responseText.includes('404') || responseText.includes('500')) {
+                errorMessage += 'Endpoint não encontrado ou erro interno.';
+            }
+            else {
+                errorMessage += 'Verifique configuração do servidor.';
             }
             
-            throw new Error(`Resposta inesperada: ${contentType}. Status: ${response.status}`);
+            throw new Error(errorMessage);
         }
-        
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.detail || `HTTP ${response.status}: ${response.statusText}`);
+
+        // Se não for HTML, tentar parsear como JSON
+        try {
+            const data = JSON.parse(responseText);
+            
+            if (!response.ok) {
+                throw new Error(data.detail || `HTTP ${response.status}: ${response.statusText}`);
+            }
+
+            return data;
+        } catch (parseError) {
+            console.error("❌ Erro ao parsear JSON:", parseError, "Texto:", responseText.substring(0, 200));
+            throw new Error('Resposta do servidor não é JSON válido');
         }
-        
-        return response.json();
-        
+
     } catch (error) {
-        console.error('Erro no safeFetch:', error);
-        throw error; // Re-lançar o erro para ser tratado pelo chamador
+        console.error('❌ Erro no safeFetch:', error);
+        throw error;
     }
 }
         // 3. Login usando safeFetch
-        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
     e.preventDefault();
 
     const email = document.getElementById('email').value;
@@ -192,9 +207,9 @@ async function safeFetch(url, options = {}) {
         formData.append('client_id', '');
         formData.append('client_secret', '');
 
-        // 1. Fazer login para obter token
-        console.log('📤 Enviando requisição de login...');
-        const response = await fetch(`${API_URL}/token`, {
+        console.log('📤 Enviando requisição para:', `${API_URL}/token`);
+        
+        const data = await safeFetch(`${API_URL}/token`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
@@ -204,27 +219,6 @@ async function safeFetch(url, options = {}) {
             mode: 'cors'
         });
 
-        console.log('📥 Resposta recebida - Status:', response.status);
-        
-        // Verificar se a resposta é JSON
-        const contentType = response.headers.get('content-type');
-        if (!contentType || !contentType.includes('application/json')) {
-            const text = await response.text();
-            console.error('❌ Resposta não é JSON:', text.substring(0, 200));
-            
-            if (text.includes('<!DOCTYPE') || text.includes('<html')) {
-                throw new Error('Servidor retornou página HTML. Verifique CORS e configurações do servidor.');
-            } else {
-                throw new Error(`Servidor retornou: ${contentType || 'tipo desconhecido'}`);
-            }
-        }
-
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.detail || `Erro HTTP: ${response.status}`);
-        }
-
-        const data = await response.json();
         console.log('✅ Login successful:', data);
 
         const { access_token, token_type } = data;
@@ -233,16 +227,16 @@ async function safeFetch(url, options = {}) {
             throw new Error('Token não recebido na resposta');
         }
 
-        // Salvar token no localStorage
         localStorage.setItem('access_token', access_token);
         localStorage.setItem('token_type', token_type);
 
-        console.log('🔐 Token salvo no localStorage:', access_token ? `Encontrado (${access_token.length} chars)` : 'Não encontrado');
+        console.log('🔐 Token salvo no localStorage');
 
-        // 2. Testar autenticação com endpoint protegido
-        console.log('🌐 Testando autenticação com API...');
+        // Testar a autenticação com um endpoint simples primeiro
+        console.log('🌐 Testando autenticação...');
         
-        const userResponse = await safeFetch(`${apiBaseUrl}/users/me/`, {
+        // Primeiro teste: endpoint simples para verificar se o token funciona
+        const testResponse = await safeFetch(`${apiBaseUrl}/users/me/`, {
             method: 'GET',
             headers: {
                 'Authorization': `Bearer ${access_token}`,
@@ -251,27 +245,7 @@ async function safeFetch(url, options = {}) {
             mode: 'cors'
         });
 
-        console.log('📊 Status da resposta user/me:', userResponse.status);
-
-        // Verificar se a resposta é JSON
-        const userContentType = userResponse.headers.get('content-type');
-        if (!userContentType || !userContentType.includes('application/json')) {
-            const text = await userResponse.text();
-            console.error('❌ Resposta user/me não é JSON:', text.substring(0, 200));
-            
-            if (text.includes('<!DOCTYPE') || text.includes('<html')) {
-                throw new Error('Servidor retornou página HTML para endpoint protegido.');
-            }
-            throw new Error(`Servidor retornou: ${userContentType || 'tipo desconhecido'}`);
-        }
-
-        if (!userResponse.ok) {
-            const errorData = await userResponse.json().catch(() => ({}));
-            throw new Error(errorData.detail || `Erro HTTP: ${userResponse.status}`);
-        }
-
-        const userData = await userResponse.json();
-        console.log('✅ Autenticação válida! Usuário:', userData.email);
+        console.log('✅ Autenticação válida! Usuário:', testResponse.email);
 
         // Redirecionar após login bem-sucedido
         setTimeout(() => {
@@ -282,18 +256,21 @@ async function safeFetch(url, options = {}) {
         console.error('❌ Erro completo no login:', error);
 
         // Tratamento de erro específico
-        if (error.message.includes('HTML') || error.message.includes('<!DOCTYPE')) {
-            errorDiv.textContent = 'Erro de configuração do servidor. Contate o administrador.';
+        if (error.message.includes('HTML')) {
+            errorDiv.textContent = 'Erro de configuração do servidor. O servidor está retornando HTML em vez de JSON.';
+            errorDiv.innerHTML += '<br><small>Isso geralmente indica problemas de CORS ou configuração do servidor.</small>';
         } else if (error.message.includes('CORS')) {
-            errorDiv.textContent = 'Erro de conexão com o servidor. Verifique CORS.';
-        } else if (error.message.includes('401') || error.message.includes('403')) {
+            errorDiv.textContent = 'Erro de CORS. O servidor não está configurado para aceitar requisições desta origem.';
+        } else if (error.message.includes('ngrok')) {
+            errorDiv.textContent = 'Erro no tunnel ngrok. O link pode estar expirado ou incorreto.';
+        } else if (error.message.includes('401') || error.message.includes('credenciais')) {
             errorDiv.textContent = 'Email ou senha inválidos';
+        } else if (error.message.includes('404')) {
+            errorDiv.textContent = 'Endpoint não encontrado. Verifique a URL da API.';
         } else if (error.message.includes('NetworkError')) {
-            errorDiv.textContent = 'Erro de rede. Verifique sua conexão.';
+            errorDiv.textContent = 'Erro de rede. Verifique sua conexão com a internet.';
         } else {
-            errorDiv.textContent = error.message.includes('HTTP')
-                ? 'Erro de conexão com o servidor'
-                : 'Email ou senha inválidos';
+            errorDiv.textContent = error.message || 'Erro desconhecido durante o login';
         }
     }
 });
