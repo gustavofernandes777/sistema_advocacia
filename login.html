@@ -123,42 +123,41 @@
         })();
 
         // 2. Função segura para fetch
-        async function safeFetch(url, options = {}) {
-            try {
-                const response = await fetch(url, options);
+async function safeFetch(url, options = {}) {
+    try {
+        const response = await fetch(url, options);
 
-                if (!response) throw new Error('Nenhuma resposta recebida do servidor');
-                if (!response.headers) throw new Error('Resposta sem headers do servidor');
-
-                const contentType = response.headers.get('content-type');
-
-                // 🔍 Caso não seja JSON, logar conteúdo completo
-                if (!contentType || !contentType.includes('application/json')) {
-                    const text = await response.text();
-                    console.error("⚠️ Resposta inesperada do servidor (não JSON):", {
-                        status: response.status,
-                        contentType,
-                        body: text
-                    });
-
-                    throw new Error(
-                        `Servidor retornou ${contentType || 'desconhecido'} em vez de JSON. Status: ${response.status}`
-                    );
-                }
-
-                if (!response.ok) {
-                    const errorData = await response.json().catch(() => ({}));
-                    throw new Error(errorData.detail || `HTTP ${response.status}: ${response.statusText}`);
-                }
-
-                return response.json();
-
-            } catch (error) {
-                console.error('❌ Erro no safeFetch:', error);
-                throw error;
-            }
+        if (!response) throw new Error('Nenhuma resposta recebida do servidor');
+        
+        // Verificar se é HTML antes de tentar parsear JSON
+        const contentType = response.headers.get('content-type') || '';
+        const text = await response.text();
+        
+        if (contentType.includes('text/html') || text.trim().startsWith('<!DOCTYPE') || text.trim().startsWith('<html')) {
+            console.error("⚠️ Servidor retornou HTML em vez de JSON:", text.substring(0, 200));
+            throw new Error('Servidor retornou página HTML. Possível erro de configuração.');
         }
 
+        // Agora tente parsear como JSON
+        let data;
+        try {
+            data = JSON.parse(text);
+        } catch (parseError) {
+            console.error("❌ Erro ao parsear JSON:", parseError, "Texto:", text.substring(0, 200));
+            throw new Error('Resposta do servidor não é JSON válido');
+        }
+
+        if (!response.ok) {
+            throw new Error(data.detail || `HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        return data;
+
+    } catch (error) {
+        console.error('❌ Erro no safeFetch:', error);
+        throw error;
+    }
+}
 
         // 3. Login usando safeFetch
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
