@@ -28,7 +28,7 @@ async function checkAuth() {
 
     if (!token) {
         console.warn('❌ Nenhum token no localStorage — redirecionando');
-        window.location.href = 'login.html';
+        //window.location.href = 'login.html';
         return false;
     }
 
@@ -68,7 +68,7 @@ async function checkAuth() {
         // limpeza defensiva
         localStorage.removeItem('access_token');
         localStorage.removeItem('token');
-        setTimeout(() => window.location.href = 'login.html', 700);
+        //setTimeout(() => window.location.href = 'login.html', 700);
         return false;
     }
 }
