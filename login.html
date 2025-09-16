@@ -129,15 +129,15 @@
         async function safeFetch(url, options = {}) {
     try {
         // Fazer a requisição
-        const response = await fetch(`${API_URL}/token`, {
-    method: 'POST',
-    headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Accept': 'application/json',
-    },
-    body: formData.toString(),
-    mode: 'cors'
-});
+        const response = await fetch(url, {
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                ...options.headers
+            },
+            //credentials: 'include',
+            ...options
+        });
 
         // Verificar se response é válido
         if (!response) {
@@ -173,7 +173,6 @@
         throw error; // Re-lançar o erro para ser tratado pelo chamador
     }
 }
-
         // 2. CÓDIGO DE LOGIN ATUALIZADO
     document.getElementById('loginForm').addEventListener('submit', async (e) => {
     e.preventDefault();
