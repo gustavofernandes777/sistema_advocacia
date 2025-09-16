@@ -5,60 +5,70 @@ let recordsData = [];
 let dataTable;
 const apiBaseUrl = 'https://c58879383f23.ngrok-free.app';
 
+function getTokenInfo() {
+    const keys = [];
+    for (let i = 0; i < localStorage.length; i++) keys.push(localStorage.key(i));
+    console.log('DEBUG origin:', location.origin, 'href:', location.href);
+    console.log('DEBUG localStorage keys:', keys);
+
+    const token = localStorage.getItem('access_token')
+               || localStorage.getItem('token')
+               || localStorage.getItem('auth_token')
+               || null;
+
+    const tokenType = localStorage.getItem('token_type') || 'Bearer';
+    console.log('DEBUG token found?', !!token, 'tokenType:', tokenType);
+    return { token, tokenType };
+}
+
 // Verifica autenticação
 async function checkAuth() {
-    console.log('🔐 Verificando autenticação...');
-    
-    const token = localStorage.getItem('access_token');
-    console.log('📦 Token no localStorage:', token ? `Encontrado (${token.length} chars)` : 'Não encontrado');
-    
+    console.log('🔐 checkAuth() start');
+    const { token, tokenType } = getTokenInfo();
+
     if (!token) {
-        console.log('❌ Nenhum token encontrado, redirecionando para login...');
+        console.warn('❌ Nenhum token no localStorage — redirecionando');
         window.location.href = 'login.html';
         return false;
     }
 
     try {
-        console.log('🌐 Testando token com API...');
-        const response = await fetch(`${apiBaseUrl}/users/me/`, {
+        const resp = await fetch(`${apiBaseUrl}/users/me/`, {
             method: 'GET',
-            headers: {
-                'Authorization': `${localStorage.getItem("token_type")} ${localStorage.getItem("access_token")}`
-
-
-            },
-            credentials: 'include' // 🔥 IMPORTANTE!
+            headers: { 'Authorization': `${tokenType} ${token}` },
+            credentials: 'include'
         });
 
-        console.log('📊 Status da resposta:', response.status);
-        
-        if (!response.ok) {
-            if (response.status === 401) {
-                console.log('❌ Token inválido ou expirado (401)');
-                throw new Error('Token inválido');
+        console.log('checkAuth status:', resp.status);
+
+        // Se não for JSON, logar corpo para debug (evita "Unexpected token <" em response.json)
+        const ct = resp.headers.get('content-type') || '';
+        if (!ct.includes('application/json')) {
+            const text = await resp.text().catch(()=>'<no-text>');
+            console.error('Resposta não-JSON ao validar token:', text.slice(0,1000));
+            if (resp.status === 401) {
+                // token inválido: limpar e redirecionar
+                localStorage.removeItem('access_token');
+                localStorage.removeItem('token');
             }
-            throw new Error(`Erro HTTP: ${response.status}`);
+            throw new Error(`Resposta não-JSON (status ${resp.status})`);
         }
 
-        const userData = await response.json();
-        console.log('✅ Autenticação válida! Usuário:', userData.email);
+        if (!resp.ok) {
+            const err = await resp.json().catch(()=>({ detail: `HTTP ${resp.status}` }));
+            throw new Error(err.detail || `HTTP ${resp.status}`);
+        }
+
+        const userData = await resp.json();
+        console.log('✅ Auth válida. user:', userData.email || userData.name);
         currentUser = userData;
         return true;
-        
-    } catch (error) {
-        console.error('❌ Erro na verificação de autenticação:', error);
-        
-        // Mostrar feedback para o usuário
-        showError('Sessão expirada. Faça login novamente.');
-        
-        // Limpar token inválido
+    } catch (err) {
+        console.error('❌ checkAuth error:', err);
+        // limpeza defensiva
         localStorage.removeItem('access_token');
-        
-        // Redirecionar para login
-        setTimeout(() => {
-            window.location.href = 'login.html';
-        }, 2000);
-        
+        localStorage.removeItem('token');
+        setTimeout(() => window.location.href = 'login.html', 700);
         return false;
     }
 }
@@ -358,49 +368,45 @@ function initDataTable() {
 
 async function safeFetch(url, options = {}) {
     try {
-        // Fazer a requisição
-        const response = await fetch(url, {
-            headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json',
-                ...options.headers
-            },
+        options = options || {};
+        const headers = { Accept: 'application/json', ...(options.headers || {}) };
+
+        // Não colocar Content-Type quando o body for FormData (browser define o boundary)
+        if (!(options.body instanceof FormData)) {
+            headers['Content-Type'] = headers['Content-Type'] || 'application/json';
+        } else {
+            // se for FormData, garantir que não sobrescrevemos
+            delete headers['Content-Type'];
+        }
+
+        const resp = await fetch(url, {
             credentials: 'include',
-            ...options
+            ...options,
+            headers
         });
 
-        // Verificar se response é válido
-        if (!response) {
-            throw new Error('Nenhuma resposta recebida do servidor');
+        if (!resp || !resp.headers) {
+            throw new Error('Resposta inválida do servidor');
         }
 
-        // Verificar se headers existe
-        if (!response.headers) {
-            throw new Error('Resposta sem headers do servidor');
-        }
-
-        // Verificar tipo de conteúdo
-        const contentType = response.headers.get('content-type');
-        if (!contentType || !contentType.includes('application/json')) {
-            const text = await response.text();
-            
-            if (text.includes('<!DOCTYPE') || text.includes('<html')) {
-                throw new Error(`Servidor retornou HTML em vez de JSON. Status: ${response.status}`);
+        const contentType = resp.headers.get('content-type') || '';
+        if (!contentType.includes('application/json')) {
+            const text = await resp.text().catch(()=>'<no-text>');
+            if (text && (text.includes('<!DOCTYPE') || text.includes('<html'))) {
+                throw new Error(`Servidor retornou HTML em vez de JSON (status ${resp.status}). Começo do conteúdo: ${text.slice(0,200)}`);
             }
-            
-            throw new Error(`Resposta inesperada: ${contentType}. Status: ${response.status}`);
+            throw new Error(`Resposta inesperada (content-type: ${contentType}) status ${resp.status}`);
         }
-        
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.detail || `HTTP ${response.status}: ${response.statusText}`);
+
+        if (!resp.ok) {
+            const err = await resp.json().catch(()=>({ detail: `HTTP ${resp.status}` }));
+            throw new Error(err.detail || `HTTP ${resp.status}`);
         }
-        
-        return response.json();
-        
-    } catch (error) {
-        console.error('Erro no safeFetch:', error);
-        throw error; // Re-lançar o erro para ser tratado pelo chamador
+
+        return await resp.json();
+    } catch (err) {
+        console.error('safeFetch error:', err);
+        throw err;
     }
 }
 
