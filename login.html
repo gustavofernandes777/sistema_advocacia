@@ -91,12 +91,13 @@
     <script>
                 // 1. INTERCEPTOR PARA ADICIONAR TOKEN AUTOMATICAMENTE
         // Adicione este código no início do seu arquivo JavaScript
+    const API_URL = 'https://c58879383f23.ngrok-free.app';
         (function() {
     const originalFetch = window.fetch;
     
     window.fetch = async function(...args) {
     const [url, options = {}] = args;
-    const API_URL = 'https://c58879383f23.ngrok-free.app';
+    
     const isApiRequest = url.includes(API_URL) || url.startsWith('/');
 
     if (isApiRequest) {
@@ -185,8 +186,6 @@
     console.log('🔍 Iniciando login...');
 
     try {
-        const API_URL = 'https://c58879383f23.ngrok-free.app';
-
         // Vamos tentar uma abordagem diferente - usando o formato exato que o FastAPI espera
         const formData = new URLSearchParams();
         formData.append('username', email);
@@ -299,8 +298,6 @@
     if (window.location.pathname.includes('login.html')) return;
 
     const token = localStorage.getItem('access_token');
-    const API_URL = 'https://c58879383f23.ngrok-free.app';
-
     if (!token) {
         console.log('❌ Nenhum token encontrado, redirecionando para login...');
         window.location.href = 'login.html';
@@ -334,7 +331,6 @@
         // 4. FUNÇÃO UTILITÁRIA PARA REQUISIÇÕES API
         // Use esta função para todas as chamadas API
         async function apiRequest(endpoint, options = {}) {
-    const API_URL = 'https://c58879383f23.ngrok-free.app';
     const token = localStorage.getItem('access_token');
 
     const config = {
