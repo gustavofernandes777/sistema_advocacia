@@ -91,34 +91,40 @@
     <script>
                 // 1. INTERCEPTOR PARA ADICIONAR TOKEN AUTOMATICAMENTE
         // Adicione este código no início do seu arquivo JavaScript
-        const originalFetch = window.safeFetch;
-        window.safeFetch = async function (...args) {
-            const [url, options = {}] = args;
-
-            // Verificar se é uma requisição para nossa API
-            if (typeof url === 'string' &&
-                (url.includes('ngrok-free.app') ||
-                    url.includes('localhost:8000') ||
-                    url.includes('/token') ||
-                    url.startsWith('/'))) {
-
-                const token = localStorage.getItem('access_token');
-
-                // Se temos um token, adicionar ao header
-                if (token) {
-                    options.headers = {
-                        ...options.headers,
-                        'Authorization': `Bearer ${token}`
-                    };
-                    console.log('✅ Token adicionado à requisição:', url);
-                }
-
-                // Incluir credenciais
-                options.credentials = 'include';
+        (function() {
+    const originalFetch = window.fetch;
+    
+    window.fetch = async function(...args) {
+        const [url, options = {}] = args;
+        
+        // Verificar se é uma requisição para nossa API
+        const API_URL = 'https://c1b8d2bcf4e1.ngrok-free.app';
+        const isApiRequest = url.includes(API_URL) || url.startsWith('/');
+        
+        if (isApiRequest) {
+            const token = localStorage.getItem('access_token');
+            
+            // Configurar headers padrão
+            options.headers = {
+                ...options.headers,
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            };
+            
+            // Adicionar token se existir
+            if (token) {
+                options.headers['Authorization'] = `Bearer ${token}`;
+                console.log('✅ Token adicionado à requisição:', url);
             }
-
-            return originalFetch(url, options);
-        };
+            
+            // Incluir credenciais
+            options.credentials = 'include';
+            options.mode = 'cors';
+        }
+        
+        return originalFetch.call(this, url, options);
+    };
+})();
 
         async function safeFetch(url, options = {}) {
     try {
@@ -170,145 +176,161 @@
 
         // 2. CÓDIGO DE LOGIN ATUALIZADO
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
+    e.preventDefault();
 
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
-            const errorDiv = document.getElementById('error');
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+    const errorDiv = document.getElementById('error');
 
-            try {
-                // URL da API - substitua pela sua URL real
-                const API_URL = 'https://c1b8d2bcf4e1.ngrok-free.app';
+    try {
+        const API_URL = 'https://c1b8d2bcf4e1.ngrok-free.app';
 
-                const response = await safeFetch(`${API_URL}/token`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
-                    body: `username=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}`,
-                    credentials: 'include'
-                });
+        // Usar FormData para enviar como x-www-form-urlencoded
+        const formData = new URLSearchParams();
+        formData.append('username', email);
+        formData.append('password', password);
 
-                if (!response) {
-                    const errorData = response;
-                    throw new Error(errorData.detail || 'Erro ao fazer login');
-                }
+        const response = await fetch(`${API_URL}/token`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: formData,
+            credentials: 'include'
+        });
 
-                const { access_token, token_type } = response;
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(errorText || `HTTP ${response.status}`);
+        }
 
-                // Armazena o token no localStorage
-                localStorage.setItem('access_token', access_token);
-                localStorage.setItem('token_type', token_type);
+        const data = await response.json();
+        const { access_token, token_type } = data;
 
-                console.log('✅ Login bem-sucedido!');
-                console.log('Token armazenado:', access_token ? 'Sim' : 'Não');
-                console.log('Comprimento do token:', access_token.length);
+        // Armazena o token no localStorage
+        localStorage.setItem('access_token', access_token);
+        localStorage.setItem('token_type', token_type);
 
-                // Testar imediatamente se o token funciona
-                try {
-                    const testResponse = await safeFetch(`${API_URL}/users/me/`, {
-                        method: 'GET',
-                        headers: {
-                            'Authorization': `Bearer ${access_token}`
-                        }
-                    });
+        console.log('✅ Login bem-sucedido! Token:', access_token);
 
-                    if (testResponse) {
-                        const userData = testResponse;
-                        console.log('✅ Token válido! Usuário:', userData.email);
-                    } else {
-                        console.warn('⚠️ Token pode ter problemas');
-                    }
-                } catch (testError) {
-                    console.warn('⚠️ Teste do token falhou:', testError);
-                }
+        // Testar o token imediatamente
+        try {
+            const testResponse = await fetch(`${API_URL}/users/me/`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${access_token}`,
+                    'Accept': 'application/json'
+                },
+                credentials: 'include'
+            });
 
-                // Redireciona para a página principal após breve delay
+            if (testResponse.ok) {
+                const userData = await testResponse.json();
+                console.log('✅ Token válido! Usuário:', userData.email);
+                
+                // Redirecionar após login bem-sucedido
                 setTimeout(() => {
                     window.location.href = 'index.html';
                 }, 1000);
-
-            } catch (error) {
-                console.error('❌ Erro no login:', error);
-                errorDiv.textContent = error.message;
+            } else {
+                throw new Error('Token inválido');
             }
-        });
+        } catch (testError) {
+            console.warn('⚠️ Teste do token falhou:', testError);
+            throw testError;
+        }
+
+    } catch (error) {
+        console.error('❌ Erro no login:', error);
+        errorDiv.textContent = error.message || 'Erro ao fazer login';
+    }
+});
 
         // 3. VERIFICAÇÃO AUTOMÁTICA DE AUTENTICAÇÃO
         // Adicione este código em todas as páginas protegidas
-        document.addEventListener('DOMContentLoaded', function () {
-            // Não verificar na página de login
-            if (window.location.pathname.includes('login.html')) return;
+        document.addEventListener('DOMContentLoaded', function() {
+    if (window.location.pathname.includes('login.html')) return;
 
-            const token = localStorage.getItem('access_token');
-            const API_URL = 'https://c1b8d2bcf4e1.ngrok-free.app';
+    const token = localStorage.getItem('access_token');
+    const API_URL = 'https://c1b8d2bcf4e1.ngrok-free.app';
 
-            if (!token) {
-                console.log('❌ Nenhum token encontrado, redirecionando para login...');
-                window.location.href = 'login.html';
-                return;
-            }
+    if (!token) {
+        console.log('❌ Nenhum token encontrado, redirecionando para login...');
+        window.location.href = 'login.html';
+        return;
+    }
 
-            // Verificar se o token ainda é válido
-            safeFetch(`${API_URL}/users/me/`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            })
-                .then(response => {
-                    if (!response) {
-                        console.log('❌ Token inválido, redirecionando para login...');
-                        localStorage.removeItem('access_token');
-                        window.location.href = 'login.html';
-                    } else {
-                        console.log('✅ Token válido, usuário autenticado');
-                    }
-                })
-                .catch(error => {
-                    console.error('❌ Erro ao verificar autenticação:', error);
-                    window.location.href = 'login.html';
-                });
-        });
+    // Verificar token
+    fetch(`${API_URL}/users/me/`, {
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/json'
+        },
+        credentials: 'include'
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Token inválido');
+        }
+        return response.json();
+    })
+    .then(userData => {
+        console.log('✅ Usuário autenticado:', userData.email);
+    })
+    .catch(error => {
+        console.error('❌ Erro de autenticação:', error);
+        localStorage.removeItem('access_token');
+        window.location.href = 'login.html';
+    });
+});
 
         // 4. FUNÇÃO UTILITÁRIA PARA REQUISIÇÕES API
         // Use esta função para todas as chamadas API
         async function apiRequest(endpoint, options = {}) {
-            const API_URL = 'https://c1b8d2bcf4e1.ngrok-free.app';
-            const token = localStorage.getItem('access_token');
+    const API_URL = 'https://c1b8d2bcf4e1.ngrok-free.app';
+    const token = localStorage.getItem('access_token');
 
-            const defaultHeaders = {
-                'Content-Type': 'application/json',
-                ...options.headers,
-            };
+    const config = {
+        ...options,
+        headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            ...options.headers,
+        },
+        credentials: 'include',
+        mode: 'cors'
+    };
 
-            if (token) {
-                defaultHeaders['Authorization'] = `Bearer ${token}`;
-            }
+    if (token) {
+        config.headers['Authorization'] = `Bearer ${token}`;
+    }
 
-            try {
-                const response = await fetch(`${API_URL}${endpoint}`, {
-                    ...options,
-                    headers: defaultHeaders,
-                    credentials: 'include'
-                });
-
-                if (response.status === 401) {
-                    // Token expirado ou inválido
-                    localStorage.removeItem('access_token');
-                    window.location.href = 'login.html';
-                    throw new Error('Sessão expirada');
-                }
-
-                if (!response.ok) {
-                    throw new Error(`Erro HTTP: ${response.status}`);
-                }
-
-                return await response.json();
-            } catch (error) {
-                console.error('Erro na requisição API:', error);
-                throw error;
-            }
+    try {
+        const response = await fetch(`${API_URL}${endpoint}`, config);
+        
+        if (response.status === 401) {
+            localStorage.removeItem('access_token');
+            window.location.href = 'login.html';
+            throw new Error('Sessão expirada');
         }
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(errorText || `HTTP ${response.status}`);
+        }
+
+        // Verificar se a resposta tem conteúdo
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+            return await response.json();
+        }
+        
+        return await response.text();
+    } catch (error) {
+        console.error('Erro na requisição API:', error);
+        throw error;
+    }
+}
 
         // 5. EXEMPLO DE USO DA FUNÇÃO API
         // Em vez de fetch direto, use:
