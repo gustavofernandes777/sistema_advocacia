@@ -37,7 +37,7 @@ async function checkAuth() {
         const resp = await fetch(`${apiBaseUrl}/users/me/`, {
             method: 'GET',
             headers: { 'Authorization': `${tokenType} ${token}` },
-            credentials: 'include'
+            //credentials: 'include'
         });
 
         console.log('checkAuth status:', resp.status);
@@ -381,7 +381,7 @@ async function safeFetch(url, options = {}) {
         }
 
         const resp = await fetch(url, {
-            credentials: 'include',
+            //credentials: 'include',
             ...options,
             headers
         });
@@ -441,7 +441,7 @@ async function loadProviders() {
 
                     'Accept': 'application/json'
                 },
-                credentials: 'include'
+                //credentials: 'include'
             });
         } catch (fetchError) {
             console.error('❌ Erro na requisição fetch:', fetchError);
