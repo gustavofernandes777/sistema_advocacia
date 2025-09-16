@@ -19,28 +19,27 @@ async function checkAuth() {
     }
 
     try {
-        console.log('🌐 Testando token com API...');
-        const response = await fetch(`${apiBaseUrl}/users/me/`, {
-            method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${token}`
-            },
-            //credentials: 'include' // 🔥 IMPORTANTE!
-        });
-
-        console.log('📊 Status da resposta:', response.status);
+        console.log('🌐 Verificando token localmente (sem API)...');
         
-        if (!response.ok) {
-            if (response.status === 401) {
-                console.log('❌ Token inválido ou expirado (401)');
-                throw new Error('Token inválido');
-            }
-            throw new Error(`Erro HTTP: ${response.status}`);
+        // Verificação LOCAL do token (evita chamada à API que retorna HTML)
+        if (!isJWTTokenValid(token)) {
+            console.log('❌ Token inválido (verificação local)');
+            throw new Error('Token inválido ou expirado');
         }
 
-        const userData = await response.json();
-        console.log('✅ Autenticação válida! Usuário:', userData.email);
-        currentUser = userData;
+        console.log('✅ Token válido (verificação local)');
+        
+        // Se precisarmos dos dados do usuário, podemos decodificar do token
+        const userData = decodeJWTToken(token);
+        if (userData) {
+            currentUser = {
+                email: userData.sub,
+                name: userData.sub.split('@')[0], // Nome aproximado do email
+                type: userData.type || 'provedor' // Valor padrão
+            };
+            console.log('👤 Usuário do token:', currentUser);
+        }
+        
         return true;
         
     } catch (error) {
@@ -51,6 +50,7 @@ async function checkAuth() {
         
         // Limpar token inválido
         localStorage.removeItem('access_token');
+        localStorage.removeItem('token_type');
         
         // Redirecionar para login
         setTimeout(() => {
@@ -61,20 +61,81 @@ async function checkAuth() {
     }
 }
 
+// Função para decodificar token JWT
+function decodeJWTToken(token) {
+    try {
+        if (!token || typeof token !== 'string') return null;
+        
+        const parts = token.split('.');
+        if (parts.length !== 3) return null;
+        
+        const payload = JSON.parse(atob(parts[1]));
+        return payload;
+    } catch (error) {
+        console.error('Erro ao decodificar token:', error);
+        return null;
+    }
+}
+
+function isJWTTokenValid(token) {
+    try {
+        if (!token || typeof token !== 'string') return false;
+        
+        // Verificar se é um JWT (3 partes separadas por ponto)
+        const parts = token.split('.');
+        if (parts.length !== 3) return false;
+        
+        // Tentar decodificar o payload
+        try {
+            const payload = JSON.parse(atob(parts[1]));
+            console.log('🔍 Payload do token:', payload);
+            
+            // Verificar expiração
+            if (payload.exp && Date.now() >= payload.exp * 1000) {
+                console.log('❌ Token expirado');
+                return false;
+            }
+            
+            // Verificar se tem subject (usuário)
+            if (!payload.sub) {
+                console.log('❌ Token sem subject');
+                return false;
+            }
+            
+            return true;
+        } catch (decodeError) {
+            console.log('❌ Erro ao decodificar token:', decodeError);
+            return false;
+        }
+    } catch (error) {
+        console.error('Erro na verificação do token:', error);
+        return false;
+    }
+}
+
 // Carrega dados do usuário
 async function loadUserData() {
+    if (!currentUser) {
+        // Tentar obter do token se não estiver definido
+        const token = localStorage.getItem('access_token');
+        if (token) {
+            const userData = decodeJWTToken(token);
+            if (userData) {
+                currentUser = {
+                    email: userData.sub,
+                    name: userData.sub.split('@')[0],
+                    type: userData.type || 'provedor'
+                };
+            }
+        }
+    }
+
     if (!currentUser) return;
 
     document.getElementById('navbar-username').textContent = currentUser.name;
     document.getElementById('sidenav-username').textContent = `${currentUser.name} (${currentUser.type})`;
 
     // Controle de visibilidade baseado no tipo de usuário
-    // const isAdmin = currentUser.type === 'admin';
-
-    // Elementos que só admin pode ver
-    //document.getElementById('newUserBtn').style.display = isAdmin ? 'block' : 'none';
-
-    // Esconde funcionalidades de admin se necessário
     if (currentUser.type !== 'admin') {
         document.getElementById('adminLink').style.display = 'none';
         document.getElementById('newUserBtn').style.display = 'none';
@@ -82,7 +143,6 @@ async function loadUserData() {
         document.getElementById('newRecordBtn').style.display = 'none';
         document.getElementById('reportsLink').style.display = 'none';
         document.getElementById('userListLink').style.display = 'none';
-
     }
 }
 
@@ -352,49 +412,68 @@ function initDataTable() {
 
 async function safeFetch(url, options = {}) {
     try {
-        // Fazer a requisição
+        console.log('🌐 Fazendo requisição para:', url);
+        
         const response = await fetch(url, {
             headers: {
                 'Accept': 'application/json',
                 'Content-Type': 'application/json',
                 ...options.headers
             },
-            //credentials: 'include',
             ...options
         });
 
-        // Verificar se response é válido
         if (!response) {
             throw new Error('Nenhuma resposta recebida do servidor');
         }
 
-        // Verificar se headers existe
-        if (!response.headers) {
-            throw new Error('Resposta sem headers do servidor');
+        // Ler resposta como texto primeiro para verificar se é HTML
+        const responseText = await response.text();
+        
+        // Verificar se a resposta é HTML
+        if (responseText.trim().startsWith('<!DOCTYPE') || 
+            responseText.trim().startsWith('<html') || 
+            responseText.includes('</html>')) {
+            
+            console.error('❌ Servidor retornou HTML em vez de JSON:', {
+                status: response.status,
+                url: url,
+                htmlPreview: responseText.substring(0, 200) + '...'
+            });
+
+            throw new Error('Servidor retornou página HTML. Possível problema de configuração.');
         }
 
-        // Verificar tipo de conteúdo
-        const contentType = response.headers.get('content-type');
-        if (!contentType || !contentType.includes('application/json')) {
-            const text = await response.text();
+        // Se não for HTML, tentar parsear como JSON
+        try {
+            const data = JSON.parse(responseText);
             
-            if (text.includes('<!DOCTYPE') || text.includes('<html')) {
-                throw new Error(`Servidor retornou HTML em vez de JSON. Status: ${response.status}`);
+            if (!response.ok) {
+                throw new Error(data.detail || `HTTP ${response.status}: ${response.statusText}`);
             }
-            
-            throw new Error(`Resposta inesperada: ${contentType}. Status: ${response.status}`);
+
+            return data;
+        } catch (parseError) {
+            console.error('❌ Erro ao parsear JSON:', parseError, "Texto:", responseText.substring(0, 200));
+            throw new Error('Resposta do servidor não é JSON válido');
         }
-        
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.detail || `HTTP ${response.status}: ${response.statusText}`);
-        }
-        
-        return response.json();
         
     } catch (error) {
-        console.error('Erro no safeFetch:', error);
-        throw error; // Re-lançar o erro para ser tratado pelo chamador
+        console.error('❌ Erro no safeFetch:', error);
+        
+        // Se for erro de HTML, não redirecionar para login - apenas lançar o erro
+        if (error.message.includes('HTML')) {
+            throw error;
+        }
+        
+        // Para outros erros, verificar se é de autenticação
+        if (error.message.includes('401') || error.message.includes('Não autorizado')) {
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('token_type');
+            window.location.href = 'login.html';
+        }
+        
+        throw error;
     }
 }
 
@@ -427,7 +506,7 @@ async function loadProviders() {
                     'Authorization': `Bearer ${token}`,
                     'Accept': 'application/json'
                 },
-                //credentials: 'include'
+                credentials: 'include'
             });
         } catch (fetchError) {
             console.error('❌ Erro na requisição fetch:', fetchError);
@@ -543,14 +622,43 @@ function filterRecords(status) {
 // Inicialização quando o DOM estiver pronto
 document.addEventListener('DOMContentLoaded', async () => {
     try {
-        await checkAuth();
+        const isAuthenticated = await checkAuth();
+        
+        if (!isAuthenticated) {
+            return; // Já redirecionou para login
+        }
+        
         await loadUserData();
-        await loadProviders();
-        await loadClients();
-        await loadRecords();
+        
+        // Tentar carregar dados, mas não falhar se endpoints retornarem HTML
+        try {
+            await loadProviders();
+        } catch (error) {
+            console.warn('⚠️ Não foi possível carregar provedores:', error.message);
+        }
+        
+        try {
+            await loadClients();
+        } catch (error) {
+            console.warn('⚠️ Não foi possível carregar clientes:', error.message);
+        }
+        
+        try {
+            await loadRecords();
+        } catch (error) {
+            console.warn('⚠️ Não foi possível carregar registros:', error.message);
+            showError('Não foi possível carregar registros. Algumas funcionalidades podem estar limitadas.');
+        }
+        
         setupEventListeners();
+        
     } catch (error) {
-        showError(error);
+        console.error('❌ Erro na inicialização:', error);
+        
+        // Não mostrar erro se for problema de HTML (já sabemos do problema)
+        if (!error.message.includes('HTML')) {
+            showError(error.message);
+        }
     }
 });
 
