@@ -25,7 +25,7 @@ async function checkAuth() {
             headers: {
                 'Authorization': `Bearer ${token}`
             },
-            credentials: 'include' // 🔥 IMPORTANTE!
+            //credentials: 'include' // 🔥 IMPORTANTE!
         });
 
         console.log('📊 Status da resposta:', response.status);
@@ -359,7 +359,7 @@ async function safeFetch(url, options = {}) {
                 'Content-Type': 'application/json',
                 ...options.headers
             },
-            credentials: 'include',
+            //credentials: 'include',
             ...options
         });
 
@@ -427,7 +427,7 @@ async function loadProviders() {
                     'Authorization': `Bearer ${token}`,
                     'Accept': 'application/json'
                 },
-                credentials: 'include'
+                //credentials: 'include'
             });
         } catch (fetchError) {
             console.error('❌ Erro na requisição fetch:', fetchError);
