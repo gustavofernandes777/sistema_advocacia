@@ -129,7 +129,7 @@
         async function safeFetch(url, options = {}) {
     try {
         // Fazer a requisição
-        const response = await safeFetch(`${API_URL}/token`, {
+        const response = await fetch(`${API_URL}/token`, {
     method: 'POST',
     headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
