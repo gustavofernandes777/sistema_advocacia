@@ -35,7 +35,7 @@ async function checkAuth() {
 
     try {
         const resp = await fetch(`${apiBaseUrl}/users/me/`, {
-            method: 'GET',
+            //method: 'GET',
             headers: { 'Authorization': `${tokenType} ${token}` },
             //credentials: 'include'
         });
