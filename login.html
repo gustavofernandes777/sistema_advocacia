@@ -275,30 +275,71 @@
     }
 });
 
-async function testApiConnection() {
+async function diagnoseConnection() {
     try {
-        console.log('🔗 Testando conexão com API...');
-        const testResponse = await fetch(`${apiBaseUrl}/`, {
+        console.log('🩺 Iniciando diagnóstico de conexão...');
+        
+        // Teste 1: Acessar a raiz da API
+        console.log('1. Testando acesso à raiz da API...');
+        const rootTest = await fetch(`${apiBaseUrl}/`, {
             method: 'GET',
-            headers: {
-                'Accept': 'application/json'
-            },
-            mode: 'cors'
+            headers: { 'Accept': 'text/plain' }
         });
+        const rootText = await rootTest.text();
+        console.log('   Status:', rootTest.status, 'Tipo:', rootTest.headers.get('content-type'));
         
-        const text = await testResponse.text();
-        console.log('🧪 Teste API - Status:', testResponse.status);
-        console.log('🧪 Teste API - Content-Type:', testResponse.headers.get('content-type'));
-        console.log('🧪 Teste API - Primeiros 100 chars:', text.substring(0, 100));
+        // Teste 2: Tentar options para ver CORS
+        console.log('2. Testando CORS com OPTIONS...');
+        try {
+            const optionsTest = await fetch(`${apiBaseUrl}/token`, {
+                method: 'OPTIONS',
+                headers: {
+                    'Origin': window.location.origin,
+                    'Access-Control-Request-Method': 'POST',
+                    'Access-Control-Request-Headers': 'Content-Type'
+                }
+            });
+            console.log('   OPTIONS Status:', optionsTest.status);
+            console.log('   CORS Headers:', {
+                'allow-origin': optionsTest.headers.get('access-control-allow-origin'),
+                'allow-methods': optionsTest.headers.get('access-control-allow-methods'),
+                'allow-headers': optionsTest.headers.get('access-control-allow-headers')
+            });
+        } catch (optionsError) {
+            console.log('   OPTIONS falhou:', optionsError.message);
+        }
         
-    } catch (error) {
-        console.error('🧪 Teste API - Erro:', error);
+        // Teste 3: Tentar login sem credentials para ver a resposta bruta
+        console.log('3. Testando resposta bruta do login...');
+        const testFormData = new URLSearchParams();
+        testFormData.append('username', 'test@example.com');
+        testFormData.append('password', 'test123');
+        testFormData.append('grant_type', 'password');
+        
+        const loginTest = await fetch(`${apiBaseUrl}/token`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'Accept': 'text/plain'
+            },
+            body: testFormData.toString()
+        });
+        const loginText = await loginTest.text();
+        console.log('   Login Status:', loginTest.status);
+        console.log('   Login Response (primeiros 500 chars):', loginText.substring(0, 500));
+        
+    } catch (diagnoseError) {
+        console.error('❌ Erro no diagnóstico:', diagnoseError);
     }
 }
 
 // Executar teste de conexão quando a página carregar
 window.addEventListener('load', () => {
-    setTimeout(testApiConnection, 500);
+    console.log('🌐 URL da API:', apiBaseUrl);
+    console.log('📍 Origem atual:', window.location.origin);
+    
+    // Executar diagnóstico após 1 segundo
+    setTimeout(diagnoseConnection, 1000);
 });
     </script>
 </body>
