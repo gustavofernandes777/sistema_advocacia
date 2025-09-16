@@ -246,7 +246,7 @@
             console.log('✅ Token armazenado no localStorage');
 
             // Testar imediatamente se o token funciona
-            const testResponse = await safeFetch(`${API_URL}/users/me/`, {
+            const testResponse = await fetch(`${API_URL}/users/me/`, {
                 method: 'GET',
                 headers: {
                     'Authorization': `Bearer ${access_token}`,
@@ -255,8 +255,8 @@
                 //credentials: 'include'
             });
 
-            if (testResponse) {
-                const userData = testResponse;
+            if (testResponse.ok) {
+                const userData = await testResponse.json();
                 console.log('✅ Token válido! Usuário:', userData.email);
                 
                 // Redirecionar
