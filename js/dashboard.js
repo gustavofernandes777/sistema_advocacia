@@ -23,12 +23,13 @@ function getTokenInfo() {
 
 // Verifica autenticação
 async function checkAuth() {
+    debugger; // <-- isso abre o DevTools automaticamente e pausa aqui
     console.log('🔐 checkAuth() start');
     const { token, tokenType } = getTokenInfo();
 
     if (!token) {
         console.warn('❌ Nenhum token no localStorage — redirecionando');
-        //window.location.href = 'login.html';
+        window.location.href = 'login.html';
         return false;
     }
 
@@ -68,7 +69,7 @@ async function checkAuth() {
         // limpeza defensiva
         localStorage.removeItem('access_token');
         localStorage.removeItem('token');
-        //setTimeout(() => window.location.href = 'login.html', 700);
+        setTimeout(() => window.location.href = 'login.html', 700);
         return false;
     }
 }
@@ -103,7 +104,7 @@ function logout() {
     console.log('🚪 Efetuando logout...');
     localStorage.removeItem('access_token');
     localStorage.removeItem('token_type');
-    //window.location.href = 'login.html';
+    window.location.href = 'login.html';
 }
 
 // Função para criar usuário
@@ -196,7 +197,7 @@ async function loadClients() {
         
         if (error.message.includes('Não autorizado') || error.message.includes('401')) {
             localStorage.removeItem('access_token');
-            //window.location.href = 'login.html';
+            window.location.href = 'login.html';
         } else {
             showError('Erro ao carregar clientes: ' + error.message);
         }
@@ -290,7 +291,7 @@ async function loadRecords() {
         if (error.message.includes('Não autorizado') || error.message.includes('401')) {
             localStorage.removeItem('access_token');
             setTimeout(() => {
-                //window.location.href = 'login.html';
+                window.location.href = 'login.html';
             }, 2000);
         }
     } finally {
@@ -413,7 +414,7 @@ async function safeFetch(url, options = {}) {
 function handleApiError(error) {
     if (error.message.includes('401') || error.message.includes('Não autorizado')) {
         localStorage.removeItem('access_token');
-        //window.location.href = 'login.html';
+        window.location.href = 'login.html';
     } else {
         showError('Erro: ' + error.message);
     }
@@ -425,7 +426,7 @@ async function loadProviders() {
         const token = localStorage.getItem('access_token');
         if (!token) {
             showError('Faça login primeiro');
-            //window.location.href = 'login.html';
+            window.location.href = 'login.html';
             return;
         }
 
@@ -504,7 +505,7 @@ async function loadProviders() {
         if (error.message.includes('Não autorizado') || error.message.includes('401')) {
             // Token inválido ou expirado
             localStorage.removeItem('access_token');
-            //window.location.href = 'login.html';
+            window.location.href = 'login.html';
         } else {
             showError('Erro ao carregar lista de prestadores: ' + error.message);
         }
