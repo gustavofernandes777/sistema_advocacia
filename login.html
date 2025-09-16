@@ -162,100 +162,157 @@
 
         // 3. Login usando safeFetch
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
+    e.preventDefault();
 
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
-            const errorDiv = document.getElementById('error');
-            errorDiv.textContent = '';
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+    const errorDiv = document.getElementById('error');
+    errorDiv.textContent = '';
 
-            console.log('🔍 Iniciando login...');
+    console.log('🔍 Iniciando login...');
 
-            try {
-                const API_URL = 'https://c58879383f23.ngrok-free.app';
+    try {
+        const API_URL = 'https://c58879383f23.ngrok-free.app';
 
-                const formData = new URLSearchParams();
-                formData.append('username', email);
-                formData.append('password', password);
-                formData.append('grant_type', 'password');
-                formData.append('scope', '');
-                formData.append('client_id', '');
-                formData.append('client_secret', '');
+        const formData = new URLSearchParams();
+        formData.append('username', email);
+        formData.append('password', password);
+        formData.append('grant_type', 'password');
+        formData.append('scope', '');
+        formData.append('client_id', '');
+        formData.append('client_secret', '');
 
-                const data = await safeFetch(`${API_URL}/token`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                        'Accept': 'application/json',
-                    },
-                    body: formData.toString(),
-                    mode: 'cors'
-                });
-
-                console.log('✅ Login successful:', data);
-
-                const { access_token, token_type } = data;
-
-                if (!access_token) {
-                    throw new Error('Token não recebido na resposta');
-                }
-
-                localStorage.setItem('access_token', access_token);
-                localStorage.setItem('token_type', token_type);
-
-                console.log('🔐 Verificando autenticação...');
-                const token = localStorage.getItem('access_token');
-                console.log('📦 Token no localStorage:', token ? `Encontrado (${token.length} chars)` : 'Não encontrado');
-
-                if (!token) {
-                    console.log('❌ Nenhum token encontrado, redirecionando para login...');
-                    window.location.href = 'login.html';
-                    return false;
-                }
-
-                console.log('🌐 Testando token com API...');
-                const response = await fetch(`${apiBaseUrl}/users/me/`, {
-                    method: 'GET',
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    },
-                    //credentials: 'include' // 🔥 IMPORTANTE!
-                });
-
-                console.log('📊 Status da resposta:', response.status);
-
-                if (!response.ok) {
-                    if (response.status === 401) {
-                        console.log('❌ Token inválido ou expirado (401)');
-                        throw new Error('Token inválido');
-                    }
-                    throw new Error(`Erro HTTP: ${response.status}`);
-                }
-
-                const userData = await response.json();
-                console.log('✅ Token válido! Usuário:', userData.email);
-
-                setTimeout(() => {
-                    window.location.href = 'index.html';
-                }, 1000);
-
-            } catch (error) {
-                console.error('❌ Erro completo no login:', error);
-
-                try {
-                    const errorObj = JSON.parse(error.message);
-                    if (Array.isArray(errorObj)) {
-                        errorDiv.textContent = 'Email ou senha inválidos';
-                    } else {
-                        errorDiv.textContent = error.message;
-                    }
-                } catch {
-                    errorDiv.textContent = error.message.includes('HTTP')
-                        ? 'Erro de conexão com o servidor'
-                        : 'Email ou senha inválidos';
-                }
-            }
+        // 1. Fazer login para obter token
+        console.log('📤 Enviando requisição de login...');
+        const response = await fetch(`${API_URL}/token`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'Accept': 'application/json',
+            },
+            body: formData.toString(),
+            mode: 'cors'
         });
+
+        console.log('📥 Resposta recebida - Status:', response.status);
+        
+        // Verificar se a resposta é JSON
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            const text = await response.text();
+            console.error('❌ Resposta não é JSON:', text.substring(0, 200));
+            
+            if (text.includes('<!DOCTYPE') || text.includes('<html')) {
+                throw new Error('Servidor retornou página HTML. Verifique CORS e configurações do servidor.');
+            } else {
+                throw new Error(`Servidor retornou: ${contentType || 'tipo desconhecido'}`);
+            }
+        }
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.detail || `Erro HTTP: ${response.status}`);
+        }
+
+        const data = await response.json();
+        console.log('✅ Login successful:', data);
+
+        const { access_token, token_type } = data;
+
+        if (!access_token) {
+            throw new Error('Token não recebido na resposta');
+        }
+
+        // Salvar token no localStorage
+        localStorage.setItem('access_token', access_token);
+        localStorage.setItem('token_type', token_type);
+
+        console.log('🔐 Token salvo no localStorage:', access_token ? `Encontrado (${access_token.length} chars)` : 'Não encontrado');
+
+        // 2. Testar autenticação com endpoint protegido
+        console.log('🌐 Testando autenticação com API...');
+        
+        const userResponse = await fetch(`${apiBaseUrl}/users/me/`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${access_token}`,
+                'Accept': 'application/json'
+            },
+            mode: 'cors'
+        });
+
+        console.log('📊 Status da resposta user/me:', userResponse.status);
+
+        // Verificar se a resposta é JSON
+        const userContentType = userResponse.headers.get('content-type');
+        if (!userContentType || !userContentType.includes('application/json')) {
+            const text = await userResponse.text();
+            console.error('❌ Resposta user/me não é JSON:', text.substring(0, 200));
+            
+            if (text.includes('<!DOCTYPE') || text.includes('<html')) {
+                throw new Error('Servidor retornou página HTML para endpoint protegido.');
+            }
+            throw new Error(`Servidor retornou: ${userContentType || 'tipo desconhecido'}`);
+        }
+
+        if (!userResponse.ok) {
+            const errorData = await userResponse.json().catch(() => ({}));
+            throw new Error(errorData.detail || `Erro HTTP: ${userResponse.status}`);
+        }
+
+        const userData = await userResponse.json();
+        console.log('✅ Autenticação válida! Usuário:', userData.email);
+
+        // Redirecionar após login bem-sucedido
+        setTimeout(() => {
+            window.location.href = 'index.html';
+        }, 1000);
+
+    } catch (error) {
+        console.error('❌ Erro completo no login:', error);
+
+        // Tratamento de erro específico
+        if (error.message.includes('HTML') || error.message.includes('<!DOCTYPE')) {
+            errorDiv.textContent = 'Erro de configuração do servidor. Contate o administrador.';
+        } else if (error.message.includes('CORS')) {
+            errorDiv.textContent = 'Erro de conexão com o servidor. Verifique CORS.';
+        } else if (error.message.includes('401') || error.message.includes('403')) {
+            errorDiv.textContent = 'Email ou senha inválidos';
+        } else if (error.message.includes('NetworkError')) {
+            errorDiv.textContent = 'Erro de rede. Verifique sua conexão.';
+        } else {
+            errorDiv.textContent = error.message.includes('HTTP')
+                ? 'Erro de conexão com o servidor'
+                : 'Email ou senha inválidos';
+        }
+    }
+});
+
+async function testApiConnection() {
+    try {
+        console.log('🔗 Testando conexão com API...');
+        const testResponse = await fetch(`${apiBaseUrl}/`, {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json'
+            },
+            mode: 'cors'
+        });
+        
+        const text = await testResponse.text();
+        console.log('🧪 Teste API - Status:', testResponse.status);
+        console.log('🧪 Teste API - Content-Type:', testResponse.headers.get('content-type'));
+        console.log('🧪 Teste API - Primeiros 100 chars:', text.substring(0, 100));
+        
+    } catch (error) {
+        console.error('🧪 Teste API - Erro:', error);
+    }
+}
+
+// Executar teste de conexão quando a página carregar
+window.addEventListener('load', () => {
+    setTimeout(testApiConnection, 500);
+});
     </script>
 </body>
 
