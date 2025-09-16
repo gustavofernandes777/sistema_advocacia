@@ -23,7 +23,9 @@ async function checkAuth() {
         const response = await fetch(`${apiBaseUrl}/users/me/`, {
             method: 'GET',
             headers: {
-                'Authorization': `Bearer ${token}`
+                'Authorization': `${localStorage.getItem("token_type")} ${localStorage.getItem("access_token")}`
+
+
             },
             credentials: 'include' // 🔥 IMPORTANTE!
         });
@@ -121,7 +123,8 @@ async function createUser() {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                'Authorization': `${localStorage.getItem("token_type")} ${localStorage.getItem("access_token")}`
+
             },
             body: JSON.stringify(userData)
         });
@@ -169,7 +172,8 @@ async function loadClients() {
 
         clientsData = await safeFetch(`${apiBaseUrl}/clients/`, {
             headers: {
-                'Authorization': `Bearer ${token}`
+                'Authorization': `${localStorage.getItem("token_type")} ${localStorage.getItem("access_token")}`
+
             }
         });
 
@@ -203,7 +207,8 @@ async function createClient() {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                'Authorization': `${localStorage.getItem("token_type")} ${localStorage.getItem("access_token")}`
+
             },
             body: JSON.stringify(clientData)
         });
@@ -249,7 +254,8 @@ async function loadRecords() {
 
         recordsData = await safeFetch(`${apiBaseUrl}/records/`, {
             headers: {
-                'Authorization': `Bearer ${token}`
+                'Authorization': `${localStorage.getItem("token_type")} ${localStorage.getItem("access_token")}`
+
             }
         });
 
@@ -424,7 +430,8 @@ async function loadProviders() {
         try {
             response = await safeFetch(`${apiBaseUrl}/users/`, {
                 headers: {
-                    'Authorization': `Bearer ${token}`,
+                    'Authorization': `${localStorage.getItem("token_type")} ${localStorage.getItem("access_token")}`,
+
                     'Accept': 'application/json'
                 },
                 credentials: 'include'
@@ -658,7 +665,8 @@ function setupEventListeners() {
             const response = await safeFetch(`${apiBaseUrl}/records/`, {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                    'Authorization': `${localStorage.getItem("token_type")} ${localStorage.getItem("access_token")}`
+
                 },
                 body: formData
             });
@@ -777,7 +785,8 @@ function setupEventListeners() {
                     const response = await safeFetch(`${apiBaseUrl}/records/${record.id}`, {
                         method: 'DELETE',
                         headers: {
-                            'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                            'Authorization': `${localStorage.getItem("token_type")} ${localStorage.getItem("access_token")}`
+
                         }
                     });
 
