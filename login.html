@@ -124,40 +124,40 @@
 
         // 2. Função segura para fetch
         async function safeFetch(url, options = {}) {
-    try {
-        const response = await fetch(url, options);
+            try {
+                const response = await fetch(url, options);
 
-        if (!response) throw new Error('Nenhuma resposta recebida do servidor');
-        if (!response.headers) throw new Error('Resposta sem headers do servidor');
+                if (!response) throw new Error('Nenhuma resposta recebida do servidor');
+                if (!response.headers) throw new Error('Resposta sem headers do servidor');
 
-        const contentType = response.headers.get('content-type');
+                const contentType = response.headers.get('content-type');
 
-        // 🔍 Caso não seja JSON, logar conteúdo completo
-        if (!contentType || !contentType.includes('application/json')) {
-            const text = await response.text();
-            console.error("⚠️ Resposta inesperada do servidor (não JSON):", {
-                status: response.status,
-                contentType,
-                body: text
-            });
+                // 🔍 Caso não seja JSON, logar conteúdo completo
+                if (!contentType || !contentType.includes('application/json')) {
+                    const text = await response.text();
+                    console.error("⚠️ Resposta inesperada do servidor (não JSON):", {
+                        status: response.status,
+                        contentType,
+                        body: text
+                    });
 
-            throw new Error(
-                `Servidor retornou ${contentType || 'desconhecido'} em vez de JSON. Status: ${response.status}`
-            );
+                    throw new Error(
+                        `Servidor retornou ${contentType || 'desconhecido'} em vez de JSON. Status: ${response.status}`
+                    );
+                }
+
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.detail || `HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                return response.json();
+
+            } catch (error) {
+                console.error('❌ Erro no safeFetch:', error);
+                throw error;
+            }
         }
-
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.detail || `HTTP ${response.status}: ${response.statusText}`);
-        }
-
-        return response.json();
-
-    } catch (error) {
-        console.error('❌ Erro no safeFetch:', error);
-        throw error;
-    }
-}
 
 
         // 3. Login usando safeFetch
@@ -206,7 +206,7 @@
                 console.log('🔐 Verificando autenticação...');
                 const token = localStorage.getItem('access_token');
                 console.log('📦 Token no localStorage:', token ? `Encontrado (${token.length} chars)` : 'Não encontrado');
-                
+
                 if (!token) {
                     console.log('❌ Nenhum token encontrado, redirecionando para login...');
                     window.location.href = 'login.html';
@@ -214,7 +214,7 @@
                 }
 
                 console.log('🌐 Testando token com API...');
-                const response = await safeFetch(`${apiBaseUrl}/users/me/`, {
+                const response = await fetch(`${apiBaseUrl}/users/me/`, {
                     method: 'GET',
                     headers: {
                         'Authorization': `Bearer ${token}`
@@ -223,8 +223,8 @@
                 });
 
                 console.log('📊 Status da resposta:', response.status);
-        
-                if (!response) {
+
+                if (!response.ok) {
                     if (response.status === 401) {
                         console.log('❌ Token inválido ou expirado (401)');
                         throw new Error('Token inválido');
@@ -232,7 +232,7 @@
                     throw new Error(`Erro HTTP: ${response.status}`);
                 }
 
-                const userData = response;
+                const userData = await response.json();
                 console.log('✅ Token válido! Usuário:', userData.email);
 
                 setTimeout(() => {
