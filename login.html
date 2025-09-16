@@ -89,6 +89,37 @@
     </div>
 
     <script>
+                // 1. INTERCEPTOR PARA ADICIONAR TOKEN AUTOMATICAMENTE
+        // Adicione este código no início do seu arquivo JavaScript
+        const originalFetch = window.safeFetch;
+        window.safeFetch = async function (...args) {
+            const [url, options = {}] = args;
+
+            // Verificar se é uma requisição para nossa API
+            if (typeof url === 'string' &&
+                (url.includes('ngrok-free.app') ||
+                    url.includes('localhost:8000') ||
+                    url.includes('/token') ||
+                    url.startsWith('/'))) {
+
+                const token = localStorage.getItem('access_token');
+
+                // Se temos um token, adicionar ao header
+                if (token) {
+                    options.headers = {
+                        ...options.headers,
+                        'Authorization': `Bearer ${token}`
+                    };
+                    console.log('✅ Token adicionado à requisição:', url);
+                }
+
+                // Incluir credenciais
+                options.credentials = 'include';
+            }
+
+            return originalFetch(url, options);
+        };
+
         async function safeFetch(url, options = {}) {
     try {
         // Fazer a requisição
@@ -136,36 +167,6 @@
         throw error; // Re-lançar o erro para ser tratado pelo chamador
     }
 }
-        // 1. INTERCEPTOR PARA ADICIONAR TOKEN AUTOMATICAMENTE
-        // Adicione este código no início do seu arquivo JavaScript
-        const originalFetch = window.fetch;
-        window.fetch = async function (...args) {
-            const [url, options = {}] = args;
-
-            // Verificar se é uma requisição para nossa API
-            if (typeof url === 'string' &&
-                (url.includes('ngrok-free.app') ||
-                    url.includes('localhost:8000') ||
-                    url.includes('/token') ||
-                    url.startsWith('/'))) {
-
-                const token = localStorage.getItem('access_token');
-
-                // Se temos um token, adicionar ao header
-                if (token) {
-                    options.headers = {
-                        ...options.headers,
-                        'Authorization': `Bearer ${token}`
-                    };
-                    console.log('✅ Token adicionado à requisição:', url);
-                }
-
-                // Incluir credenciais
-                options.credentials = 'include';
-            }
-
-            return originalFetch(url, options);
-        };
 
         // 2. CÓDIGO DE LOGIN ATUALIZADO
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
