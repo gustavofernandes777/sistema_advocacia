@@ -95,49 +95,48 @@
     const originalFetch = window.fetch;
     
     window.fetch = async function(...args) {
-        const [url, options = {}] = args;
-        
-        // Verificar se é uma requisição para nossa API
-        const API_URL = 'https://c58879383f23.ngrok-free.app';
-        const isApiRequest = url.includes(API_URL) || url.startsWith('/');
-        
-        if (isApiRequest) {
-            const token = localStorage.getItem('access_token');
-            
-            // Configurar headers padrão
-            options.headers = {
-                ...options.headers,
-                'Accept': 'application/json',
-                'Content-Type': 'application/json'
-            };
-            
-            // Adicionar token se existir
-            if (token) {
-                options.headers['Authorization'] = `Bearer ${token}`;
-                console.log('✅ Token adicionado à requisição:', url);
-            }
-            
-            // Incluir credenciais
-            options.credentials = 'include';
-            options.mode = 'cors';
+    const [url, options = {}] = args;
+    const API_URL = 'https://c58879383f23.ngrok-free.app';
+    const isApiRequest = url.includes(API_URL) || url.startsWith('/');
+
+    if (isApiRequest) {
+        const token = localStorage.getItem('access_token');
+
+        // Só adiciona Content-Type se não tiver
+        options.headers = {
+            Accept: 'application/json',
+            ...options.headers
+        };
+
+        if (!options.headers['Content-Type']) {
+            options.headers['Content-Type'] = 'application/json';
         }
-        
-        return originalFetch.call(this, url, options);
-    };
+
+        if (token) {
+            options.headers['Authorization'] = `Bearer ${token}`;
+            console.log('✅ Token adicionado à requisição:', url);
+        }
+
+        options.mode = 'cors';
+    }
+
+    return originalFetch.call(this, url, options);
+};
+
 })();
 
         async function safeFetch(url, options = {}) {
     try {
         // Fazer a requisição
-        const response = await fetch(url, {
-            headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json',
-                ...options.headers
-            },
-            credentials: 'include',
-            ...options
-        });
+        const response = await fetch(`${API_URL}/token`, {
+    method: 'POST',
+    headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Accept': 'application/json',
+    },
+    body: formData.toString(),
+    mode: 'cors'
+});
 
         // Verificar se response é válido
         if (!response) {
