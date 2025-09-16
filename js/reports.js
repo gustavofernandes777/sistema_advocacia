@@ -499,7 +499,7 @@ function updateTable() {
                                 <i class="bi bi-lock"></i> Fechado
                             </button>` :
                         `<button class="btn btn-sm btn-outline-warning configure-financial" data-id="${item.id}">
-                                <i class="bi bi-currency-dollar"></i> Configurar
+                                <i class="bi bi-currency-dollar"></i> Fechar
                             </button>`}
                     </td>
                 `;
