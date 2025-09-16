@@ -845,7 +845,7 @@ async function checkAuth() {
 
     try {
         console.log('🌐 Testando token com API...');
-        const response = await safeFetch(`${apiBaseUrl}/users/me/`, {
+        const response = await fetch(`${apiBaseUrl}/users/me/`, {
             method: 'GET',
             headers: {
                 'Authorization': `Bearer ${token}`
@@ -855,7 +855,7 @@ async function checkAuth() {
 
         console.log('📊 Status da resposta:', response.status);
         
-        if (!response) {
+        if (!response.ok) {
             if (response.status === 401) {
                 console.log('❌ Token inválido ou expirado (401)');
                 throw new Error('Token inválido');
@@ -863,8 +863,9 @@ async function checkAuth() {
             throw new Error(`Erro HTTP: ${response.status}`);
         }
 
-        currentUser = response;
-        console.log('✅ Autenticação válida! Usuário:', currentUser.email);
+        const userData = await response.json();
+        console.log('✅ Autenticação válida! Usuário:', userData.email);
+        currentUser = userData;
         return true;
         
     } catch (error) {
