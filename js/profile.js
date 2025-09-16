@@ -83,7 +83,7 @@ async function checkAuth() {
 
         const userData = response;
         console.log('✅ Autenticação válida! Usuário:', userData.email);
-        currentUser = userData;
+        loadUserData();
         return true;
         
     } catch (error) {
