@@ -91,6 +91,9 @@ async function checkAuth() {
             return;
         }
 
+        loadUserData();
+        loadUsersList();
+
         return true;
         
     } catch (error) {
