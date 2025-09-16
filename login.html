@@ -89,6 +89,53 @@
     </div>
 
     <script>
+        async function safeFetch(url, options = {}) {
+    try {
+        // Fazer a requisição
+        const response = await fetch(url, {
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                ...options.headers
+            },
+            credentials: 'include',
+            ...options
+        });
+
+        // Verificar se response é válido
+        if (!response) {
+            throw new Error('Nenhuma resposta recebida do servidor');
+        }
+
+        // Verificar se headers existe
+        if (!response.headers) {
+            throw new Error('Resposta sem headers do servidor');
+        }
+
+        // Verificar tipo de conteúdo
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            const text = await response.text();
+            
+            if (text.includes('<!DOCTYPE') || text.includes('<html')) {
+                throw new Error(`Servidor retornou HTML em vez de JSON. Status: ${response.status}`);
+            }
+            
+            throw new Error(`Resposta inesperada: ${contentType}. Status: ${response.status}`);
+        }
+        
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.detail || `HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        return response.json();
+        
+    } catch (error) {
+        console.error('Erro no safeFetch:', error);
+        throw error; // Re-lançar o erro para ser tratado pelo chamador
+    }
+}
         // 1. INTERCEPTOR PARA ADICIONAR TOKEN AUTOMATICAMENTE
         // Adicione este código no início do seu arquivo JavaScript
         const originalFetch = window.fetch;
@@ -132,7 +179,7 @@
                 // URL da API - substitua pela sua URL real
                 const API_URL = 'https://c1b8d2bcf4e1.ngrok-free.app';
 
-                const response = await fetch(`${API_URL}/token`, {
+                const response = await safeFetch(`${API_URL}/token`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/x-www-form-urlencoded',
@@ -141,12 +188,12 @@
                     credentials: 'include'
                 });
 
-                if (!response.ok) {
-                    const errorData = await response.json();
+                if (!response) {
+                    const errorData = response;
                     throw new Error(errorData.detail || 'Erro ao fazer login');
                 }
 
-                const { access_token, token_type } = await response.json();
+                const { access_token, token_type } = response;
 
                 // Armazena o token no localStorage
                 localStorage.setItem('access_token', access_token);
@@ -158,15 +205,15 @@
 
                 // Testar imediatamente se o token funciona
                 try {
-                    const testResponse = await fetch(`${API_URL}/users/me/`, {
+                    const testResponse = await safeFetch(`${API_URL}/users/me/`, {
                         method: 'GET',
                         headers: {
                             'Authorization': `Bearer ${access_token}`
                         }
                     });
 
-                    if (testResponse.ok) {
-                        const userData = await testResponse.json();
+                    if (testResponse) {
+                        const userData = testResponse;
                         console.log('✅ Token válido! Usuário:', userData.email);
                     } else {
                         console.warn('⚠️ Token pode ter problemas');
@@ -202,13 +249,13 @@
             }
 
             // Verificar se o token ainda é válido
-            fetch(`${API_URL}/users/me/`, {
+            safeFetch(`${API_URL}/users/me/`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
             })
                 .then(response => {
-                    if (!response.ok) {
+                    if (!response) {
                         console.log('❌ Token inválido, redirecionando para login...');
                         localStorage.removeItem('access_token');
                         window.location.href = 'login.html';
