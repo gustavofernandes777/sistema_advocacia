@@ -239,7 +239,7 @@ function logout() {
 }
 
 // Event Listeners
-document.addEventListener('DOMContentLoaded', function () {
-    checkAuth();
+document.addEventListener('DOMContentLoaded', async () => {
+    await checkAuth();
     document.querySelector('.logout-btn').addEventListener('click', logout);
 });
