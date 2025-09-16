@@ -1,4 +1,4 @@
-const apiBaseUrl = 'https://c1b8d2bcf4e1.ngrok-free.app';
+const apiBaseUrl = 'https://c58879383f23.ngrok-free.app';
 let currentUser = null;
 
 async function safeFetch(url, options = {}) {
