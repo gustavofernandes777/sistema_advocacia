@@ -175,7 +175,7 @@
 }
 
         // 2. CÓDIGO DE LOGIN ATUALIZADO
-        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
     e.preventDefault();
 
     const email = document.getElementById('email').value;
@@ -185,33 +185,41 @@
     try {
         const API_URL = 'https://c1b8d2bcf4e1.ngrok-free.app';
 
-        // Usar FormData para enviar como x-www-form-urlencoded
+        // CORREÇÃO: Usar OAuth2PasswordRequestForm corretamente
         const formData = new URLSearchParams();
-        formData.append('username', email);
+        formData.append('username', email);  // O campo deve ser 'username', não 'email'
         formData.append('password', password);
+        formData.append('grant_type', 'password');  // Adicionar grant_type
+
+        console.log('📤 Enviando dados:', Object.fromEntries(formData));
 
         const response = await fetch(`${API_URL}/token`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
             },
-            body: formData,
+            body: formData.toString(),  // Converter para string
             credentials: 'include'
         });
 
+        console.log('📥 Resposta recebida. Status:', response.status);
+
         if (!response.ok) {
             const errorText = await response.text();
+            console.error('❌ Erro na resposta:', errorText);
             throw new Error(errorText || `HTTP ${response.status}`);
         }
 
         const data = await response.json();
+        console.log('✅ Login bem-sucedido. Dados:', data);
+
         const { access_token, token_type } = data;
 
         // Armazena o token no localStorage
         localStorage.setItem('access_token', access_token);
         localStorage.setItem('token_type', token_type);
 
-        console.log('✅ Login bem-sucedido! Token:', access_token);
+        console.log('✅ Token armazenado no localStorage');
 
         // Testar o token imediatamente
         try {
@@ -224,6 +232,8 @@
                 credentials: 'include'
             });
 
+            console.log('🧪 Teste do token. Status:', testResponse.status);
+
             if (testResponse.ok) {
                 const userData = await testResponse.json();
                 console.log('✅ Token válido! Usuário:', userData.email);
@@ -233,7 +243,8 @@
                     window.location.href = 'index.html';
                 }, 1000);
             } else {
-                throw new Error('Token inválido');
+                const errorText = await testResponse.text();
+                throw new Error(`Teste falhou: ${errorText}`);
             }
         } catch (testError) {
             console.warn('⚠️ Teste do token falhou:', testError);
@@ -242,7 +253,18 @@
 
     } catch (error) {
         console.error('❌ Erro no login:', error);
-        errorDiv.textContent = error.message || 'Erro ao fazer login';
+        
+        // Mostrar mensagem de erro mais amigável
+        try {
+            const errorObj = JSON.parse(error.message);
+            if (errorObj.detail) {
+                errorDiv.textContent = 'Email ou senha inválidos';
+            } else {
+                errorDiv.textContent = error.message;
+            }
+        } catch {
+            errorDiv.textContent = error.message || 'Erro ao fazer login';
+        }
     }
 });
 
