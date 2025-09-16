@@ -867,6 +867,7 @@ async function checkAuth() {
 
         currentUser = response;
         console.log('✅ Autenticação válida! Usuário:', currentUser.email);
+        return true;
         
     } catch (error) {
         console.error('❌ Erro na verificação de autenticação:', error);
