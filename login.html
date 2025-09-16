@@ -231,7 +231,7 @@ async function safeFetch(url, options = {}) {
         // 2. Testar autenticação com endpoint protegido
         console.log('🌐 Testando autenticação com API...');
         
-        const userResponse = await fetch(`${apiBaseUrl}/users/me/`, {
+        const userResponse = await safeFetch(`${apiBaseUrl}/users/me/`, {
             method: 'GET',
             headers: {
                 'Authorization': `Bearer ${access_token}`,
