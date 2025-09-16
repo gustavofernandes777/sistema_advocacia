@@ -501,10 +501,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     try {
-        // 1. Primeiro carrega o usuário atual
+        await checkAuth();
         await loadCurrentUser();
-
-        // 2. Depois carrega tudo em paralelo
         await Promise.all([
             loadRecordData(recordId),
             loadClients(),
@@ -890,7 +888,6 @@ async function checkAuth() {
 // Função para carregar o usuário atual
 async function loadCurrentUser() {
     try {
-        await checkAuth();
         console.log('Usuário carregado:', currentUser);
 
         if (currentUser.type !== 'admin') {
