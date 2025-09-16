@@ -205,7 +205,7 @@
                 'Accept': 'application/json',
             },
             body: formData.toString(),
-            credentials: 'include',
+            //credentials: 'include',
             mode: 'cors'
         });
 
@@ -254,7 +254,7 @@
                     'Authorization': `Bearer ${access_token}`,
                     'Accept': 'application/json'
                 },
-                credentials: 'include'
+                //credentials: 'include'
             });
 
             if (testResponse.ok) {
@@ -313,7 +313,7 @@
             'Authorization': `Bearer ${token}`,
             'Accept': 'application/json'
         },
-        credentials: 'include'
+        //credentials: 'include'
     })
     .then(response => {
         if (!response.ok) {
@@ -344,7 +344,7 @@
             'Content-Type': 'application/json',
             ...options.headers,
         },
-        credentials: 'include',
+        //credentials: 'include',
         mode: 'cors'
     };
 
