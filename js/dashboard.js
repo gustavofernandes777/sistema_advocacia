@@ -18,135 +18,71 @@ async function checkAuth() {
         return false;
     }
 
-    // VERIFICAÇÃO SUPER SIMPLIFICADA - apenas checa se existe um token
-    // Não tenta fazer requisições à API que podem falhar
     try {
-        // Verificação básica: token tem formato JWT?
-        const isLikelyJWT = token.split('.').length === 3;
+        console.log('🌐 Testando token com API...');
+        const response = await fetch(`${apiBaseUrl}/users/me/`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            },
+            credentials: 'include' // 🔥 IMPORTANTE!
+        });
+
+        console.log('📊 Status da resposta:', response.status);
         
-        if (!isLikelyJWT) {
-            console.log('❌ Token não parece ser um JWT válido');
-            throw new Error('Token inválido');
+        if (!response.ok) {
+            if (response.status === 401) {
+                console.log('❌ Token inválido ou expirado (401)');
+                throw new Error('Token inválido');
+            }
+            throw new Error(`Erro HTTP: ${response.status}`);
         }
 
-        console.log('✅ Token parece válido (verificação básica)');
-        
-        // Decodificar token para obter informações básicas do usuário
-        try {
-            const payload = JSON.parse(atob(token.split('.')[1]));
-            console.log('🔍 Payload do token:', payload);
-            
-            currentUser = {
-                email: payload.sub || 'usuário@email.com',
-                name: payload.sub ? payload.sub.split('@')[0] : 'Usuário',
-                type: payload.type || 'provedor'
-            };
-            
-            console.log('👤 Usuário derivado do token:', currentUser);
-            
-        } catch (decodeError) {
-            console.warn('⚠️ Não foi possível decodificar token, usando usuário padrão');
-            currentUser = {
-                email: 'usuário@email.com',
-                name: 'Usuário',
-                type: 'provedor'
-            };
-        }
-        
+        const userData = await response.json();
+        console.log('✅ Autenticação válida! Usuário:', userData.email);
+        currentUser = userData;
         return true;
         
     } catch (error) {
         console.error('❌ Erro na verificação de autenticação:', error);
         
+        // Mostrar feedback para o usuário
+        showError('Sessão expirada. Faça login novamente.');
+        
         // Limpar token inválido
         localStorage.removeItem('access_token');
-        localStorage.removeItem('token_type');
         
         // Redirecionar para login
-        window.location.href = 'login.html';
-        return false;
-    }
-}
-
-// Função para decodificar token JWT
-function decodeJWTToken(token) {
-    try {
-        if (!token || typeof token !== 'string') return null;
+        setTimeout(() => {
+            window.location.href = 'login.html';
+        }, 2000);
         
-        const parts = token.split('.');
-        if (parts.length !== 3) return null;
-        
-        const payload = JSON.parse(atob(parts[1]));
-        return payload;
-    } catch (error) {
-        console.error('Erro ao decodificar token:', error);
-        return null;
-    }
-}
-
-function isJWTTokenValid(token) {
-    try {
-        if (!token || typeof token !== 'string') return false;
-        
-        // Verificar se é um JWT (3 partes separadas por ponto)
-        const parts = token.split('.');
-        if (parts.length !== 3) return false;
-        
-        // Tentar decodificar o payload
-        try {
-            const payload = JSON.parse(atob(parts[1]));
-            console.log('🔍 Payload do token:', payload);
-            
-            // Verificar expiração
-            if (payload.exp && Date.now() >= payload.exp * 1000) {
-                console.log('❌ Token expirado');
-                return false;
-            }
-            
-            // Verificar se tem subject (usuário)
-            if (!payload.sub) {
-                console.log('❌ Token sem subject');
-                return false;
-            }
-            
-            return true;
-        } catch (decodeError) {
-            console.log('❌ Erro ao decodificar token:', decodeError);
-            return false;
-        }
-    } catch (error) {
-        console.error('Erro na verificação do token:', error);
         return false;
     }
 }
 
 // Carrega dados do usuário
 async function loadUserData() {
-    if (!currentUser) {
-        // Se não temos usuário, tentar obter do token
-        const token = localStorage.getItem('access_token');
-        if (token) {
-            try {
-                const payload = JSON.parse(atob(token.split('.')[1]));
-                currentUser = {
-                    email: payload.sub || 'usuário@email.com',
-                    name: payload.sub ? payload.sub.split('@')[0] : 'Usuário',
-                    type: payload.type || 'provedor'
-                };
-            } catch (error) {
-                console.warn('⚠️ Não foi possível decodificar token para usuário');
-                currentUser = {
-                    email: 'usuário@email.com',
-                    name: 'Usuário',
-                    type: 'provedor'
-                };
-            }
-        }
-    }
+    if (!currentUser) return;
 
-    if (currentUser) {
-        document.getElementById('navbar-username').textContent = currentUser.name;
-        document.getElementById('sidenav-username').textContent = `${currentUser.name} (${currentUser.type})`;
+    document.getElementById('navbar-username').textContent = currentUser.name;
+    document.getElementById('sidenav-username').textContent = `${currentUser.name} (${currentUser.type})`;
+
+    // Controle de visibilidade baseado no tipo de usuário
+    // const isAdmin = currentUser.type === 'admin';
+
+    // Elementos que só admin pode ver
+    //document.getElementById('newUserBtn').style.display = isAdmin ? 'block' : 'none';
+
+    // Esconde funcionalidades de admin se necessário
+    if (currentUser.type !== 'admin') {
+        document.getElementById('adminLink').style.display = 'none';
+        document.getElementById('newUserBtn').style.display = 'none';
+        document.getElementById('addRecordBtn').style.display = 'none';
+        document.getElementById('newRecordBtn').style.display = 'none';
+        document.getElementById('reportsLink').style.display = 'none';
+        document.getElementById('userListLink').style.display = 'none';
+
     }
 }
 
@@ -311,22 +247,20 @@ async function loadRecords() {
             throw new Error('Token não encontrado');
         }
 
-        // TENTAR carregar registros da API
-        try {
-            recordsData = await safeFetch(`${apiBaseUrl}/records/`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
+        recordsData = await safeFetch(`${apiBaseUrl}/records/`, {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
 
-            console.log(`✅ ${recordsData.length} registros carregados da API`);
-            
-        } catch (apiError) {
-            console.warn('⚠️ Não foi possível carregar registros da API, usando dados locais:', apiError.message);
-            
-            // Fallback: usar dados locais ou vazio
-            recordsData = [];
-            showError('Não foi possível carregar registros. Usando modo offline.');
+        console.log(`✅ ${recordsData.length} registros carregados`);
+
+        // Filtra os registros no frontend também para consistência
+        if (currentUser && currentUser.type !== 'admin') {
+            recordsData = recordsData.filter(record =>
+                record.provider?.id === currentUser.id
+            );
+            console.log(`📊 ${recordsData.length} registros após filtro`);
         }
 
         renderRecords(recordsData);
@@ -334,7 +268,15 @@ async function loadRecords() {
 
     } catch (error) {
         console.error('❌ Erro ao carregar registros:', error);
-        showError('Erro ao carregar registros: ' + error.message);
+        showError(error.message);
+        
+        // Se for erro de autenticação, redirecionar para login
+        if (error.message.includes('Não autorizado') || error.message.includes('401')) {
+            localStorage.removeItem('access_token');
+            setTimeout(() => {
+                window.location.href = 'login.html';
+            }, 2000);
+        }
     } finally {
         loadingElement.style.display = 'none';
     }
@@ -410,50 +352,49 @@ function initDataTable() {
 
 async function safeFetch(url, options = {}) {
     try {
-        console.log('🌐 Fazendo requisição para:', url);
-        
+        // Fazer a requisição
         const response = await fetch(url, {
             headers: {
                 'Accept': 'application/json',
                 'Content-Type': 'application/json',
                 ...options.headers
             },
+            credentials: 'include',
             ...options
         });
 
+        // Verificar se response é válido
         if (!response) {
             throw new Error('Nenhuma resposta recebida do servidor');
         }
 
-        // Ler resposta como texto primeiro
-        const responseText = await response.text();
-        
-        // Verificar se a resposta é HTML
-        if (responseText.trim().startsWith('<!DOCTYPE') || 
-            responseText.trim().startsWith('<html') || 
-            responseText.includes('</html>')) {
-            
-            console.error('❌ Servidor retornou HTML em vez de JSON para:', url);
-            throw new Error(`Endpoint retornando HTML: ${url}`);
+        // Verificar se headers existe
+        if (!response.headers) {
+            throw new Error('Resposta sem headers do servidor');
         }
 
-        // Tentar parsear como JSON
-        try {
-            const data = JSON.parse(responseText);
+        // Verificar tipo de conteúdo
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            const text = await response.text();
             
-            if (!response.ok) {
-                throw new Error(data.detail || `HTTP ${response.status}: ${response.statusText}`);
+            if (text.includes('<!DOCTYPE') || text.includes('<html')) {
+                throw new Error(`Servidor retornou HTML em vez de JSON. Status: ${response.status}`);
             }
-
-            return data;
-        } catch (parseError) {
-            console.error('❌ Erro ao parsear JSON:', parseError);
-            throw new Error('Resposta do servidor não é JSON válido');
+            
+            throw new Error(`Resposta inesperada: ${contentType}. Status: ${response.status}`);
         }
+        
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.detail || `HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        return response.json();
         
     } catch (error) {
-        console.error('❌ Erro no safeFetch para', url, ':', error);
-        throw error; // Apenas repassar o erro
+        console.error('Erro no safeFetch:', error);
+        throw error; // Re-lançar o erro para ser tratado pelo chamador
     }
 }
 
@@ -601,65 +542,15 @@ function filterRecords(status) {
 
 // Inicialização quando o DOM estiver pronto
 document.addEventListener('DOMContentLoaded', async () => {
-    console.log('🚀 Iniciando dashboard...');
-    
     try {
-        // 1. Verificar autenticação (versão simplificada)
-        const token = localStorage.getItem('access_token');
-        if (!token) {
-            console.log('❌ Sem token, redirecionando para login');
-            window.location.href = 'login.html';
-            return;
-        }
-
-        // Verificação MUITO básica do token
-        if (token.split('.').length !== 3) {
-            console.log('❌ Token inválido, redirecionando');
-            localStorage.removeItem('access_token');
-            window.location.href = 'login.html';
-            return;
-        }
-
-        console.log('✅ Token presente e com formato básico válido');
-        
-        // 2. Configurar usuário básico
-        try {
-            const payload = JSON.parse(atob(token.split('.')[1]));
-            currentUser = {
-                email: payload.sub || 'usuário@email.com',
-                name: payload.sub ? payload.sub.split('@')[0] : 'Usuário',
-                type: payload.type || 'provedor'
-            };
-        } catch (error) {
-            console.warn('⚠️ Não foi possível decodificar token, usando usuário padrão');
-            currentUser = {
-                email: 'usuário@email.com',
-                name: 'Usuário',
-                type: 'provedor'
-            };
-        }
-
-        // 3. Carregar dados da interface
+        await checkAuth();
         await loadUserData();
-        
-        // 4. Tentar carregar dados da API (mas não falhar se der erro)
-        try {
-            await loadRecords();
-        } catch (error) {
-            console.warn('⚠️ Erro ao carregar registros (continuando):', error);
-        }
-
-        // 5. Configurar event listeners
+        await loadProviders();
+        await loadClients();
+        await loadRecords();
         setupEventListeners();
-        
-        console.log('✅ Dashboard inicializado com sucesso');
-
     } catch (error) {
-        console.error('❌ Erro crítico na inicialização:', error);
-        
-        // Em caso de erro crítico, não redirecionar imediatamente
-        // Mostrar mensagem de erro e opção para fazer logout
-        showError('Erro ao inicializar dashboard. ' + error.message);
+        showError(error);
     }
 });
 
@@ -679,13 +570,7 @@ function setupEventListeners() {
         }
     });
     // Botão de logout
-   console.log('⚙️ Configurando event listeners...');
-    
-    // Botão de logout
-    const logoutBtn = document.querySelector('.logout-btn');
-    if (logoutBtn) {
-        logoutBtn.addEventListener('click', logout);
-    }
+    document.querySelector('.logout-btn').addEventListener('click', logout);
 
     // Botão de novo registro
     document.getElementById('addRecordBtn').addEventListener('click', () => {
