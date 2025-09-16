@@ -213,8 +213,8 @@ function logout() {
 }
 
 // Event Listeners
-document.addEventListener('DOMContentLoaded', function () {
-    checkAuth();
+document.addEventListener('DOMContentLoaded', async () => {
+    await checkAuth();
 
     document.getElementById('userSettingsForm').addEventListener('submit', function (e) {
         e.preventDefault();
