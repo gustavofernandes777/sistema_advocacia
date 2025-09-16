@@ -399,9 +399,9 @@ async function safeFetch(url, options = {}) {
         if (!contentType || !contentType.includes('application/json')) {
             const text = await response.text();
             
-            if (text.includes('<!DOCTYPE') || text.includes('<html')) {
+            /*if (text.includes('<!DOCTYPE') || text.includes('<html')) {
                 throw new Error(`Servidor retornou HTML em vez de JSON. Status: ${response.status}`);
-            }
+            }*/
             
             throw new Error(`Resposta inesperada: ${contentType}. Status: ${response.status}`);
         }
