@@ -81,7 +81,7 @@ async function checkAuth() {
             throw new Error(`Erro HTTP: ${response.status}`);
         }
 
-        const currentUser = response;
+        currentUser = response;
         console.log('✅ Autenticação válida! Usuário:', currentUser.email);
         loadUserData();
         return true;
