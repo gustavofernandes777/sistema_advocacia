@@ -202,18 +202,36 @@
                 localStorage.setItem('access_token', access_token);
                 localStorage.setItem('token_type', token_type);
 
-                console.log('✅ Token armazenado no localStorage');
+                console.log('🔐 Verificando autenticação...');
+                const token = localStorage.getItem('access_token');
+                console.log('📦 Token no localStorage:', token ? `Encontrado (${token.length} chars)` : 'Não encontrado');
+                
+                if (!token) {
+                    console.log('❌ Nenhum token encontrado, redirecionando para login...');
+                    window.location.href = 'login.html';
+                    return false;
+                }
 
-                // Testar token
-                const userData = await safeFetch(`${API_URL}/users/me/`, {
+                console.log('🌐 Testando token com API...');
+                const response = await fetch(`${apiBaseUrl}/users/me/`, {
                     method: 'GET',
                     headers: {
-                        'Authorization': `Bearer ${access_token}`,
-                        'Accept': 'application/json'
+                        'Authorization': `Bearer ${token}`
                     },
-                    mode: 'cors'
+                    credentials: 'include' // 🔥 IMPORTANTE!
                 });
 
+                console.log('📊 Status da resposta:', response.status);
+        
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        console.log('❌ Token inválido ou expirado (401)');
+                        throw new Error('Token inválido');
+                    }
+                    throw new Error(`Erro HTTP: ${response.status}`);
+                }
+
+                const userData = await response.json();
                 console.log('✅ Token válido! Usuário:', userData.email);
 
                 setTimeout(() => {
