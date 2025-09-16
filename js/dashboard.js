@@ -42,7 +42,7 @@ async function checkAuth() {
             headers: {
                 'Authorization': `Bearer ${token}`
             },
-            credentials: 'include' // 🔥 IMPORTANTE!
+            //credentials: 'include' // 🔥 IMPORTANTE!
         });
 
         console.log('📊 Status da resposta:', response.status);
@@ -380,7 +380,7 @@ async function safeFetch(url, options = {}) {
                 'Content-Type': 'application/json',
                 ...options.headers
             },
-            credentials: 'include',
+            //credentials: 'include',
             ...options
         });
 
