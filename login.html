@@ -181,48 +181,74 @@
     const email = document.getElementById('email').value;
     const password = document.getElementById('password').value;
     const errorDiv = document.getElementById('error');
+    errorDiv.textContent = '';
+
+    console.log('🔍 Iniciando login...');
 
     try {
         const API_URL = 'https://c1b8d2bcf4e1.ngrok-free.app';
 
-        // CORREÇÃO: Usar OAuth2PasswordRequestForm corretamente
+        // Vamos tentar uma abordagem diferente - usando o formato exato que o FastAPI espera
         const formData = new URLSearchParams();
-        formData.append('username', email);  // O campo deve ser 'username', não 'email'
+        formData.append('username', email);
         formData.append('password', password);
-        formData.append('grant_type', 'password');  // Adicionar grant_type
+        formData.append('grant_type', 'password');
+        formData.append('scope', '');
+        formData.append('client_id', '');
+        formData.append('client_secret', '');
 
-        console.log('📤 Enviando dados:', Object.fromEntries(formData));
+        console.log('📤 Enviando para /token:', formData.toString());
 
         const response = await fetch(`${API_URL}/token`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
+                'Accept': 'application/json',
             },
-            body: formData.toString(),  // Converter para string
-            credentials: 'include'
+            body: formData.toString(),
+            credentials: 'include',
+            mode: 'cors'
         });
 
-        console.log('📥 Resposta recebida. Status:', response.status);
+        console.log('📥 Response status:', response.status);
+        console.log('📥 Response headers:', Object.fromEntries([...response.headers]));
+
+        // Verificar o conteúdo da resposta
+        const responseText = await response.text();
+        console.log('📥 Response text:', responseText);
 
         if (!response.ok) {
-            const errorText = await response.text();
-            console.error('❌ Erro na resposta:', errorText);
-            throw new Error(errorText || `HTTP ${response.status}`);
+            console.error('❌ Erro HTTP:', response.status);
+            
+            // Tentar parsear o erro como JSON
+            try {
+                const errorData = JSON.parse(responseText);
+                if (errorData.detail) {
+                    throw new Error(JSON.stringify(errorData.detail));
+                }
+                throw new Error(responseText);
+            } catch {
+                throw new Error(`HTTP ${response.status}: ${responseText}`);
+            }
         }
 
-        const data = await response.json();
-        console.log('✅ Login bem-sucedido. Dados:', data);
-
-        const { access_token, token_type } = data;
-
-        // Armazena o token no localStorage
-        localStorage.setItem('access_token', access_token);
-        localStorage.setItem('token_type', token_type);
-
-        console.log('✅ Token armazenado no localStorage');
-
-        // Testar o token imediatamente
+        // Tentar parsear a resposta como JSON
         try {
+            const data = JSON.parse(responseText);
+            console.log('✅ Login successful:', data);
+
+            const { access_token, token_type } = data;
+
+            if (!access_token) {
+                throw new Error('Token não recebido na resposta');
+            }
+
+            localStorage.setItem('access_token', access_token);
+            localStorage.setItem('token_type', token_type);
+
+            console.log('✅ Token armazenado no localStorage');
+
+            // Testar imediatamente se o token funciona
             const testResponse = await fetch(`${API_URL}/users/me/`, {
                 method: 'GET',
                 headers: {
@@ -232,38 +258,38 @@
                 credentials: 'include'
             });
 
-            console.log('🧪 Teste do token. Status:', testResponse.status);
-
             if (testResponse.ok) {
                 const userData = await testResponse.json();
                 console.log('✅ Token válido! Usuário:', userData.email);
                 
-                // Redirecionar após login bem-sucedido
+                // Redirecionar
                 setTimeout(() => {
                     window.location.href = 'index.html';
                 }, 1000);
             } else {
-                const errorText = await testResponse.text();
-                throw new Error(`Teste falhou: ${errorText}`);
+                throw new Error('Token recebido mas não funciona');
             }
-        } catch (testError) {
-            console.warn('⚠️ Teste do token falhou:', testError);
-            throw testError;
+
+        } catch (parseError) {
+            console.error('❌ Erro ao parsear resposta:', parseError);
+            throw new Error('Resposta inválida do servidor');
         }
 
     } catch (error) {
-        console.error('❌ Erro no login:', error);
+        console.error('❌ Erro completo no login:', error);
         
-        // Mostrar mensagem de erro mais amigável
+        // Mostrar mensagem de erro amigável
         try {
             const errorObj = JSON.parse(error.message);
-            if (errorObj.detail) {
+            if (Array.isArray(errorObj)) {
                 errorDiv.textContent = 'Email ou senha inválidos';
             } else {
                 errorDiv.textContent = error.message;
             }
         } catch {
-            errorDiv.textContent = error.message || 'Erro ao fazer login';
+            errorDiv.textContent = error.message.includes('HTTP') 
+                ? 'Erro de conexão com o servidor' 
+                : 'Email ou senha inválidos';
         }
     }
 });
