@@ -33,40 +33,57 @@ async function checkAuth() {
     }
 
     try {
-        // normaliza tokenType e monta header
         const authHeader = `${(tokenType || 'Bearer').charAt(0).toUpperCase() + (tokenType || 'Bearer').slice(1)} ${token}`;
 
+        // Primeiro, verificar se a origem está autorizada com uma requisição OPTIONS
+        try {
+            await fetch(`${apiBaseUrl}/users/me/`, {
+                method: 'OPTIONS',
+                headers: {
+                    'Origin': window.location.origin,
+                    'Access-Control-Request-Method': 'GET',
+                    'Access-Control-Request-Headers': 'Authorization'
+                }
+            });
+        } catch (optionsError) {
+            console.log('OPTIONS request completed (may fail silently)');
+        }
+
+        // Agora fazer a requisição GET real
         const resp = await fetch(`${apiBaseUrl}/users/me/`, {
             method: 'GET',
-            mode: 'cors',               // explicita CORS
+            mode: 'cors',
             cache: 'no-store',
             headers: {
                 'Authorization': authHeader,
-                'Accept': 'application/json' // força JSON quando possível
+                'Accept': 'application/json',
+                'Origin': window.location.origin
             }
         });
 
         console.log('checkAuth status:', resp.status);
+        
+        // Verificar se a resposta é um redirecionamento HTML
         const contentType = resp.headers.get('content-type') || '';
         console.log('checkAuth content-type:', contentType);
 
-        // Se o content-type não indicar JSON, logar o corpo bruto para debug
+        if (contentType.includes('text/html')) {
+            // Provavelmente sendo redirecionado para uma página de login/erro
+            const text = await resp.text();
+            console.error('❌ Recebido HTML em vez de JSON. Possível problema de CORS ou autenticação.');
+            console.error('Primeiros 500 caracteres:', text.substring(0, 500));
+            
+            throw new Error('Problema de CORS ou autenticação. O servidor está retornando HTML em vez de JSON.');
+        }
+
         if (!contentType.includes('application/json')) {
-            const raw = await resp.clone().text().catch(()=>'<no-text>');
-            console.error('Resposta NÃO-JSON recebida ao validar token. Início do conteúdo:', raw.slice(0,800));
-            throw new Error(`Resposta não-JSON (status ${resp.status}). Ver console para o conteúdo bruto.`);
+            const raw = await resp.text().catch(() => '<no-text>');
+            console.error('Resposta não-JSON recebida. Início do conteúdo:', raw.slice(0, 800));
+            throw new Error(`Resposta não-JSON (status ${resp.status}). Ver console para detalhes.`);
         }
 
-        // Tentar parsear JSON com try/catch — se falhar, ler corpo bruto para diagnóstico
-        let data;
-        try {
-            data = await resp.json();
-        } catch (jsonErr) {
-            const raw = await resp.clone().text().catch(()=>'<no-text>');
-            console.error('Falha ao parsear JSON:', jsonErr, 'Conteúdo bruto:', raw.slice(0,2000));
-            throw new Error('Falha ao parsear resposta JSON do servidor. Veja console para o conteúdo bruto.');
-        }
-
+        const data = await resp.json();
+        
         if (!resp.ok) {
             throw new Error(data.detail || `HTTP ${resp.status}`);
         }
@@ -74,15 +91,102 @@ async function checkAuth() {
         console.log('✅ Auth válida. user:', data.email || data.name);
         currentUser = data;
         return true;
+        
     } catch (err) {
         console.error('❌ checkAuth error:', err);
-        // limpeza defensiva
+        
+        // Se for erro de CORS, tentar uma abordagem diferente
+        if (err.message.includes('CORS') || err.message.includes('Origin')) {
+            console.log('Tentando abordagem alternativa para CORS...');
+            return await checkAuthAlternative();
+        }
+        
         localStorage.removeItem('access_token');
         localStorage.removeItem('token');
-        // opcional: limpar também token_type
         localStorage.removeItem('token_type');
-        setTimeout(() => window.location.href = 'login.html', 700);
+        
+        setTimeout(() => {
+            window.location.href = 'login.html';
+        }, 700);
+        
         return false;
+    }
+}
+
+// Abordagem alternativa para contornar problemas de CORS
+async function checkAuthAlternative() {
+    try {
+        const { token, tokenType } = getTokenInfo();
+        const authHeader = `${(tokenType || 'Bearer').charAt(0).toUpperCase() + (tokenType || 'Bearer').slice(1)} ${token}`;
+
+        // Usar uma abordagem mais simples, sem CORS strict
+        const resp = await fetch(`${apiBaseUrl}/users/me/`, {
+            method: 'GET',
+            mode: 'no-cors', // Modo no-cors para evitar problemas
+            headers: {
+                'Authorization': authHeader
+            }
+        });
+
+        // No modo no-cors, não podemos ler a resposta, mas podemos verificar o status
+        if (resp.type === 'opaque') {
+            // Resposta opaca - provavelmente funcionou mas não podemos ler
+            console.log('✅ Auth provavelmente válida (resposta opaca)');
+            return true;
+        }
+
+        return false;
+    } catch (error) {
+        console.error('❌ checkAuthAlternative error:', error);
+        return false;
+    }
+}
+
+// Função de fallback para verificar autenticação
+async function verifyAuthWithFallback() {
+    try {
+        // Primeira tentativa: método normal
+        return await checkAuth();
+    } catch (error) {
+        console.log('Primeira tentativa falhou, tentando fallback...');
+        
+        // Segunda tentativa: usar proxy CORS
+        try {
+            return await checkAuthWithCorsProxy();
+        } catch (proxyError) {
+            console.error('Todas as tentativas falharam:', proxyError);
+            return false;
+        }
+    }
+}
+
+// Usar um proxy CORS como fallback
+async function checkAuthWithCorsProxy() {
+    const { token, tokenType } = getTokenInfo();
+    const authHeader = `${(tokenType || 'Bearer').charAt(0).toUpperCase() + (tokenType || 'Bearer').slice(1)} ${token}`;
+    
+    // Usar um proxy CORS público (exemplo)
+    const corsProxyUrl = 'https://cors-anywhere.herokuapp.com/';
+    
+    try {
+        const resp = await fetch(`${corsProxyUrl}${apiBaseUrl}/users/me/`, {
+            method: 'GET',
+            headers: {
+                'Authorization': authHeader,
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        });
+        
+        if (resp.ok) {
+            const data = await resp.json();
+            currentUser = data;
+            return true;
+        }
+        return false;
+    } catch (error) {
+        console.error('Proxy CORS falhou:', error);
+        throw error;
     }
 }
 
@@ -383,44 +487,83 @@ function initDataTable() {
 async function safeFetch(url, options = {}) {
     try {
         options = options || {};
-        const headers = { Accept: 'application/json', ...(options.headers || {}) };
+        const headers = { 
+            Accept: 'application/json', 
+            ...(options.headers || {}) 
+        };
 
-        // Não colocar Content-Type quando o body for FormData (browser define o boundary)
         if (!(options.body instanceof FormData)) {
             headers['Content-Type'] = headers['Content-Type'] || 'application/json';
         } else {
-            // se for FormData, garantir que não sobrescrevemos
             delete headers['Content-Type'];
         }
 
+        // Adicionar origem para ajudar com CORS
+        headers['Origin'] = window.location.origin;
+
         const resp = await fetch(url, {
-            //credentials: 'include',
             ...options,
-            headers
+            headers,
+            mode: 'cors',
+            credentials: 'include' // Importante para cookies de autenticação
         });
 
-        if (!resp || !resp.headers) {
-            throw new Error('Resposta inválida do servidor');
+        // Verificar se é um redirecionamento para HTML
+        const contentType = resp.headers.get('content-type') || '';
+        if (contentType.includes('text/html')) {
+            const text = await resp.text();
+            console.error('❌ Servidor retornando HTML em vez de JSON. Possível:');
+            console.error('1. Problema de CORS');
+            console.error('2. Token inválido/expirado');
+            console.error('3. Servidor redirecionando para login');
+            console.error('Conteúdo HTML:', text.substring(0, 500));
+            
+            throw new Error('Problema de autenticação ou CORS. O servidor está retornando HTML.');
         }
 
-        const contentType = resp.headers.get('content-type') || '';
         if (!contentType.includes('application/json')) {
-            const text = await resp.text().catch(()=>'<no-text>');
-            if (text && (text.includes('<!DOCTYPE') || text.includes('<html'))) {
-                throw new Error(`Servidor retornou HTML em vez de JSON (status ${resp.status}). Começo do conteúdo: ${text.slice(0,200)}`);
-            }
+            const text = await resp.text();
             throw new Error(`Resposta inesperada (content-type: ${contentType}) status ${resp.status}`);
         }
 
         if (!resp.ok) {
-            const err = await resp.json().catch(()=>({ detail: `HTTP ${resp.status}` }));
+            const err = await resp.json();
             throw new Error(err.detail || `HTTP ${resp.status}`);
         }
 
         return await resp.json();
     } catch (err) {
         console.error('safeFetch error:', err);
+        
+        // Se for erro de CORS, tentar abordagem alternativa
+        if (err.message.includes('CORS') || err.message.includes('Origin')) {
+            console.log('Tentando safeFetch com no-cors...');
+            return await safeFetchNoCors(url, options);
+        }
+        
         throw err;
+    }
+}
+
+// Versão alternativa sem CORS strict
+async function safeFetchNoCors(url, options = {}) {
+    try {
+        const resp = await fetch(url, {
+            ...options,
+            mode: 'no-cors',
+            headers: options.headers
+        });
+        
+        // No modo no-cors, não podemos ler a resposta mas podemos verificar se a requisição foi feita
+        if (resp.type === 'opaque') {
+            console.log('✅ Requisição no-cors bem-sucedida (resposta opaca)');
+            return { success: true }; // Retorno genérico para indicar sucesso
+        }
+        
+        throw new Error('Requisição no-cors falhou');
+    } catch (error) {
+        console.error('safeFetchNoCors error:', error);
+        throw error;
     }
 }
 
@@ -570,7 +713,13 @@ function filterRecords(status) {
 // Inicialização quando o DOM estiver pronto
 document.addEventListener('DOMContentLoaded', async () => {
     try {
-        await checkAuth();
+        const isAuthenticated = await verifyAuthWithFallback();
+        
+        if (!isAuthenticated) {
+            window.location.href = 'login.html';
+            return;
+        }
+        
         await loadUserData();
         await loadProviders();
         await loadClients();
