@@ -45,7 +45,7 @@ async function checkAuth() {
         console.log('checkAuth status:', resp.status);
 
         // Se não for JSON, logar corpo para debug (evita "Unexpected token <" em response.json)
-        const ct = resp.headers.get('content-type') || '';
+        /*const ct = resp.headers.get('content-type') || '';
         if (!ct.includes('application/json')) {
             const text = await resp.text().catch(()=>'<no-text>');
             console.error('Resposta não-JSON ao validar token:', text.slice(0,1000));
@@ -55,7 +55,7 @@ async function checkAuth() {
                 localStorage.removeItem('token');
             }
             throw new Error(`Resposta não-JSON (status ${resp.status})`);
-        }
+        }*/
 
         if (!resp.ok) {
             const err = await resp.json().catch(()=>({ detail: `HTTP ${resp.status}` }));
