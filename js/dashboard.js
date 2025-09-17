@@ -47,12 +47,9 @@ async function checkAuth() {
                 'Authorization': authHeader,
                 'Accept': 'application/json',
                 'Content-Type': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest', // ← IMPORTANTE: Evita página ngrok
-                'User-Agent': 'MyApp/1.0', // ← User-Agent personalizado
-                'Ngrok-Skip-Browser-Warning': 'true', // ← Header específico do ngrok
-                'Sec-Fetch-Dest': 'empty',
-                'Sec-Fetch-Mode': 'cors',
-                'Sec-Fetch-Site': 'cross-site'
+                'X-Requested-With': 'XMLHttpRequest',
+                'Ngrok-Skip-Browser-Warning': 'true',
+                'User-Agent': 'MyApp/1.0'
             }
         });
 
@@ -62,12 +59,10 @@ async function checkAuth() {
         const text = await resp.text();
         console.log('✅ Conteúdo bruto (início):', text.substring(0, 200));
 
-        // Verificar se ainda é a página do ngrok
+        // Verificar se é a página do ngrok
         if (text.includes('ngrok') || text.includes('<!DOCTYPE')) {
-            console.error('❌ Ngrok ainda está interceptando a requisição');
-            
-            // Tentar abordagem alternativa com URL diferente
-            return await checkAuthAlternative();
+            console.error('❌ Ngrok interceptando a requisição');
+            throw new Error('Ngrok bloqueando acesso');
         }
 
         // Tentar parsear como JSON
@@ -102,72 +97,57 @@ async function checkAuth() {
     }
 }
 
-// Abordagem alternativa para contornar o ngrok
-async function checkAuthAlternative() {
-    try {
-        const { token, tokenType } = getTokenInfo();
-        const authHeader = `Bearer ${token}`;
+// Função para fazer fetch com headers anti-ngrok
+async function apiFetch(url, options = {}) {
+    const { token, tokenType } = getTokenInfo();
+    const authHeader = `Bearer ${token}`;
 
-        console.log('🔄 Tentando abordagem alternativa para ngrok...');
-        
-        // Tentativa 1: Usar um proxy CORS
-        try {
-            const corsProxyUrl = `https://cors-anywhere.herokuapp.com/`;
-            const response = await fetch(`${corsProxyUrl}https://a5c45daca879.ngrok-free.app/users/me/`, {
-                method: 'GET',
-                headers: {
-                    'Authorization': authHeader,
-                    'Accept': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
-            });
-            
-            if (response.ok) {
-                const data = await response.json();
-                currentUser = data;
-                return true;
-            }
-        } catch (proxyError) {
-            console.warn('Proxy CORS falhou:', proxyError);
-        }
-        
-        // Tentativa 2: Usar um domínio diferente (sem ngrok-free.app)
-        try {
-            // Tentar a URL base sem o subdomínio ngrok
-            const response = await fetch(`https://a5c45daca879.ngrok.io/users/me/`, {
-                method: 'GET',
-                headers: {
-                    'Authorization': authHeader,
-                    'Accept': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
-            });
-            
-            const text = await response.text();
-            if (!text.includes('ngrok') && !text.includes('<!DOCTYPE')) {
-                const data = JSON.parse(text);
-                currentUser = data;
-                return true;
-            }
-        } catch (ngrokError) {
-            console.warn('URL alternativa falhou:', ngrokError);
-        }
-        
-        return false;
-        
-    } catch (error) {
-        console.error('❌ Abordagem alternativa falhou:', error);
-        return false;
+    const defaultHeaders = {
+        'Authorization': authHeader,
+        'Accept': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest',
+        'Ngrok-Skip-Browser-Warning': 'true',
+        'User-Agent': 'MyApp/1.0'
+    };
+
+    // Não adicionar Content-Type para FormData
+    if (!(options.body instanceof FormData)) {
+        defaultHeaders['Content-Type'] = 'application/json';
     }
-}
 
-// Função de fallback para verificar autenticação
-async function verifyAuthWithFallback() {
+    const mergedHeaders = { ...defaultHeaders, ...options.headers };
+
     try {
-        // Primeira tentativa: método normal
-        return await checkAuth();
+        const resp = await fetch(url, {
+            ...options,
+            mode: 'cors',
+            credentials: 'omit',
+            headers: mergedHeaders
+        });
+
+        const contentType = resp.headers.get('content-type') || '';
+        const text = await resp.text();
+
+        // Verificar se é página do ngrok
+        if (text.includes('ngrok') || text.includes('<!DOCTYPE')) {
+            throw new Error('Ngrok bloqueando acesso - página HTML recebida');
+        }
+
+        if (!contentType.includes('application/json')) {
+            throw new Error(`Content-Type inesperado: ${contentType}`);
+        }
+
+        const data = JSON.parse(text);
+
+        if (!resp.ok) {
+            throw new Error(data.detail || `HTTP Error ${resp.status}`);
+        }
+
+        return data;
+
     } catch (error) {
-        console.log('Primeira tentativa falhou, tentando fallback...');
+        console.error('❌ apiFetch error:', error);
+        throw error;
     }
 }
 
@@ -179,12 +159,6 @@ async function loadUserData() {
     document.getElementById('sidenav-username').textContent = `${currentUser.name} (${currentUser.type})`;
 
     // Controle de visibilidade baseado no tipo de usuário
-    // const isAdmin = currentUser.type === 'admin';
-
-    // Elementos que só admin pode ver
-    //document.getElementById('newUserBtn').style.display = isAdmin ? 'block' : 'none';
-
-    // Esconde funcionalidades de admin se necessário
     if (currentUser.type !== 'admin') {
         document.getElementById('adminLink').style.display = 'none';
         document.getElementById('newUserBtn').style.display = 'none';
@@ -192,7 +166,6 @@ async function loadUserData() {
         document.getElementById('newRecordBtn').style.display = 'none';
         document.getElementById('reportsLink').style.display = 'none';
         document.getElementById('userListLink').style.display = 'none';
-
     }
 }
 
@@ -227,22 +200,10 @@ async function createUser() {
     }
 
     try {
-        const response = await safeFetch(`${apiBaseUrl}/users/`, {
+        const response = await apiFetch(`${apiBaseUrl}/users/`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `${localStorage.getItem("token_type")} ${localStorage.getItem("access_token")}`
-
-            },
             body: JSON.stringify(userData)
         });
-
-        if (!response) {
-            const errorData = await response.json();
-            throw new Error(errorData.detail || 'Erro ao criar usuário');
-        }
-
-        //const result = response;
 
         Swal.fire({
             icon: 'success',
@@ -278,13 +239,7 @@ async function loadClients() {
             throw new Error('Token não encontrado');
         }
 
-        clientsData = await safeFetch(`${apiBaseUrl}/clients/`, {
-            headers: {
-                'Authorization': `${localStorage.getItem("token_type")} ${localStorage.getItem("access_token")}`
-
-            }
-        });
-
+        clientsData = await apiFetch(`${apiBaseUrl}/clients/`);
         console.log(`✅ ${clientsData.length} clientes carregados`);
         updateClientSelect();
         return clientsData;
@@ -311,22 +266,10 @@ async function createClient() {
     };
 
     try {
-        const response = await safeFetch(`${apiBaseUrl}/clients/`, {
+        const response = await apiFetch(`${apiBaseUrl}/clients/`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `${localStorage.getItem("token_type")} ${localStorage.getItem("access_token")}`
-
-            },
             body: JSON.stringify(clientData)
         });
-
-        if (!response) {
-            const errorData = await response.json();
-            throw new Error(errorData.detail || 'Erro ao criar cliente');
-        }
-
-        //const result = response;
 
         Swal.fire({
             icon: 'success',
@@ -360,13 +303,7 @@ async function loadRecords() {
             throw new Error('Token não encontrado');
         }
 
-        recordsData = await safeFetch(`${apiBaseUrl}/records/`, {
-            headers: {
-                'Authorization': `${localStorage.getItem("token_type")} ${localStorage.getItem("access_token")}`
-
-            }
-        });
-
+        recordsData = await apiFetch(`${apiBaseUrl}/records/`);
         console.log(`✅ ${recordsData.length} registros carregados`);
 
         // Filtra os registros no frontend também para consistência
@@ -396,7 +333,7 @@ async function loadRecords() {
     }
 }
 
-// Renderiza registros na tabela (corrigido)
+// Renderiza registros na tabela
 function renderRecords(records) {
     const tableBody = document.getElementById('records-body');
     if (!tableBody) {
@@ -419,34 +356,32 @@ function renderRecords(records) {
             'alta': 'fa-arrow-up'
         }[record.priority] || '';
 
-        const capitalized =
-            record.status.charAt(0).toUpperCase()
-            + record.status.slice(1)
+        const capitalized = record.status.charAt(0).toUpperCase() + record.status.slice(1);
 
         row.innerHTML = `
-<td>${record.record_id}</td>
-    <td><span class="badge ${statusClass}">${capitalized}</span></td>
-    <td>${record.provider?.name || 'N/A'}</td>
-    <td><i class="fas ${priorityIcon}"></i> ${record.priority}</td>
-    <td>${record.document_type}</td>
-    <td>${record.client.name}</td>
-    <td>${record.researchedName}</td>
-    <td>${new Date(record.register_date).toLocaleDateString('pt-BR')}</td>
-    <td>${record.last_update ? new Date(record.last_update).toLocaleString('pt-BR') : 'N/A'}</td>
-                    <td>
-                        <button class="btn btn-sm btn-outline-primary view-btn" data-id="${record.id}">
-                            <i class="fas fa-eye"></i>
-                        </button>
-                        <button class="btn btn-sm btn-outline-warning edit-btn" data-id="${record.id}">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                        ${currentUser?.type === 'admin' ? `
-                        <button class="btn btn-sm btn-outline-danger delete-btn" data-id="${record.id}">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                        ` : ''}
-                    </td>
-                `;
+            <td>${record.record_id}</td>
+            <td><span class="badge ${statusClass}">${capitalized}</span></td>
+            <td>${record.provider?.name || 'N/A'}</td>
+            <td><i class="fas ${priorityIcon}"></i> ${record.priority}</td>
+            <td>${record.document_type}</td>
+            <td>${record.client.name}</td>
+            <td>${record.researchedName}</td>
+            <td>${new Date(record.register_date).toLocaleDateString('pt-BR')}</td>
+            <td>${record.last_update ? new Date(record.last_update).toLocaleString('pt-BR') : 'N/A'}</td>
+            <td>
+                <button class="btn btn-sm btn-outline-primary view-btn" data-id="${record.id}">
+                    <i class="fas fa-eye"></i>
+                </button>
+                <button class="btn btn-sm btn-outline-warning edit-btn" data-id="${record.id}">
+                    <i class="fas fa-edit"></i>
+                </button>
+                ${currentUser?.type === 'admin' ? `
+                <button class="btn btn-sm btn-outline-danger delete-btn" data-id="${record.id}">
+                    <i class="fas fa-trash"></i>
+                </button>
+                ` : ''}
+            </td>
+        `;
         tableBody.appendChild(row);
     });
 }
@@ -462,93 +397,6 @@ function initDataTable() {
             info: "Mostrando {start} a {end} de {rows} registros",
         }
     });
-}
-
-async function safeFetch(url, options = {}) {
-    try {
-        options = options || {};
-        const headers = { 
-            Accept: 'application/json', 
-            ...(options.headers || {}) 
-        };
-
-        if (!(options.body instanceof FormData)) {
-            headers['Content-Type'] = headers['Content-Type'] || 'application/json';
-        } else {
-            delete headers['Content-Type'];
-        }
-
-        const resp = await fetch(url, {
-            ...options,
-            headers,
-            mode: 'cors',
-            credentials: 'include' // Mantenha isso consistente
-        });
-
-        const contentType = resp.headers.get('content-type') || '';
-        
-        if (!contentType.includes('application/json')) {
-            const text = await resp.text();
-            throw new Error(`Resposta inesperada (content-type: ${contentType}) status ${resp.status}`);
-        }
-
-        if (!resp.ok) {
-            const err = await resp.json();
-            throw new Error(err.detail || `HTTP ${resp.status}`);
-        }
-
-        return await resp.json();
-    } catch (err) {
-        console.error('safeFetch error:', err);
-        
-        // Tentar sem credentials se falhar
-        if (err.message.includes('CORS') || err.message.includes('credentials')) {
-            console.log('🔄 Tentando safeFetch sem credentials...');
-            return await safeFetchNoCredentials(url, options);
-        }
-        
-        throw err;
-    }
-}
-
-async function safeFetchNoCredentials(url, options = {}) {
-    try {
-        options = options || {};
-        const headers = { 
-            Accept: 'application/json', 
-            ...(options.headers || {}) 
-        };
-
-        if (!(options.body instanceof FormData)) {
-            headers['Content-Type'] = headers['Content-Type'] || 'application/json';
-        } else {
-            delete headers['Content-Type'];
-        }
-
-        const resp = await fetch(url, {
-            ...options,
-            headers,
-            mode: 'cors',
-            // SEM credentials
-        });
-
-        const contentType = resp.headers.get('content-type') || '';
-        
-        if (!contentType.includes('application/json')) {
-            const text = await resp.text();
-            throw new Error(`Resposta inesperada (content-type: ${contentType}) status ${resp.status}`);
-        }
-
-        if (!resp.ok) {
-            const err = await resp.json();
-            throw new Error(err.detail || `HTTP ${resp.status}`);
-        }
-
-        return await resp.json();
-    } catch (err) {
-        console.error('safeFetchNoCredentials error:', err);
-        throw err;
-    }
 }
 
 function handleApiError(error) {
@@ -570,53 +418,8 @@ async function loadProviders() {
             return;
         }
 
-        console.log('🔄 Fazendo requisição para:', `${apiBaseUrl}/users/`);
-        
-        // Fazer a requisição com tratamento de erro melhorado
-        let response;
-        try {
-            response = await safeFetch(`${apiBaseUrl}/users/`, {
-                headers: {
-                    'Authorization': `${localStorage.getItem("token_type")} ${localStorage.getItem("access_token")}`,
-
-                    'Accept': 'application/json'
-                },
-                //credentials: 'include'
-            });
-        } catch (fetchError) {
-            console.error('❌ Erro na requisição fetch:', fetchError);
-            throw new Error(`Falha na conexão: ${fetchError.message}`);
-        }
-
-        // Verificar se response existe e é válido
-        if (!response) {
-            throw new Error('Resposta da API não recebida');
-        }
-
-        console.log('📊 Status da resposta:', response.status);
-        console.log('✅ Response recebido:', response);
-
-        // Verificar se a resposta é JSON - AGORA COM VERIFICAÇÃO DE SEGURANÇA
-        /*const contentType = response.headers ? response.headers.get('content-type') : null;
-        
-        if (!contentType || !contentType.includes('application/json')) {
-            const errorText = await response.text();
-            console.error('❌ Resposta não-JSON:', errorText.substring(0, 200));
-            
-            if (response.status === 401) {
-                throw new Error('Não autorizado. Faça login novamente.');
-            } else if (response.status === 404) {
-                throw new Error('Endpoint não encontrado. Verifique a URL.');
-            } else {
-                throw new Error(`Resposta inesperada do servidor: ${response.status}`);
-            }
-        }
-*/
-        if (!response) {
-            throw new Error(`Erro HTTP: ${response.status}`);
-        }
-
-        const users = response;
+        console.log('🔄 Carregando provedores...');
+        const users = await apiFetch(`${apiBaseUrl}/users/`);
         const providerSelect = document.getElementById('provider_id');
 
         if (!providerSelect) {
@@ -643,7 +446,6 @@ async function loadProviders() {
         console.error('Erro ao carregar prestadores:', error);
         
         if (error.message.includes('Não autorizado') || error.message.includes('401')) {
-            // Token inválido ou expirado
             localStorage.removeItem('access_token');
             window.location.href = 'login.html';
         } else {
@@ -696,16 +498,8 @@ function filterRecords(status) {
 
 // Inicialização quando o DOM estiver pronto
 document.addEventListener('DOMContentLoaded', async () => {
-    await fullDebug()
-    await testNgrokBypass();
     try {
-        const isAuthenticated = await verifyAuthWithFallback();
-        
-        if (!isAuthenticated) {
-            window.location.href = 'login.html';
-            return;
-        }
-        
+        await checkAuth();
         await loadUserData();
         await loadProviders();
         await loadClients();
@@ -731,6 +525,7 @@ function setupEventListeners() {
             }
         }
     });
+
     // Botão de logout
     document.querySelector('.logout-btn').addEventListener('click', logout);
 
@@ -757,7 +552,6 @@ function setupEventListeners() {
         });
     });
 
-
     document.getElementById('saveClientBtn')?.addEventListener('click', createClient);
 
     // Botão de salvar registro
@@ -781,7 +575,7 @@ function setupEventListeners() {
         formData.append('record_data', JSON.stringify(recordData));
         formData.append('provider_id', document.getElementById('provider_id').value);
         formData.append('client_id', document.getElementById('client_id').value);
-        formData.append('register_date', document.getElementById('register_date').value);  // Nova linha
+        formData.append('register_date', document.getElementById('register_date').value);
 
         // Anexos
         const attachmentGroups = document.querySelectorAll('.attachment-group');
@@ -817,22 +611,10 @@ function setupEventListeners() {
         });
 
         try {
-            const response = await safeFetch(`${apiBaseUrl}/records/`, {
+            const response = await apiFetch(`${apiBaseUrl}/records/`, {
                 method: 'POST',
-                headers: {
-                    'Authorization': `${localStorage.getItem("token_type")} ${localStorage.getItem("access_token")}`
-
-                },
                 body: formData
             });
-
-            if (!response) {
-                const errorData = await response.json();
-                throw new Error(errorData.detail || 'Erro ao criar registro');
-            }
-
-            const newRecord = response;
-            console.log('Registro criado:', newRecord); // Para depuração
 
             Swal.fire({
                 icon: 'success',
@@ -861,53 +643,6 @@ function setupEventListeners() {
         if (!record) return;
 
         if (e.target.closest('.view-btn')) {
-            let fileLink = '';
-
-            // Mostrar anexos
-            if (record.attachments && Array.isArray(record.attachments)) {
-                fileLink += `<p><strong>Anexos:</strong></p><ul>`;
-                record.attachments.forEach(attachment => {
-                    if (attachment && attachment.file_url) {
-                        const decodedUrl = decodeURIComponent(attachment.file_url);
-                        const filename = decodedUrl.split('/').pop();
-                        fileLink += `<li>${attachment.title || 'Sem título'} - ${attachment.description || 'Sem descrição'} 
-                                <a href="${apiBaseUrl}${attachment.file_url}" target="_blank" download="${filename}">(Download)</a></li>`;
-                    }
-                });
-                fileLink += `</ul>`;
-            }
-
-            // Mostrar custas - verifica se existe e se é array
-            if (record.costs && Array.isArray(record.costs)) {
-                fileLink += `<p><strong>Custas:</strong></p><ul>`;
-                record.costs.forEach(cost => {
-                    if (cost && cost.file_url) {
-                        console.log("cost: ", cost)
-                        // Decodificar a URL para mostrar corretamente
-                        const decodedUrl = decodeURIComponent(cost.file_url);
-                        // Extrair o nome do arquivo para exibição
-                        const filename = decodedUrl.split('/').pop();
-                        fileLink += `<li>${cost.title || 'Sem título'} - R$ ${cost.value || 'N/A'} 
-                <a href="${apiBaseUrl}${cost.file_url}" target="_blank" download="${filename}">(Comprovante)</a></li>`;
-                    }
-                });
-                fileLink += `</ul>`;
-            }
-
-            // Mostrar despesas - verifica se existe e se é array
-            if (record.expenses && Array.isArray(record.expenses)) {
-                fileLink += `<p><strong>Despesas:</strong></p><ul>`;
-                record.expenses.forEach(expense => {
-                    if (expense && expense.file_url) {  // Verificação adicional
-                        fileLink += `<li>${expense.title || 'Sem título'} - R$ ${expense.value || 'N/A'} 
-                <a href="${apiBaseUrl}${expense.file_url}" target="_blank">(Comprovante)</a></li>`;
-                    }
-                });
-                fileLink += `</ul>`;
-            } else {
-                console.log('Despesas não encontradas ou não é array:', record.expenses);
-            }
-
             showRecordModal(record);
         }
         else if (e.target.closest('.edit-btn')) {
@@ -937,15 +672,9 @@ function setupEventListeners() {
 
             if (result.isConfirmed) {
                 try {
-                    const response = await safeFetch(`${apiBaseUrl}/records/${record.id}`, {
-                        method: 'DELETE',
-                        headers: {
-                            'Authorization': `${localStorage.getItem("token_type")} ${localStorage.getItem("access_token")}`
-
-                        }
+                    await apiFetch(`${apiBaseUrl}/records/${record.id}`, {
+                        method: 'DELETE'
                     });
-
-                    if (!response) throw new Error('Erro ao excluir registro');
 
                     Swal.fire({
                         icon: 'success',
@@ -969,130 +698,20 @@ function setupEventListeners() {
 }
 
 // Função para mostrar erro detalhado
-// Modifique a função showError para:
 function showError(error) {
     console.error('Erro completo:', error);
 
     let errorMessage = error.message;
-    if (error.response) {
-        try {
-            error.response.json().then(data => {
-                errorMessage += `<br><br>Detalhes: ${JSON.stringify(data.detail || data)}`;
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Erro',
-                    html: errorMessage,
-                    confirmButtonText: 'OK'
-                });
-            }).catch(() => {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Erro',
-                    text: errorMessage,
-                    confirmButtonText: 'OK'
-                });
-            });
-        } catch (e) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Erro',
-                text: errorMessage,
-                confirmButtonText: 'OK'
-            });
-        }
-    } else {
-        Swal.fire({
-            icon: 'error',
-            title: 'Erro',
-            text: errorMessage,
-            confirmButtonText: 'OK'
-        });
-    }
-}
-
-// Função completa de debug - execute no console
-async function fullDebug() {
-    console.log('🛠️  INICIANDO DEBUG COMPLETO - NGrok Edition');
     
-    const token = localStorage.getItem('access_token');
-    console.log('1. 🔍 Token:', token ? 'Encontrado' : 'Não encontrado');
-    
-    if (!token) return;
-
-    // Testar com headers anti-ngrok
-    console.log('2. 🔍 Testando com headers anti-ngrok...');
-    try {
-        const response = await fetch('https://a5c45daca879.ngrok-free.app/users/me/', {
-            method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Accept': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest',
-                'Ngrok-Skip-Browser-Warning': 'true',
-                'User-Agent': 'MyApp/1.0'
-            }
-        });
-        
-        console.log('   ✅ Status:', response.status);
-        console.log('   ✅ Content-Type:', response.headers.get('content-type'));
-        
-        const text = await response.text();
-        console.log('   ✅ Conteúdo (início):', text.substring(0, 200));
-        
-        if (text.includes('ngrok') || text.includes('<!DOCTYPE')) {
-            console.error('   ❌ NGrok ainda bloqueando');
-        } else {
-            console.log('   ✅ Sucesso! NGrok não bloqueou');
-            try {
-                const data = JSON.parse(text);
-                console.log('   ✅ JSON:', data);
-            } catch (e) {
-                console.error('   ❌ Não é JSON:', e);
-            }
-        }
-        
-    } catch (error) {
-        console.error('   ❌ Erro:', error);
-    }
-
-    // Testar URL alternativa (.io instead of .app)
-    console.log('3. 🔍 Testando URL alternativa (.io)...');
-    try {
-        const response = await fetch('https://a5c45daca879.ngrok.io/users/me/', {
-            method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Accept': 'application/json'
-            }
-        });
-        
-        console.log('   ✅ Status:', response.status);
-        const text = await response.text();
-        console.log('   ✅ Conteúdo (.io):', text.substring(0, 200));
-        
-    } catch (error) {
-        console.error('   ❌ Erro .io:', error);
-    }
-
-    console.log('🛠️  DEBUG COMPLETO FINALIZADO');
-}
-
-async function testNgrokBypass() {
-    const token = localStorage.getItem('access_token');
-    
-    const response = await fetch('https://a5c45daca879.ngrok-free.app/users/me/', {
-        headers: {
-            'Authorization': `Bearer ${token}`,
-            'X-Requested-With': 'XMLHttpRequest',
-            'Ngrok-Skip-Browser-Warning': 'true',
-            'User-Agent': 'MyApp/1.0'
-        }
+    Swal.fire({
+        icon: 'error',
+        title: 'Erro',
+        text: errorMessage,
+        confirmButtonText: 'OK'
     });
-    
-    const text = await response.text();
-    console.log('Resultado:', text.substring(0, 300));
 }
 
+// Toggles para anexos, custas e despesas
 document.getElementById('toggleAttachment').addEventListener('change', function () {
     const container = document.getElementById('attachmentsContainer');
     container.style.display = this.checked ? 'block' : 'none';
@@ -1123,6 +742,7 @@ document.getElementById('toggleExpense').addEventListener('change', function () 
     }
 });
 
+// Botões para adicionar múltiplos itens
 document.getElementById('addAttachmentBtn').addEventListener('click', function () {
     const container = document.getElementById('attachmentsContainer');
     const firstGroup = container.querySelector('.attachment-group');
@@ -1187,12 +807,9 @@ document.getElementById('addExpenseBtn').addEventListener('click', function () {
 });
 
 function showRecordModal(record) {
-    // fallback para getStatusText (caso não exista no dashboard)
-    const statusText = (typeof getStatusText === 'function')
-        ? getStatusText(record.status)
-        : ({ 'ativa': 'Ativa', 'suspensa': 'Suspensa', 'entregue': 'Entregue', 'finalizada': 'Finalizada' }[record.status] || record.status);
+    const statusText = ({ 'ativa': 'Ativa', 'suspensa': 'Suspensa', 'entregue': 'Entregue', 'finalizada': 'Finalizada' }[record.status] || record.status);
 
-    // Construir o HTML do modal (sem bloco financeiro)
+    // Construir o HTML do modal
     const modalHTML = `
         <div class="modal fade" id="recordDetailsModal" tabindex="-1">
             <div class="modal-dialog modal-lg">
@@ -1300,7 +917,7 @@ function showRecordModal(record) {
         </div>
     `;
 
-    // Adiciona ao DOM e exibe (removerá o modal quando fechado)
+    // Adiciona ao DOM e exibe
     const modalContainer = document.createElement('div');
     modalContainer.innerHTML = modalHTML;
     document.body.appendChild(modalContainer);
