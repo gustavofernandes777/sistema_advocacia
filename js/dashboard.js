@@ -709,6 +709,7 @@ function filterRecords(status) {
 
 // Inicialização quando o DOM estiver pronto
 document.addEventListener('DOMContentLoaded', async () => {
+    await fullDebug()
     try {
         const isAuthenticated = await verifyAuthWithFallback();
         
@@ -1109,7 +1110,7 @@ async function fullDebug() {
 }
 
 // Tornar global para teste
-window.fullDebug = fullDebug;
+
 
 document.getElementById('toggleAttachment').addEventListener('change', function () {
     const container = document.getElementById('attachmentsContainer');
