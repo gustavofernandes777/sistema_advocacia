@@ -1021,18 +1021,30 @@ function showError(error) {
     }
 }
 
-async function debugAuthHeaders() {
-    const { token, tokenType } = getTokenInfo();
-    const authHeader = `${(tokenType || 'Bearer').charAt(0).toUpperCase() + (tokenType || 'Bearer').slice(1)} ${token}`;
+// Função completa de debug - execute no console
+async function fullDebug() {
+    console.log('🛠️  INICIANDO DEBUG COMPLETO');
     
-    console.log('🔍 Debug de headers:');
-    console.log('URL:', `${apiBaseUrl}/users/me/`);
-    console.log('Authorization Header:', authHeader);
-    console.log('Origin:', window.location.origin);
+    const token = localStorage.getItem('access_token');
+    console.log('1. 🔍 Token no localStorage:', token ? 'Encontrado' : 'Não encontrado');
     
-    // Testar com uma requisição simples
+    if (!token) {
+        console.error('❌ abortando debug - sem token');
+        return;
+    }
+    
+    // Testar o token
     try {
-        const testResp = await fetch(`${apiBaseUrl}/users/me/`, {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        console.log('2. ✅ Token válido, expira em:', new Date(payload.exp * 1000).toLocaleString('pt-BR'));
+    } catch (e) {
+        console.error('2. ❌ Token inválido:', e.message);
+    }
+    
+    // Testar CORS com OPTIONS
+    console.log('3. 🔍 Testando CORS...');
+    try {
+        const optionsResp = await fetch('https://a5c45daca879.ngrok-free.app/users/me/', {
             method: 'OPTIONS',
             headers: {
                 'Origin': window.location.origin,
@@ -1040,13 +1052,64 @@ async function debugAuthHeaders() {
                 'Access-Control-Request-Headers': 'Authorization'
             }
         });
-        console.log('OPTIONS Response:', testResp.status, testResp.statusText);
-        console.log('OPTIONS Headers:', Object.fromEntries(testResp.headers.entries()));
-    } catch (error) {
-        console.error('OPTIONS request failed:', error);
+        console.log('   ✅ OPTIONS status:', optionsResp.status);
+        console.log('   ✅ CORS headers:');
+        optionsResp.headers.forEach((value, key) => {
+            if (key.toLowerCase().includes('access-control')) {
+                console.log(`      ${key}: ${value}`);
+            }
+        });
+    } catch (optionsError) {
+        console.error('   ❌ OPTIONS failed:', optionsError);
     }
+    
+    // Testar requisição real
+    console.log('4. 🔍 Testando requisição GET...');
+    try {
+        const startTime = Date.now();
+        const response = await fetch('https://a5c45daca879.ngrok-free.app/users/me/', {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Accept': 'application/json'
+            }
+        });
+        const duration = Date.now() - startTime;
+        
+        console.log('   ✅ Status:', response.status, response.statusText);
+        console.log('   ✅ Tempo:', duration + 'ms');
+        console.log('   ✅ Redirected:', response.redirected);
+        console.log('   ✅ URL final:', response.url);
+        
+        // Log todos os headers
+        console.log('   ✅ Headers:');
+        response.headers.forEach((value, key) => {
+            console.log(`      ${key}: ${value}`);
+        });
+        
+        const text = await response.text();
+        console.log('   ✅ Conteúdo (início):', text.substring(0, 300));
+        
+        if (text.includes('<!DOCTYPE') || text.includes('<html')) {
+            console.error('   ❌ CONTEÚDO HTML DETECTADO!');
+            
+            // Procurar clues no HTML
+            if (text.includes('login')) console.error('   📛 Contém "login"');
+            if (text.includes('Login')) console.error('   📛 Contém "Login"');
+            if (text.includes('signin')) console.error('   📛 Contém "signin"');
+            if (text.includes('401')) console.error('   📛 Contém "401"');
+            if (text.includes('403')) console.error('   📛 Contém "403"');
+        }
+        
+    } catch (error) {
+        console.error('   ❌ Erro na requisição:', error);
+    }
+    
+    console.log('🛠️  DEBUG COMPLETO FINALIZADO');
 }
 
+// Tornar global para teste
+window.fullDebug = fullDebug;
 
 document.getElementById('toggleAttachment').addEventListener('change', function () {
     const container = document.getElementById('attachmentsContainer');
