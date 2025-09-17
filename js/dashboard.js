@@ -27,6 +27,7 @@ async function checkAuth() {
     console.log('🔐 checkAuth() start');
     const { token, tokenType } = getTokenInfo();
 
+
     if (!token) {
         console.warn('❌ Nenhum token no localStorage — redirecionando');
         window.location.href = 'login.html';
@@ -34,10 +35,11 @@ async function checkAuth() {
     }
 
     try {
+        const authHeader = `${(tokenType || 'Bearer').charAt(0).toUpperCase() + (tokenType || 'Bearer').slice(1)} ${token}`;
+
         const resp = await fetch(`${apiBaseUrl}/users/me/`, {
             method: 'GET',
-            headers: { 'Authorization': `${tokenType} ${token}` },
-            //credentials: 'include'
+            headers: { 'Authorization': authHeader }
         });
 
         console.log('checkAuth status:', resp.status);
