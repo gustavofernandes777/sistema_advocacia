@@ -33,14 +33,39 @@ async function checkAuth() {
     }
 
     try {
+        // normaliza tokenType e monta header
         const authHeader = `${(tokenType || 'Bearer').charAt(0).toUpperCase() + (tokenType || 'Bearer').slice(1)} ${token}`;
 
         const resp = await fetch(`${apiBaseUrl}/users/me/`, {
             method: 'GET',
-            headers: { 'Authorization': authHeader }
+            mode: 'cors',               // explicita CORS
+            cache: 'no-store',
+            headers: {
+                'Authorization': authHeader,
+                'Accept': 'application/json' // força JSON quando possível
+            }
         });
 
-        const data = await resp.json();
+        console.log('checkAuth status:', resp.status);
+        const contentType = resp.headers.get('content-type') || '';
+        console.log('checkAuth content-type:', contentType);
+
+        // Se o content-type não indicar JSON, logar o corpo bruto para debug
+        if (!contentType.includes('application/json')) {
+            const raw = await resp.clone().text().catch(()=>'<no-text>');
+            console.error('Resposta NÃO-JSON recebida ao validar token. Início do conteúdo:', raw.slice(0,800));
+            throw new Error(`Resposta não-JSON (status ${resp.status}). Ver console para o conteúdo bruto.`);
+        }
+
+        // Tentar parsear JSON com try/catch — se falhar, ler corpo bruto para diagnóstico
+        let data;
+        try {
+            data = await resp.json();
+        } catch (jsonErr) {
+            const raw = await resp.clone().text().catch(()=>'<no-text>');
+            console.error('Falha ao parsear JSON:', jsonErr, 'Conteúdo bruto:', raw.slice(0,2000));
+            throw new Error('Falha ao parsear resposta JSON do servidor. Veja console para o conteúdo bruto.');
+        }
 
         if (!resp.ok) {
             throw new Error(data.detail || `HTTP ${resp.status}`);
@@ -51,8 +76,11 @@ async function checkAuth() {
         return true;
     } catch (err) {
         console.error('❌ checkAuth error:', err);
+        // limpeza defensiva
         localStorage.removeItem('access_token');
         localStorage.removeItem('token');
+        // opcional: limpar também token_type
+        localStorage.removeItem('token_type');
         setTimeout(() => window.location.href = 'login.html', 700);
         return false;
     }
