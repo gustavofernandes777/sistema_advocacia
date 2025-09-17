@@ -23,10 +23,8 @@ function getTokenInfo() {
 
 // Verifica autenticação
 async function checkAuth() {
-    debugger; // <-- isso abre o DevTools automaticamente e pausa aqui
     console.log('🔐 checkAuth() start');
     const { token, tokenType } = getTokenInfo();
-
 
     if (!token) {
         console.warn('❌ Nenhum token no localStorage — redirecionando');
@@ -39,42 +37,27 @@ async function checkAuth() {
 
         const resp = await fetch(`${apiBaseUrl}/users/me/`, {
             method: 'GET',
-            headers: { 'Authorization': `Bearer ${token}` }
+            headers: { 'Authorization': authHeader }
         });
 
-        console.log('checkAuth status:', resp.status);
-
-        // Se não for JSON, logar corpo para debug (evita "Unexpected token <" em response.json)
-        /*const ct = resp.headers.get('content-type') || '';
-        if (!ct.includes('application/json')) {
-            const text = await resp.text().catch(()=>'<no-text>');
-            console.error('Resposta não-JSON ao validar token:', text.slice(0,1000));
-            if (resp.status === 401) {
-                // token inválido: limpar e redirecionar
-                localStorage.removeItem('access_token');
-                localStorage.removeItem('token');
-            }
-            throw new Error(`Resposta não-JSON (status ${resp.status})`);
-        }*/
+        const data = await resp.json();
 
         if (!resp.ok) {
-            const err = await resp.json().catch(()=>({ detail: `HTTP ${resp.status}` }));
-            throw new Error(err.detail || `HTTP ${resp.status}`);
+            throw new Error(data.detail || `HTTP ${resp.status}`);
         }
 
-        const userData = await resp.json();
-        console.log('✅ Auth válida. user:', userData.email || userData.name);
-        currentUser = userData;
+        console.log('✅ Auth válida. user:', data.email || data.name);
+        currentUser = data;
         return true;
     } catch (err) {
         console.error('❌ checkAuth error:', err);
-        // limpeza defensiva
         localStorage.removeItem('access_token');
         localStorage.removeItem('token');
         setTimeout(() => window.location.href = 'login.html', 700);
         return false;
     }
 }
+
 
 // Carrega dados do usuário
 async function loadUserData() {
