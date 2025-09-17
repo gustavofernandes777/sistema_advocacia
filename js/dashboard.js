@@ -33,104 +33,66 @@ async function checkAuth() {
     }
 
     try {
-        const authHeader = `${(tokenType || 'Bearer').charAt(0).toUpperCase() + (tokenType || 'Bearer').slice(1)} ${token}`;
+        const authHeader = `Bearer ${token}`;
 
         console.log('🔄 Fazendo requisição para:', `${apiBaseUrl}/users/me/`);
-        console.log('📨 Header Authorization:', authHeader);
 
-        // Primeiro, faça uma requisição OPTIONS para verificar CORS
-        try {
-            console.log('🔍 Testando CORS com OPTIONS...');
-            const optionsResp = await fetch(`${apiBaseUrl}/users/me/`, {
-                method: 'OPTIONS',
-                headers: {
-                    'Origin': window.location.origin,
-                    'Access-Control-Request-Method': 'GET',
-                    'Access-Control-Request-Headers': 'Authorization'
-                }
-            });
-            console.log('✅ OPTIONS response:', optionsResp.status, optionsResp.statusText);
-        } catch (optionsError) {
-            console.warn('⚠️ OPTIONS request failed (may be normal):', optionsError);
-        }
-
-        // Agora faça a requisição GET real
+        // Headers específicos para evitar a página do ngrok
         const resp = await fetch(`${apiBaseUrl}/users/me/`, {
             method: 'GET',
             mode: 'cors',
             cache: 'no-store',
-            credentials: 'omit', // Mude para 'omit' para evitar problemas de credentials
+            credentials: 'omit',
             headers: {
                 'Authorization': authHeader,
                 'Accept': 'application/json',
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest', // ← IMPORTANTE: Evita página ngrok
+                'User-Agent': 'MyApp/1.0', // ← User-Agent personalizado
+                'Ngrok-Skip-Browser-Warning': 'true', // ← Header específico do ngrok
+                'Sec-Fetch-Dest': 'empty',
+                'Sec-Fetch-Mode': 'cors',
+                'Sec-Fetch-Site': 'cross-site'
             }
         });
 
-        console.log('✅ Resposta recebida. Status:', resp.status);
-        console.log('📋 Headers da resposta:');
-        resp.headers.forEach((value, key) => {
-            console.log(`   ${key}: ${value}`);
-        });
+        console.log('✅ Status:', resp.status);
+        console.log('✅ Content-Type:', resp.headers.get('content-type'));
 
-        const contentType = resp.headers.get('content-type') || '';
-        console.log('📋 Content-Type detectado:', contentType);
+        const text = await resp.text();
+        console.log('✅ Conteúdo bruto (início):', text.substring(0, 200));
 
-        // Se for HTML, provavelmente é uma página de erro/redirect
-        if (contentType.includes('text/html')) {
-            const text = await resp.text();
-            console.error('❌ HTML recebido (possível redirecionamento):', text.substring(0, 500));
+        // Verificar se ainda é a página do ngrok
+        if (text.includes('ngrok') || text.includes('<!DOCTYPE')) {
+            console.error('❌ Ngrok ainda está interceptando a requisição');
             
-            // Verificar se é redirect para login
-            if (text.includes('login') || text.includes('Login') || resp.redirected) {
-                throw new Error('Redirecionado para página de login - token inválido ou expirado');
-            }
-            
-            throw new Error(`Servidor retornou HTML: ${resp.status} ${resp.statusText}`);
-        }
-
-        // Se não for JSON, tentar parsear como JSON mesmo assim
-        if (!contentType.includes('application/json')) {
-            console.warn('⚠️ Content-Type não é JSON, tentando parsear como JSON...');
-            try {
-                const data = await resp.json();
-                console.log('✅ Parse JSON bem-sucedido apesar do Content-Type');
-                currentUser = data;
-                return true;
-            } catch (jsonError) {
-                const text = await resp.text();
-                console.error('❌ Falha ao parsear resposta:', jsonError);
-                console.error('📄 Conteúdo da resposta:', text.substring(0, 500));
-                throw new Error(`Resposta inesperada (${contentType}): ${text.substring(0, 100)}...`);
-            }
-        }
-
-        // Se for JSON, parsear normalmente
-        const data = await resp.json();
-        
-        if (!resp.ok) {
-            throw new Error(data.detail || `HTTP Error ${resp.status}`);
-        }
-
-        console.log('✅ Autenticação válida. Usuário:', data.email || data.name);
-        currentUser = data;
-        return true;
-        
-    } catch (err) {
-        console.error('❌ Erro na autenticação:', err);
-        
-        // Verificar tipos específicos de erro
-        if (err.message.includes('CORS') || err.message.includes('Origin')) {
-            console.log('🔄 Tentando abordagem alternativa para CORS...');
+            // Tentar abordagem alternativa com URL diferente
             return await checkAuthAlternative();
         }
-        
-        if (err.message.includes('token') || err.message.includes('login')) {
-            console.log('🔐 Token inválido ou expirado - limpando e redirecionando');
-            localStorage.removeItem('access_token');
-            localStorage.removeItem('token');
-            localStorage.removeItem('token_type');
+
+        // Tentar parsear como JSON
+        try {
+            const data = JSON.parse(text);
+            
+            if (!resp.ok) {
+                throw new Error(data.detail || `Erro HTTP ${resp.status}`);
+            }
+
+            console.log('✅ Autenticação válida. Usuário:', data.email || data.name);
+            currentUser = data;
+            return true;
+            
+        } catch (jsonError) {
+            console.error('❌ Falha ao parsear JSON:', jsonError);
+            throw new Error('Resposta inválida do servidor');
         }
+        
+    } catch (err) {
+        console.error('❌ Erro na autenticação:', err.message);
+        
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('token');
+        localStorage.removeItem('token_type');
         
         setTimeout(() => {
             window.location.href = 'login.html';
@@ -140,34 +102,59 @@ async function checkAuth() {
     }
 }
 
-// Abordagem alternativa para contornar CORS
+// Abordagem alternativa para contornar o ngrok
 async function checkAuthAlternative() {
     try {
         const { token, tokenType } = getTokenInfo();
-        const authHeader = `${(tokenType || 'Bearer').charAt(0).toUpperCase() + (tokenType || 'Bearer').slice(1)} ${token}`;
+        const authHeader = `Bearer ${token}`;
 
-        console.log('🔄 Tentando abordagem alternativa...');
+        console.log('🔄 Tentando abordagem alternativa para ngrok...');
         
-        // Usar proxy CORS
-        const corsProxyUrl = `https://corsproxy.io/?`;
-        const targetUrl = encodeURIComponent(`${apiBaseUrl}/users/me/`);
-        
-        const resp = await fetch(`${corsProxyUrl}${targetUrl}`, {
-            method: 'GET',
-            headers: {
-                'Authorization': authHeader,
-                'Accept': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
+        // Tentativa 1: Usar um proxy CORS
+        try {
+            const corsProxyUrl = `https://cors-anywhere.herokuapp.com/`;
+            const response = await fetch(`${corsProxyUrl}https://a5c45daca879.ngrok-free.app/users/me/`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': authHeader,
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                currentUser = data;
+                return true;
             }
-        });
-
-        if (resp.ok) {
-            const data = await resp.json();
-            currentUser = data;
-            return true;
+        } catch (proxyError) {
+            console.warn('Proxy CORS falhou:', proxyError);
+        }
+        
+        // Tentativa 2: Usar um domínio diferente (sem ngrok-free.app)
+        try {
+            // Tentar a URL base sem o subdomínio ngrok
+            const response = await fetch(`https://a5c45daca879.ngrok.io/users/me/`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': authHeader,
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            });
+            
+            const text = await response.text();
+            if (!text.includes('ngrok') && !text.includes('<!DOCTYPE')) {
+                const data = JSON.parse(text);
+                currentUser = data;
+                return true;
+            }
+        } catch (ngrokError) {
+            console.warn('URL alternativa falhou:', ngrokError);
         }
         
         return false;
+        
     } catch (error) {
         console.error('❌ Abordagem alternativa falhou:', error);
         return false;
@@ -710,6 +697,7 @@ function filterRecords(status) {
 // Inicialização quando o DOM estiver pronto
 document.addEventListener('DOMContentLoaded', async () => {
     await fullDebug()
+    await testNgrokBypass();
     try {
         const isAuthenticated = await verifyAuthWithFallback();
         
@@ -1024,93 +1012,86 @@ function showError(error) {
 
 // Função completa de debug - execute no console
 async function fullDebug() {
-    console.log('🛠️  INICIANDO DEBUG COMPLETO');
+    console.log('🛠️  INICIANDO DEBUG COMPLETO - NGrok Edition');
     
     const token = localStorage.getItem('access_token');
-    console.log('1. 🔍 Token no localStorage:', token ? 'Encontrado' : 'Não encontrado');
+    console.log('1. 🔍 Token:', token ? 'Encontrado' : 'Não encontrado');
     
-    if (!token) {
-        console.error('❌ abortando debug - sem token');
-        return;
-    }
-    
-    // Testar o token
+    if (!token) return;
+
+    // Testar com headers anti-ngrok
+    console.log('2. 🔍 Testando com headers anti-ngrok...');
     try {
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        console.log('2. ✅ Token válido, expira em:', new Date(payload.exp * 1000).toLocaleString('pt-BR'));
-    } catch (e) {
-        console.error('2. ❌ Token inválido:', e.message);
-    }
-    
-    // Testar CORS com OPTIONS
-    console.log('3. 🔍 Testando CORS...');
-    try {
-        const optionsResp = await fetch('https://a5c45daca879.ngrok-free.app/users/me/', {
-            method: 'OPTIONS',
-            headers: {
-                'Origin': window.location.origin,
-                'Access-Control-Request-Method': 'GET',
-                'Access-Control-Request-Headers': 'Authorization'
-            }
-        });
-        console.log('   ✅ OPTIONS status:', optionsResp.status);
-        console.log('   ✅ CORS headers:');
-        optionsResp.headers.forEach((value, key) => {
-            if (key.toLowerCase().includes('access-control')) {
-                console.log(`      ${key}: ${value}`);
-            }
-        });
-    } catch (optionsError) {
-        console.error('   ❌ OPTIONS failed:', optionsError);
-    }
-    
-    // Testar requisição real
-    console.log('4. 🔍 Testando requisição GET...');
-    try {
-        const startTime = Date.now();
         const response = await fetch('https://a5c45daca879.ngrok-free.app/users/me/', {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'Ngrok-Skip-Browser-Warning': 'true',
+                'User-Agent': 'MyApp/1.0'
+            }
+        });
+        
+        console.log('   ✅ Status:', response.status);
+        console.log('   ✅ Content-Type:', response.headers.get('content-type'));
+        
+        const text = await response.text();
+        console.log('   ✅ Conteúdo (início):', text.substring(0, 200));
+        
+        if (text.includes('ngrok') || text.includes('<!DOCTYPE')) {
+            console.error('   ❌ NGrok ainda bloqueando');
+        } else {
+            console.log('   ✅ Sucesso! NGrok não bloqueou');
+            try {
+                const data = JSON.parse(text);
+                console.log('   ✅ JSON:', data);
+            } catch (e) {
+                console.error('   ❌ Não é JSON:', e);
+            }
+        }
+        
+    } catch (error) {
+        console.error('   ❌ Erro:', error);
+    }
+
+    // Testar URL alternativa (.io instead of .app)
+    console.log('3. 🔍 Testando URL alternativa (.io)...');
+    try {
+        const response = await fetch('https://a5c45daca879.ngrok.io/users/me/', {
             method: 'GET',
             headers: {
                 'Authorization': `Bearer ${token}`,
                 'Accept': 'application/json'
             }
         });
-        const duration = Date.now() - startTime;
         
-        console.log('   ✅ Status:', response.status, response.statusText);
-        console.log('   ✅ Tempo:', duration + 'ms');
-        console.log('   ✅ Redirected:', response.redirected);
-        console.log('   ✅ URL final:', response.url);
-        
-        // Log todos os headers
-        console.log('   ✅ Headers:');
-        response.headers.forEach((value, key) => {
-            console.log(`      ${key}: ${value}`);
-        });
-        
+        console.log('   ✅ Status:', response.status);
         const text = await response.text();
-        console.log('   ✅ Conteúdo (início):', text.substring(0, 300));
-        
-        if (text.includes('<!DOCTYPE') || text.includes('<html')) {
-            console.error('   ❌ CONTEÚDO HTML DETECTADO!');
-            
-            // Procurar clues no HTML
-            if (text.includes('login')) console.error('   📛 Contém "login"');
-            if (text.includes('Login')) console.error('   📛 Contém "Login"');
-            if (text.includes('signin')) console.error('   📛 Contém "signin"');
-            if (text.includes('401')) console.error('   📛 Contém "401"');
-            if (text.includes('403')) console.error('   📛 Contém "403"');
-        }
+        console.log('   ✅ Conteúdo (.io):', text.substring(0, 200));
         
     } catch (error) {
-        console.error('   ❌ Erro na requisição:', error);
+        console.error('   ❌ Erro .io:', error);
     }
-    
+
     console.log('🛠️  DEBUG COMPLETO FINALIZADO');
 }
 
-// Tornar global para teste
-
+async function testNgrokBypass() {
+    const token = localStorage.getItem('access_token');
+    
+    const response = await fetch('https://a5c45daca879.ngrok-free.app/users/me/', {
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            'X-Requested-With': 'XMLHttpRequest',
+            'Ngrok-Skip-Browser-Warning': 'true',
+            'User-Agent': 'MyApp/1.0'
+        }
+    });
+    
+    const text = await response.text();
+    console.log('Resultado:', text.substring(0, 300));
+}
 
 document.getElementById('toggleAttachment').addEventListener('change', function () {
     const container = document.getElementById('attachmentsContainer');
