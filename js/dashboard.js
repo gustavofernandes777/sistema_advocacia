@@ -39,7 +39,7 @@ async function checkAuth() {
 
         const resp = await fetch(`${apiBaseUrl}/users/me/`, {
             method: 'GET',
-            headers: { 'Authorization': authHeader }
+            headers: { 'Authorization': `Bearer ${token}` }
         });
 
         console.log('checkAuth status:', resp.status);
