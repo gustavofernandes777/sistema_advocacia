@@ -38,35 +38,80 @@ async function checkAuth() {
         console.log('🔄 Fazendo requisição para:', `${apiBaseUrl}/users/me/`);
         console.log('📨 Header Authorization:', authHeader);
 
+        // Primeiro, faça uma requisição OPTIONS para verificar CORS
+        try {
+            console.log('🔍 Testando CORS com OPTIONS...');
+            const optionsResp = await fetch(`${apiBaseUrl}/users/me/`, {
+                method: 'OPTIONS',
+                headers: {
+                    'Origin': window.location.origin,
+                    'Access-Control-Request-Method': 'GET',
+                    'Access-Control-Request-Headers': 'Authorization'
+                }
+            });
+            console.log('✅ OPTIONS response:', optionsResp.status, optionsResp.statusText);
+        } catch (optionsError) {
+            console.warn('⚠️ OPTIONS request failed (may be normal):', optionsError);
+        }
+
+        // Agora faça a requisição GET real
         const resp = await fetch(`${apiBaseUrl}/users/me/`, {
             method: 'GET',
             mode: 'cors',
             cache: 'no-store',
-            credentials: 'include', // IMPORTANTE: manter para enviar cookies
+            credentials: 'omit', // Mude para 'omit' para evitar problemas de credentials
             headers: {
                 'Authorization': authHeader,
-                'Accept': 'application/json'
-                // Não inclua o header Origin manualmente - o navegador cuida disso
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
             }
         });
 
         console.log('✅ Resposta recebida. Status:', resp.status);
-        
+        console.log('📋 Headers da resposta:');
+        resp.headers.forEach((value, key) => {
+            console.log(`   ${key}: ${value}`);
+        });
+
         const contentType = resp.headers.get('content-type') || '';
-        console.log('📋 Content-Type:', contentType);
+        console.log('📋 Content-Type detectado:', contentType);
 
-        // Verificar se a resposta é válida
-        if (!resp.ok) {
-            throw new Error(`HTTP Error ${resp.status}`);
-        }
-
-        if (!contentType.includes('application/json')) {
+        // Se for HTML, provavelmente é uma página de erro/redirect
+        if (contentType.includes('text/html')) {
             const text = await resp.text();
-            console.error('❌ Content-Type inesperado. Conteúdo:', text.substring(0, 200));
-            throw new Error(`Content-Type inesperado: ${contentType}`);
+            console.error('❌ HTML recebido (possível redirecionamento):', text.substring(0, 500));
+            
+            // Verificar se é redirect para login
+            if (text.includes('login') || text.includes('Login') || resp.redirected) {
+                throw new Error('Redirecionado para página de login - token inválido ou expirado');
+            }
+            
+            throw new Error(`Servidor retornou HTML: ${resp.status} ${resp.statusText}`);
         }
 
+        // Se não for JSON, tentar parsear como JSON mesmo assim
+        if (!contentType.includes('application/json')) {
+            console.warn('⚠️ Content-Type não é JSON, tentando parsear como JSON...');
+            try {
+                const data = await resp.json();
+                console.log('✅ Parse JSON bem-sucedido apesar do Content-Type');
+                currentUser = data;
+                return true;
+            } catch (jsonError) {
+                const text = await resp.text();
+                console.error('❌ Falha ao parsear resposta:', jsonError);
+                console.error('📄 Conteúdo da resposta:', text.substring(0, 500));
+                throw new Error(`Resposta inesperada (${contentType}): ${text.substring(0, 100)}...`);
+            }
+        }
+
+        // Se for JSON, parsear normalmente
         const data = await resp.json();
+        
+        if (!resp.ok) {
+            throw new Error(data.detail || `HTTP Error ${resp.status}`);
+        }
+
         console.log('✅ Autenticação válida. Usuário:', data.email || data.name);
         currentUser = data;
         return true;
@@ -74,18 +119,19 @@ async function checkAuth() {
     } catch (err) {
         console.error('❌ Erro na autenticação:', err);
         
-        // Verificar se é erro de CORS específico
+        // Verificar tipos específicos de erro
         if (err.message.includes('CORS') || err.message.includes('Origin')) {
-            console.log('🔄 Tentando sem credentials...');
-            return await checkAuthWithoutCredentials();
+            console.log('🔄 Tentando abordagem alternativa para CORS...');
+            return await checkAuthAlternative();
         }
         
-        // Limpar tokens inválidos
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('token');
-        localStorage.removeItem('token_type');
+        if (err.message.includes('token') || err.message.includes('login')) {
+            console.log('🔐 Token inválido ou expirado - limpando e redirecionando');
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('token');
+            localStorage.removeItem('token_type');
+        }
         
-        // Redirecionar para login
         setTimeout(() => {
             window.location.href = 'login.html';
         }, 1000);
@@ -94,42 +140,36 @@ async function checkAuth() {
     }
 }
 
-// Versão alternativa sem credentials
-async function checkAuthWithoutCredentials() {
+// Abordagem alternativa para contornar CORS
+async function checkAuthAlternative() {
     try {
         const { token, tokenType } = getTokenInfo();
         const authHeader = `${(tokenType || 'Bearer').charAt(0).toUpperCase() + (tokenType || 'Bearer').slice(1)} ${token}`;
 
-        const resp = await fetch(`${apiBaseUrl}/users/me/`, {
+        console.log('🔄 Tentando abordagem alternativa...');
+        
+        // Usar proxy CORS
+        const corsProxyUrl = `https://corsproxy.io/?`;
+        const targetUrl = encodeURIComponent(`${apiBaseUrl}/users/me/`);
+        
+        const resp = await fetch(`${corsProxyUrl}${targetUrl}`, {
             method: 'GET',
-            mode: 'cors',
-            cache: 'no-store',
-            // SEM credentials: 'include'
             headers: {
                 'Authorization': authHeader,
-                'Accept': 'application/json'
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
             }
         });
 
-        console.log('✅ Resposta recebida (sem credentials). Status:', resp.status);
-        
-        const contentType = resp.headers.get('content-type') || '';
-        if (!contentType.includes('application/json')) {
-            throw new Error(`Content-Type inesperado: ${contentType}`);
+        if (resp.ok) {
+            const data = await resp.json();
+            currentUser = data;
+            return true;
         }
-
-        const data = await resp.json();
         
-        if (!resp.ok) {
-            throw new Error(data.detail || `HTTP ${resp.status}`);
-        }
-
-        console.log('✅ Autenticação válida (sem credentials). Usuário:', data.email || data.name);
-        currentUser = data;
-        return true;
-        
-    } catch (err) {
-        console.error('❌ Erro na autenticação sem credentials:', err);
+        return false;
+    } catch (error) {
+        console.error('❌ Abordagem alternativa falhou:', error);
         return false;
     }
 }
