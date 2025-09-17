@@ -35,25 +35,14 @@ async function checkAuth() {
     try {
         const authHeader = `${(tokenType || 'Bearer').charAt(0).toUpperCase() + (tokenType || 'Bearer').slice(1)} ${token}`;
 
-        // Primeiro, verificar se a origem está autorizada com uma requisição OPTIONS
-        try {
-            await fetch(`${apiBaseUrl}/users/me/`, {
-                method: 'OPTIONS',
-                headers: {
-                    'Origin': window.location.origin,
-                    'Access-Control-Request-Method': 'GET',
-                    'Access-Control-Request-Headers': 'Authorization'
-                }
-            });
-        } catch (optionsError) {
-            console.log('OPTIONS request completed (may fail silently)');
-        }
+        console.log('🔄 Fazendo requisição para:', `${apiBaseUrl}/users/me/`);
+        console.log('📨 Header Authorization:', authHeader);
 
-        // Agora fazer a requisição GET real
         const resp = await fetch(`${apiBaseUrl}/users/me/`, {
             method: 'GET',
             mode: 'cors',
             cache: 'no-store',
+            credentials: 'include', // IMPORTANTE: incluir credenciais
             headers: {
                 'Authorization': authHeader,
                 'Accept': 'application/json',
@@ -61,83 +50,45 @@ async function checkAuth() {
             }
         });
 
-        console.log('checkAuth status:', resp.status);
+        console.log('✅ Resposta recebida. Status:', resp.status);
         
-        // Verificar se a resposta é um redirecionamento HTML
         const contentType = resp.headers.get('content-type') || '';
-        console.log('checkAuth content-type:', contentType);
+        console.log('📋 Content-Type:', contentType);
 
+        // Verificar se é HTML (redirecionamento para login)
         if (contentType.includes('text/html')) {
-            // Provavelmente sendo redirecionado para uma página de login/erro
             const text = await resp.text();
-            console.error('❌ Recebido HTML em vez de JSON. Possível problema de CORS ou autenticação.');
-            console.error('Primeiros 500 caracteres:', text.substring(0, 500));
-            
-            throw new Error('Problema de CORS ou autenticação. O servidor está retornando HTML em vez de JSON.');
+            console.error('❌ Recebido HTML em vez de JSON:', text.substring(0, 200));
+            throw new Error('Servidor retornou página HTML (possivelmente redirecionamento para login)');
         }
 
         if (!contentType.includes('application/json')) {
-            const raw = await resp.text().catch(() => '<no-text>');
-            console.error('Resposta não-JSON recebida. Início do conteúdo:', raw.slice(0, 800));
-            throw new Error(`Resposta não-JSON (status ${resp.status}). Ver console para detalhes.`);
+            throw new Error(`Content-Type inesperado: ${contentType}`);
         }
 
         const data = await resp.json();
         
         if (!resp.ok) {
-            throw new Error(data.detail || `HTTP ${resp.status}`);
+            throw new Error(data.detail || `Erro HTTP ${resp.status}`);
         }
 
-        console.log('✅ Auth válida. user:', data.email || data.name);
+        console.log('✅ Autenticação válida. Usuário:', data.email || data.name);
         currentUser = data;
         return true;
         
     } catch (err) {
-        console.error('❌ checkAuth error:', err);
+        console.error('❌ Erro na autenticação:', err);
         
-        // Se for erro de CORS, tentar uma abordagem diferente
-        if (err.message.includes('CORS') || err.message.includes('Origin')) {
-            console.log('Tentando abordagem alternativa para CORS...');
-            return await checkAuthAlternative();
-        }
-        
+        // Limpar tokens inválidos
         localStorage.removeItem('access_token');
         localStorage.removeItem('token');
         localStorage.removeItem('token_type');
         
+        // Redirecionar para login
         setTimeout(() => {
             window.location.href = 'login.html';
-        }, 700);
+        }, 1000);
         
-        return false;
-    }
-}
-
-// Abordagem alternativa para contornar problemas de CORS
-async function checkAuthAlternative() {
-    try {
-        const { token, tokenType } = getTokenInfo();
-        const authHeader = `${(tokenType || 'Bearer').charAt(0).toUpperCase() + (tokenType || 'Bearer').slice(1)} ${token}`;
-
-        // Usar uma abordagem mais simples, sem CORS strict
-        const resp = await fetch(`${apiBaseUrl}/users/me/`, {
-            method: 'GET',
-            mode: 'no-cors', // Modo no-cors para evitar problemas
-            headers: {
-                'Authorization': authHeader
-            }
-        });
-
-        // No modo no-cors, não podemos ler a resposta, mas podemos verificar o status
-        if (resp.type === 'opaque') {
-            // Resposta opaca - provavelmente funcionou mas não podemos ler
-            console.log('✅ Auth provavelmente válida (resposta opaca)');
-            return true;
-        }
-
-        return false;
-    } catch (error) {
-        console.error('❌ checkAuthAlternative error:', error);
         return false;
     }
 }
@@ -149,47 +100,8 @@ async function verifyAuthWithFallback() {
         return await checkAuth();
     } catch (error) {
         console.log('Primeira tentativa falhou, tentando fallback...');
-        
-        // Segunda tentativa: usar proxy CORS
-        try {
-            return await checkAuthWithCorsProxy();
-        } catch (proxyError) {
-            console.error('Todas as tentativas falharam:', proxyError);
-            return false;
-        }
     }
 }
-
-// Usar um proxy CORS como fallback
-async function checkAuthWithCorsProxy() {
-    const { token, tokenType } = getTokenInfo();
-    const authHeader = `${(tokenType || 'Bearer').charAt(0).toUpperCase() + (tokenType || 'Bearer').slice(1)} ${token}`;
-    
-    // Usar um proxy CORS público (exemplo)
-    const corsProxyUrl = 'https://cors-anywhere.herokuapp.com/';
-    
-    try {
-        const resp = await fetch(`${corsProxyUrl}${apiBaseUrl}/users/me/`, {
-            method: 'GET',
-            headers: {
-                'Authorization': authHeader,
-                'Accept': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
-            }
-        });
-        
-        if (resp.ok) {
-            const data = await resp.json();
-            currentUser = data;
-            return true;
-        }
-        return false;
-    } catch (error) {
-        console.error('Proxy CORS falhou:', error);
-        throw error;
-    }
-}
-
 
 // Carrega dados do usuário
 async function loadUserData() {
@@ -1023,6 +935,33 @@ function showError(error) {
         });
     }
 }
+
+async function debugAuthHeaders() {
+    const { token, tokenType } = getTokenInfo();
+    const authHeader = `${(tokenType || 'Bearer').charAt(0).toUpperCase() + (tokenType || 'Bearer').slice(1)} ${token}`;
+    
+    console.log('🔍 Debug de headers:');
+    console.log('URL:', `${apiBaseUrl}/users/me/`);
+    console.log('Authorization Header:', authHeader);
+    console.log('Origin:', window.location.origin);
+    
+    // Testar com uma requisição simples
+    try {
+        const testResp = await fetch(`${apiBaseUrl}/users/me/`, {
+            method: 'OPTIONS',
+            headers: {
+                'Origin': window.location.origin,
+                'Access-Control-Request-Method': 'GET',
+                'Access-Control-Request-Headers': 'Authorization'
+            }
+        });
+        console.log('OPTIONS Response:', testResp.status, testResp.statusText);
+        console.log('OPTIONS Headers:', Object.fromEntries(testResp.headers.entries()));
+    } catch (error) {
+        console.error('OPTIONS request failed:', error);
+    }
+}
+
 
 document.getElementById('toggleAttachment').addEventListener('change', function () {
     const container = document.getElementById('attachmentsContainer');
