@@ -263,6 +263,11 @@ function populateForm() {
     document.getElementById('edit-status').value = currentRecord.status;
     document.getElementById('edit-priority').value = currentRecord.priority;
     document.getElementById('edit-register-date').value = currentRecord.register_date;
+    // Novos campos
+    if (currentRecord.last_update) {
+        const lastUpdate = new Date(currentRecord.last_update);
+        document.getElementById('edit-last-update').value = lastUpdate.toLocaleString('pt-BR');
+    }
     document.getElementById('edit-document-type').value = currentRecord.document_type || '';
     document.getElementById('edit-state').value = currentRecord.state.toLowerCase() || '';
     document.getElementById('edit-city').value = currentRecord.city || '';
