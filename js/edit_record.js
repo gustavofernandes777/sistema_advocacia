@@ -1,7 +1,7 @@
 // Variáveis globais
 let currentRecord = null;
 let currentUser = null;
-const apiBaseUrl = 'https://a5c45daca879.ngrok-free.app';
+const apiBaseUrl = 'https://c91c9cee7148.ngrok-free.app';
 
 // FUNÇÕES DE AUTENTICAÇÃO E API FETCH DO DASHBOARD.JS
 function getTokenInfo() {

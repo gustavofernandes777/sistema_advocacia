@@ -3,11 +3,13 @@ let currentUser = null;
 let clientsData = [];
 let recordsData = [];
 let dataTable;
-const apiBaseUrl = 'https://a5c45daca879.ngrok-free.app';
+const apiBaseUrl = 'https://c91c9cee7148.ngrok-free.app';
 
 function getTokenInfo() {
     const keys = [];
     for (let i = 0; i < localStorage.length; i++) keys.push(localStorage.key(i));
+    console.log('DEBUG origin:', location.origin, 'href:', location.href);
+    console.log('DEBUG localStorage keys:', keys);
 
     const token = localStorage.getItem('access_token')
                || localStorage.getItem('token')
@@ -15,11 +17,13 @@ function getTokenInfo() {
                || null;
 
     const tokenType = localStorage.getItem('token_type') || 'Bearer';
+    console.log('DEBUG token found?', !!token, 'tokenType:', tokenType);
     return { token, tokenType };
 }
 
 // Verifica autenticação
 async function checkAuth() {
+    console.log('🔐 checkAuth() start');
     const { token, tokenType } = getTokenInfo();
 
     if (!token) {
@@ -30,6 +34,9 @@ async function checkAuth() {
 
     try {
         const authHeader = `Bearer ${token}`;
+
+        console.log('🔄 Fazendo requisição para:', `${apiBaseUrl}/users/me/`);
+
         // Headers específicos para evitar a página do ngrok
         const resp = await fetch(`${apiBaseUrl}/users/me/`, {
             method: 'GET',
@@ -46,7 +53,12 @@ async function checkAuth() {
             }
         });
 
+        console.log('✅ Status:', resp.status);
+        console.log('✅ Content-Type:', resp.headers.get('content-type'));
+
         const text = await resp.text();
+        console.log('✅ Conteúdo bruto (início):', text.substring(0, 200));
+
         // Verificar se é a página do ngrok
         if (text.includes('ngrok') || text.includes('<!DOCTYPE')) {
             console.error('❌ Ngrok interceptando a requisição');
@@ -61,6 +73,7 @@ async function checkAuth() {
                 throw new Error(data.detail || `Erro HTTP ${resp.status}`);
             }
 
+            console.log('✅ Autenticação válida. Usuário:', data.email || data.name);
             currentUser = data;
             return true;
             
@@ -158,6 +171,7 @@ async function loadUserData() {
 
 // Função de logout
 function logout() {
+    console.log('🚪 Efetuando logout...');
     localStorage.removeItem('access_token');
     localStorage.removeItem('token_type');
     window.location.href = 'login.html';
@@ -218,12 +232,15 @@ function openUserModal() {
 // Função para carregar clientes
 async function loadClients() {
     try {
+        console.log('🔄 Carregando clientes...');
+        
         const token = localStorage.getItem('access_token');
         if (!token) {
             throw new Error('Token não encontrado');
         }
 
         clientsData = await apiFetch(`${apiBaseUrl}/clients/`);
+        console.log(`✅ ${clientsData.length} clientes carregados`);
         updateClientSelect();
         return clientsData;
         
@@ -279,18 +296,22 @@ async function loadRecords() {
         loadingElement.style.display = 'flex';
         tableBody.innerHTML = '';
 
+        console.log('🔄 Carregando registros...');
+        
         const token = localStorage.getItem('access_token');
         if (!token) {
             throw new Error('Token não encontrado');
         }
 
         recordsData = await apiFetch(`${apiBaseUrl}/records/`);
+        console.log(`✅ ${recordsData.length} registros carregados`);
 
         // Filtra os registros no frontend também para consistência
         if (currentUser && currentUser.type !== 'admin') {
             recordsData = recordsData.filter(record =>
                 record.provider?.id === currentUser.id
             );
+            console.log(`📊 ${recordsData.length} registros após filtro`);
         }
 
         renderRecords(recordsData);
@@ -365,6 +386,28 @@ function renderRecords(records) {
     });
 }
 
+// Inicializa DataTable
+function initDataTable() {
+    dataTable = new simpleDatatables.DataTable("#recordsTable", {
+        perPage: 10,
+        labels: {
+            placeholder: "Pesquisar...",
+            perPage: "{select} registros por página",
+            noRows: "Nenhum registro encontrado",
+            info: "Mostrando {start} a {end} de {rows} registros",
+        }
+    });
+}
+
+function handleApiError(error) {
+    if (error.message.includes('401') || error.message.includes('Não autorizado')) {
+        localStorage.removeItem('access_token');
+        window.location.href = 'login.html';
+    } else {
+        showError('Erro: ' + error.message);
+    }
+}
+
 // Carrega prestadores para o select
 async function loadProviders() {
     try {
@@ -375,6 +418,7 @@ async function loadProviders() {
             return;
         }
 
+        console.log('🔄 Carregando provedores...');
         const users = await apiFetch(`${apiBaseUrl}/users/`);
         const providerSelect = document.getElementById('provider_id');
 
@@ -395,6 +439,8 @@ async function loadProviders() {
                 providerSelect.appendChild(option);
             }
         });
+
+        console.log('✅ Provedores carregados com sucesso');
 
     } catch (error) {
         console.error('Erro ao carregar prestadores:', error);
@@ -439,19 +485,6 @@ function updateStatusCounts() {
     document.getElementById('delivered-count').textContent = counts['entregue'];
     document.getElementById('completed-count').textContent = counts['finalizada'];
 }
-/////////////////////////
-// Inicializa DataTable
-function initDataTable() {
-    dataTable = new simpleDatatables.DataTable("#recordsTable", {
-        perPage: 10,
-        labels: {
-            placeholder: "Pesquisar...",
-            perPage: "{select} registros por página",
-            noRows: "Nenhum registro encontrado",
-            info: "Mostrando {start} a {end} de {rows} registros",
-        }
-    });
-}
 
 // Filtra registros por status
 function filterRecords(status) {
@@ -461,15 +494,6 @@ function filterRecords(status) {
     // Atualiza o título da tabela
     document.querySelector('.card-header i.fa-table').parentElement.textContent =
         `Registros - ${status.charAt(0).toUpperCase() + status.slice(1)}`;
-}
-
-function handleApiError(error) {
-    if (error.message.includes('401') || error.message.includes('Não autorizado')) {
-        localStorage.removeItem('access_token');
-        window.location.href = 'login.html';
-    } else {
-        showError('Erro: ' + error.message);
-    }
 }
 
 // Inicialização quando o DOM estiver pronto
@@ -545,14 +569,12 @@ function setupEventListeners() {
             researchedCpf_cnpj: document.getElementById('researchedCpf_cnpj').value,
             info: document.getElementById('info').value,
             status: document.getElementById('status').value,
-            priority: document.getElementById('priority').value,
-            provider_id: document.getElementById('provider_id').value,
-            client_id: document.getElementById('client_id').value
+            priority: document.getElementById('priority').value
         };
 
         formData.append('record_data', JSON.stringify(recordData));
-        //formData.append('provider_id', document.getElementById('provider_id').value);
-        //formData.append('client_id', document.getElementById('client_id').value);
+        formData.append('provider_id', document.getElementById('provider_id').value);
+        formData.append('client_id', document.getElementById('client_id').value);
         formData.append('register_date', document.getElementById('register_date').value);
 
         // Anexos
