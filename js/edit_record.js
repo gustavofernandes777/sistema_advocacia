@@ -3,44 +3,6 @@ let currentRecord = null;
 let currentUser = null;
 const apiBaseUrl = 'https://a5c45daca879.ngrok-free.app';
 
-async function safeFetch(url, options = {}) {
-    try {
-        const response = await fetch(url, {
-            headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json',
-                ...options.headers
-            },
-            credentials: 'include',
-            ...options
-        });
-
-        if (!response) {
-            throw new Error('Nenhuma resposta recebida do servidor');
-        }
-
-        const contentType = response.headers.get('content-type');
-        if (!contentType || !contentType.includes('application/json')) {
-            const text = await response.text();
-            if (text.includes('<!DOCTYPE') || text.includes('<html')) {
-                throw new Error(`Servidor retornou HTML em vez de JSON. Status: ${response.status}`);
-            }
-            throw new Error(`Resposta inesperada: ${contentType}. Status: ${response.status}`);
-        }
-        
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.detail || `HTTP ${response.status}: ${response.statusText}`);
-        }
-        
-        return response.json();
-        
-    } catch (error) {
-        console.error('Erro no safeFetch:', error);
-        throw error;
-    }
-}
-
 const attachmentTemplate = (index, data = null) => {
     const title = data?.title || '';
     const description = data?.description || '';
@@ -144,7 +106,7 @@ const costExpenseTemplate = (type, index, data = null) => {
 
 async function loadRecordData(recordId) {
     try {
-        const response = await safeFetch(`${apiBaseUrl}/records/${recordId}`, {
+        const response = await apiFetch(`${apiBaseUrl}/records/${recordId}`, {
             headers: {
                 'Authorization': `Bearer ${localStorage.getItem('access_token')}`
             }
@@ -258,7 +220,7 @@ async function removeItem(type, title) {
         const endpoint = type === 'cost' ? 'costs' : type === 'expense' ? 'expenses' : 'attachments';
         const paramName = type === 'cost' ? 'cost_title' : type === 'expense' ? 'expense_title' : 'attachment_title';
         
-        const response = await safeFetch(`${apiBaseUrl}/records/${currentRecord.id}/${endpoint}/?${paramName}=${encodeURIComponent(title)}`, {
+        const response = await apiFetch(`${apiBaseUrl}/records/${currentRecord.id}/${endpoint}/?${paramName}=${encodeURIComponent(title)}`, {
             method: 'DELETE',
             headers: {
                 'Authorization': `Bearer ${localStorage.getItem('access_token')}`
@@ -288,7 +250,7 @@ async function addNewItem(type, title, value, file, description = '') {
 
         const endpoint = type === 'cost' ? 'costs' : type === 'expense' ? 'expenses' : 'attachments';
         
-        const response = await safeFetch(`${apiBaseUrl}/records/${currentRecord.id}/${endpoint}/`, {
+        const response = await apiFetch(`${apiBaseUrl}/records/${currentRecord.id}/${endpoint}/`, {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${localStorage.getItem('access_token')}`
@@ -331,7 +293,7 @@ async function saveBasicChanges() {
     });
 
     try {
-        const response = await safeFetch(`${apiBaseUrl}/records/${currentRecord.id}`, {
+        const response = await apiFetch(`${apiBaseUrl}/records/${currentRecord.id}`, {
             method: 'PUT',
             headers: {
                 'Authorization': `Bearer ${localStorage.getItem('access_token')}`
@@ -347,7 +309,7 @@ async function saveBasicChanges() {
 
 async function loadClients() {
     try {
-        const response = await safeFetch(`${apiBaseUrl}/clients/`, {
+        const response = await apiFetch(`${apiBaseUrl}/clients/`, {
             headers: {
                 'Authorization': `Bearer ${localStorage.getItem('access_token')}`
             }
@@ -369,7 +331,7 @@ async function loadClients() {
 
 async function loadProviders() {
     try {
-        const response = await safeFetch(`${apiBaseUrl}/users/`, {
+        const response = await apiFetch(`${apiBaseUrl}/users/`, {
             headers: {
                 'Authorization': `Bearer ${localStorage.getItem('access_token')}`
             }
@@ -461,29 +423,120 @@ function clearValidations() {
 }
 
 async function checkAuth() {
-    const token = localStorage.getItem('access_token');
-    
+    const { token, tokenType } = getTokenInfo();
+
     if (!token) {
+        console.warn('❌ Nenhum token no localStorage — redirecionando');
         window.location.href = 'login.html';
         return false;
     }
 
     try {
-        const response = await safeFetch(`${apiBaseUrl}/users/me/`, {
+        const authHeader = `Bearer ${token}`;
+        // Headers específicos para evitar a página do ngrok
+        const resp = await fetch(`${apiBaseUrl}/users/me/`, {
             method: 'GET',
+            mode: 'cors',
+            cache: 'no-store',
+            credentials: 'omit',
             headers: {
-                'Authorization': `Bearer ${token}`
-            },
-            credentials: 'include'
+                'Authorization': authHeader,
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'Ngrok-Skip-Browser-Warning': 'true',
+                'User-Agent': 'MyApp/1.0'
+            }
         });
 
-        currentUser = response;
-        return true;
+        const text = await resp.text();
+        // Verificar se é a página do ngrok
+        if (text.includes('ngrok') || text.includes('<!DOCTYPE')) {
+            console.error('❌ Ngrok interceptando a requisição');
+            throw new Error('Ngrok bloqueando acesso');
+        }
+
+        // Tentar parsear como JSON
+        try {
+            const data = JSON.parse(text);
+            
+            if (!resp.ok) {
+                throw new Error(data.detail || `Erro HTTP ${resp.status}`);
+            }
+
+            currentUser = data;
+            return true;
+            
+        } catch (jsonError) {
+            console.error('❌ Falha ao parsear JSON:', jsonError);
+            throw new Error('Resposta inválida do servidor');
+        }
         
-    } catch (error) {
+    } catch (err) {
+        console.error('❌ Erro na autenticação:', err.message);
+        
         localStorage.removeItem('access_token');
-        window.location.href = 'login.html';
+        localStorage.removeItem('token');
+        localStorage.removeItem('token_type');
+        
+        setTimeout(() => {
+            window.location.href = 'login.html';
+        }, 1000);
+        
         return false;
+    }
+}
+
+async function apiFetch(url, options = {}) {
+    const { token, tokenType } = getTokenInfo();
+    const authHeader = `Bearer ${token}`;
+
+    const defaultHeaders = {
+        'Authorization': authHeader,
+        'Accept': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest',
+        'Ngrok-Skip-Browser-Warning': 'true',
+        'User-Agent': 'MyApp/1.0'
+    };
+
+    // Não adicionar Content-Type para FormData
+    if (!(options.body instanceof FormData)) {
+        defaultHeaders['Content-Type'] = 'application/json';
+    }
+
+    const mergedHeaders = { ...defaultHeaders, ...options.headers };
+
+    try {
+        const resp = await fetch(url, {
+            ...options,
+            mode: 'cors',
+            credentials: 'omit',
+            headers: mergedHeaders
+        });
+
+        const contentType = resp.headers.get('content-type') || '';
+        const text = await resp.text();
+
+        // Verificar se é página do ngrok
+        if (text.includes('ngrok') || text.includes('<!DOCTYPE')) {
+            throw new Error('Ngrok bloqueando acesso - página HTML recebida');
+        }
+
+        if (!contentType.includes('application/json')) {
+            throw new Error(`Content-Type inesperado: ${contentType}`);
+        }
+
+        const data = JSON.parse(text);
+
+        if (!resp.ok) {
+            throw new Error(data.detail || `HTTP Error ${resp.status}`);
+        }
+
+        return data;
+
+    } catch (error) {
+        console.error('❌ apiFetch error:', error);
+        throw error;
     }
 }
 
