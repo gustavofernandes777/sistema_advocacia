@@ -223,7 +223,11 @@ async function loadClients() {
             throw new Error('Token não encontrado');
         }
 
-        clientsData = await apiFetch(`${apiBaseUrl}/clients/`);
+        const response = await apiFetch(`${apiBaseUrl}/clients/`);
+        
+        // CORREÇÃO: Garantir que temos um array novo com instâncias únicas
+        clientsData = response.map(client => ({ ...client }));
+        
         updateClientSelect();
         return clientsData;
         
@@ -285,6 +289,13 @@ async function loadRecords() {
         }
 
         recordsData = await apiFetch(`${apiBaseUrl}/records/`);
+
+        // CORREÇÃO: Garantir que cada registro tenha suas próprias instâncias de client e provider
+        recordsData = recordsData.map(record => ({
+            ...record,
+            client: { ...record.client }, // Criar nova instância do cliente
+            provider: record.provider ? { ...record.provider } : null // Criar nova instância do provider se existir
+        }));
 
         // Filtra os registros no frontend também para consistência
         if (currentUser && currentUser.type !== 'admin') {
@@ -375,7 +386,11 @@ async function loadProviders() {
             return;
         }
 
-        const users = await apiFetch(`${apiBaseUrl}/users/`);
+        const response = await apiFetch(`${apiBaseUrl}/users/`);
+        
+        // CORREÇÃO: Garantir instâncias únicas
+        const users = response.map(user => ({ ...user }));
+        
         const providerSelect = document.getElementById('provider_id');
 
         if (!providerSelect) {
