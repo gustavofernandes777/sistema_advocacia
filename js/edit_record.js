@@ -422,6 +422,19 @@ function clearValidations() {
     });
 }
 
+function getTokenInfo() {
+    const keys = [];
+    for (let i = 0; i < localStorage.length; i++) keys.push(localStorage.key(i));
+
+    const token = localStorage.getItem('access_token')
+               || localStorage.getItem('token')
+               || localStorage.getItem('auth_token')
+               || null;
+
+    const tokenType = localStorage.getItem('token_type') || 'Bearer';
+    return { token, tokenType };
+}
+
 async function checkAuth() {
     const { token, tokenType } = getTokenInfo();
 
