@@ -1,10 +1,10 @@
 // Variáveis globais
 let currentRecord = null;
+let currentUser = null;
 const apiBaseUrl = 'https://a5c45daca879.ngrok-free.app';
 
 async function safeFetch(url, options = {}) {
     try {
-        // Fazer a requisição
         const response = await fetch(url, {
             headers: {
                 'Accept': 'application/json',
@@ -15,25 +15,16 @@ async function safeFetch(url, options = {}) {
             ...options
         });
 
-        // Verificar se response é válido
         if (!response) {
             throw new Error('Nenhuma resposta recebida do servidor');
         }
 
-        // Verificar se headers existe
-        if (!response.headers) {
-            throw new Error('Resposta sem headers do servidor');
-        }
-
-        // Verificar tipo de conteúdo
         const contentType = response.headers.get('content-type');
         if (!contentType || !contentType.includes('application/json')) {
             const text = await response.text();
-            
             if (text.includes('<!DOCTYPE') || text.includes('<html')) {
                 throw new Error(`Servidor retornou HTML em vez de JSON. Status: ${response.status}`);
             }
-            
             throw new Error(`Resposta inesperada: ${contentType}. Status: ${response.status}`);
         }
         
@@ -46,7 +37,7 @@ async function safeFetch(url, options = {}) {
         
     } catch (error) {
         console.error('Erro no safeFetch:', error);
-        throw error; // Re-lançar o erro para ser tratado pelo chamador
+        throw error;
     }
 }
 
@@ -100,18 +91,11 @@ const attachmentTemplate = (index, data = null) => {
     </div>`;
 };
 
-// Template modificado para novos itens - CORRIGIDO
 const costExpenseTemplate = (type, index, data = null) => {
     const title = data?.title || '';
     const value = data?.value || '';
     const isExisting = data !== null;
-    let labelPlaceholder;
-
-    if (type == 'cost'){
-        labelPlaceholder = 'custa'
-    } else{
-        labelPlaceholder = 'despesa'
-    }
+    const labelPlaceholder = type === 'cost' ? 'custa' : 'despesa';
 
     return `
     <div class="cost-expense-group mb-4 p-3 border rounded" data-title="${title}" data-type="${type}">
@@ -158,7 +142,6 @@ const costExpenseTemplate = (type, index, data = null) => {
     </div>`;
 };
 
-// Carrega os dados do registro
 async function loadRecordData(recordId) {
     try {
         const response = await safeFetch(`${apiBaseUrl}/records/${recordId}`, {
@@ -167,11 +150,8 @@ async function loadRecordData(recordId) {
             }
         });
 
-        if (!response) throw new Error('Erro ao carregar registro');
-
         currentRecord = response;
 
-        // CORREÇÃO: Garante que sempre são arrays
         if (!currentRecord.costs || currentRecord.costs === null) {
             currentRecord.costs = [];
         }
@@ -179,10 +159,8 @@ async function loadRecordData(recordId) {
             currentRecord.expenses = [];
         }
 
-        console.log('Registro carregado (corrigido):', currentRecord);
         populateForm();
     } catch (error) {
-        console.error('Erro ao carregar registro:', error);
         Swal.fire({
             icon: 'error',
             title: 'Erro',
@@ -191,46 +169,22 @@ async function loadRecordData(recordId) {
     }
 }
 
-function setupRemoveGroupEvents() {
-    document.querySelectorAll('.remove-cost-group').forEach(btn => {
-        btn.addEventListener('click', function () {
-            this.closest('.cost-expense-group').remove();
-        });
-    });
-
-    document.querySelectorAll('.remove-expense-group').forEach(btn => {
-        btn.addEventListener('click', function () {
-            this.closest('.cost-expense-group').remove();
-        });
-    });
-}
-
-// Modifique a função populateForm
 function populateForm() {
-    // Limpa validações anteriores
     clearValidations();
 
-    // Campos básicos
     document.getElementById('record-id').textContent = currentRecord.record_id;
     document.getElementById('edit-record-id').value = currentRecord.record_id;
     document.getElementById('edit-name').value = currentRecord.name;
     document.getElementById('edit-status').value = currentRecord.status;
     document.getElementById('edit-priority').value = currentRecord.priority;
     document.getElementById('edit-register-date').value = currentRecord.register_date;
-
-    // Novos campos
-    if (currentRecord.last_update) {
-        const lastUpdate = new Date(currentRecord.last_update);
-        document.getElementById('edit-last-update').value = lastUpdate.toLocaleString('pt-BR');
-    }
     document.getElementById('edit-document-type').value = currentRecord.document_type || '';
-    document.getElementById('edit-state').value = currentRecord.state.toLowerCase() || ''; //estado aqui
+    document.getElementById('edit-state').value = currentRecord.state.toLowerCase() || '';
     document.getElementById('edit-city').value = currentRecord.city || '';
     document.getElementById('edit-researched-name').value = currentRecord.researchedName || '';
     document.getElementById('edit-researched-cpf-cnpj').value = currentRecord.researchedCpf_cnpj || '';
     document.getElementById('edit-info').value = currentRecord.info || '';
 
-    // Cliente e Prestador
     const clientSelect = document.getElementById('edit-client-id');
     const providerSelect = document.getElementById('edit-provider-id');
 
@@ -241,10 +195,8 @@ function populateForm() {
         providerSelect.value = currentRecord.provider.id;
     }
 
-    // Controle de permissão para status "finalizada" - VERIFICA SE currentUser EXISTE
     const statusSelect = document.getElementById('edit-status');
     if (currentUser && currentUser.type !== 'admin') {
-        // Remove a opção "finalizada" para não-admins
         setupProviderUI();
         const finalizadaOption = statusSelect.querySelector('option[value="finalizada"]');
         if (finalizadaOption) {
@@ -252,23 +204,18 @@ function populateForm() {
             finalizadaOption.title = 'Apenas administradores podem finalizar registros';
         }
 
-        // Se o registro já está finalizado, desabilita o select
         if (currentRecord.status === 'finalizada') {
             statusSelect.disabled = true;
             statusSelect.title = 'Registro finalizado - apenas administradores podem modificar';
         }
 
-        const providerSelect = document.getElementById('edit-provider-id');
         if (providerSelect) {
             providerSelect.disabled = true;
             providerSelect.title = 'Você é o prestador deste registro';
-
-            // Seleciona automaticamente o próprio usuário como prestador
             providerSelect.value = currentUser.id;
         }
     }
 
-    // Arquivo principal
     const mainFilePreview = document.getElementById('main-file-preview');
     if (currentRecord.file_url) {
         const filename = currentRecord.file_url.split('/').pop();
@@ -277,7 +224,6 @@ function populateForm() {
         `;
     }
 
-    // Anexos
     const attachmentsContainer = document.getElementById('attachments-container');
     attachmentsContainer.innerHTML = '';
     if (currentRecord.attachments && currentRecord.attachments.length > 0) {
@@ -286,7 +232,6 @@ function populateForm() {
         });
     }
 
-    // Custas e despesas
     const costsContainer = document.getElementById('costs-container');
     costsContainer.innerHTML = '';
     if (currentRecord.costs && currentRecord.costs.length > 0) {
@@ -303,166 +248,47 @@ function populateForm() {
         });
     }
 
-    // Configura event listeners após criar os elementos
     setTimeout(() => {
         setupEventListeners();
-        console.log('Event listeners configurados');
     }, 100);
 }
 
-async function removeFile(fileUrl, type, id = null) {
+async function removeItem(type, title) {
     try {
-        const response = await safeFetch(`${apiBaseUrl}/records/${currentRecord.id}/files`, {
+        const endpoint = type === 'cost' ? 'costs' : type === 'expense' ? 'expenses' : 'attachments';
+        const paramName = type === 'cost' ? 'cost_title' : type === 'expense' ? 'expense_title' : 'attachment_title';
+        
+        const response = await safeFetch(`${apiBaseUrl}/records/${currentRecord.id}/${endpoint}/?${paramName}=${encodeURIComponent(title)}`, {
             method: 'DELETE',
             headers: {
-                'Content-Type': 'application/json',
                 'Authorization': `Bearer ${localStorage.getItem('access_token')}`
-            },
-            body: JSON.stringify({
-                file_url: fileUrl,
-                type: type,
-                id: id
-            })
+            }
         });
 
-        if (!response) {
-            throw new Error('Erro ao remover arquivo');
-        }
+        return response;
+    } catch (error) {
+        throw error;
+    }
+}
 
-        // Atualiza a interface
-        if (type === 'main') {
-            currentRecord.file_url = null;
-            document.getElementById('main-file-preview').innerHTML = '';
+async function addNewItem(type, title, value, file, description = '') {
+    try {
+        const formData = new FormData();
+        formData.append('title', title);
+        
+        if (type !== 'attachment') {
+            formData.append('value', value);
         } else {
-            // Atualiza o grupo específico
-            const group = document.querySelector(`.cost-expense-group[data-id="${id}"]`);
-            if (group) {
-                group.querySelector('.file-preview').innerHTML = '';
-
-                // Corrige a busca no array
-                if (type === 'cost') {
-                    const costIndex = currentRecord.costs.findIndex(c => c.id == id);
-                    if (costIndex !== -1) {
-                        currentRecord.costs[costIndex].file_url = null;
-                    }
-                } else {
-                    const expenseIndex = currentRecord.expenses.findIndex(e => e.id == id);
-                    if (expenseIndex !== -1) {
-                        currentRecord.expenses[expenseIndex].file_url = null;
-                    }
-                }
-            }
+            formData.append('description', description);
         }
-
-        Swal.fire({
-            icon: 'success',
-            title: 'Sucesso!',
-            text: 'Arquivo removido com sucesso'
-        });
-    } catch (error) {
-        Swal.fire({
-            icon: 'error',
-            title: 'Erro',
-            text: error.message
-        });
-    }
-}
-
-async function removeAttachment(attachmentTitle) {
-    try {
-        const response = await safeFetch(`${apiBaseUrl}/records/${currentRecord.id}/attachments/?attachment_title=${encodeURIComponent(attachmentTitle)}`, {
-            method: 'DELETE',
-            headers: {
-                'Authorization': `Bearer ${localStorage.getItem('access_token')}`
-            }
-        });
-
-        if (!response) {
-            const errorData = await response.json();
-            throw new Error(errorData.detail || 'Erro ao remover anexo');
-        }
-
-        return response;
-    } catch (error) {
-        console.error('Erro ao remover anexo:', error);
-        throw error;
-    }
-}
-
-// Função para remover custa pelo título - CORRIGIDA
-async function removeCost(costTitle) {
-    try {
-        console.log(`Removendo custa: ${costTitle}`);
-
-        const response = await safeFetch(`${apiBaseUrl}/records/${currentRecord.id}/costs/?cost_title=${encodeURIComponent(costTitle)}`, {
-            method: 'DELETE',
-            headers: {
-                'Authorization': `Bearer ${localStorage.getItem('access_token')}`
-            }
-        });
-
-        console.log('Resposta da remoção:', response.status);
-
-        if (!response) {
-            let errorDetail = 'Erro ao remover custa';
-            try {
-                const errorData = await response.json();
-                errorDetail = errorData.detail || errorDetail;
-            } catch (e) {
-                errorDetail = `HTTP ${response.status} - ${response.statusText}`;
-            }
-            throw new Error(errorDetail);
-        }
-
-        return response;
-    } catch (error) {
-        console.error('Erro ao remover custa:', error);
-        throw error;
-    }
-}
-
-// Função para remover despesa pelo título - CORRIGIDA
-async function removeExpense(expenseTitle) {
-    try {
-        console.log(`Removendo despesa: ${expenseTitle}`);
-
-        const response = await safeFetch(`${apiBaseUrl}/records/${currentRecord.id}/expenses/?expense_title=${encodeURIComponent(expenseTitle)}`, {
-            method: 'DELETE',
-            headers: {
-                'Authorization': `Bearer ${localStorage.getItem('access_token')}`
-            }
-        });
-
-        console.log('Resposta da remoção:', response.status);
-
-        if (!response) {
-            let errorDetail = 'Erro ao remover despesa';
-            try {
-                const errorData = await response.json();
-                errorDetail = errorData.detail || errorDetail;
-            } catch (e) {
-                errorDetail = `HTTP ${response.status} - ${response.statusText}`;
-            }
-            throw new Error(errorDetail);
-        }
-
-        return response;
-    } catch (error) {
-        console.error('Erro ao remover despesa:', error);
-        throw error;
-    }
-}
-
-async function addNewAttachment(title, description, file) {
-    try {
-        const formData = new FormData();
-        formData.append('title', title);
-        formData.append('description', description || '');
+        
         if (file) {
             formData.append('file', file);
         }
 
-        const response = await safeFetch(`${apiBaseUrl}/records/${currentRecord.id}/attachments/`, {
+        const endpoint = type === 'cost' ? 'costs' : type === 'expense' ? 'expenses' : 'attachments';
+        
+        const response = await safeFetch(`${apiBaseUrl}/records/${currentRecord.id}/${endpoint}/`, {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${localStorage.getItem('access_token')}`
@@ -470,214 +296,39 @@ async function addNewAttachment(title, description, file) {
             body: formData
         });
 
-        if (!response) {
-            throw new Error('Erro ao adicionar anexo');
-        }
-
         return response;
     } catch (error) {
-        console.error('Erro ao adicionar anexo:', error);
         throw error;
     }
 }
 
-// Funções para adicionar novos itens
-async function addNewCost(title, value, file) {
-    try {
-        const formData = new FormData();
-        formData.append('title', title);
-        formData.append('value', value);
-        if (file) {
-            formData.append('file', file);
-        }
-
-        const response = await safeFetch(`${apiBaseUrl}/records/${currentRecord.id}/costs/`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${localStorage.getItem('access_token')}`
-            },
-            body: formData
-        });
-
-        if (!response) {
-            throw new Error('Erro ao adicionar custa');
-        }
-
-        return response;
-    } catch (error) {
-        console.error('Erro ao adicionar custa:', error);
-        throw error;
-    }
-}
-
-async function addNewExpense(title, value, file) {
-    try {
-        const formData = new FormData();
-        formData.append('title', title);
-        formData.append('value', value);
-        if (file) {
-            formData.append('file', file);
-        }
-
-        const response = await safeFetch(`${apiBaseUrl}/records/${currentRecord.id}/expenses/`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${localStorage.getItem('access_token')}`
-            },
-            body: formData
-        });
-
-        if (!response) {
-            throw new Error('Erro ao adicionar despesa');
-        }
-
-        return response;
-    } catch (error) {
-        console.error('Erro ao adicionar despesa:', error);
-        throw error;
-    }
-}
-
-// Inicialização da página
-document.addEventListener('DOMContentLoaded', async () => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const recordId = urlParams.get('id');
-
-    if (!recordId) {
-        window.location.href = 'index.html';
-        return;
-    }
-
-    try {
-        await checkAuth();
-        await loadCurrentUser();
-        await Promise.all([
-            loadRecordData(recordId),
-            loadClients(),
-            loadProviders()
-        ]);
-
-        console.log('Página carregada completamente');
-    } catch (error) {
-        console.error('Erro ao carregar página:', error);
-        Swal.fire({
-            icon: 'error',
-            title: 'Erro',
-            text: 'Não foi possível carregar a página de edição'
-        }).then(() => {
-            window.location.href = 'index.html';
-        });
-    }
-
-    // Botão para adicionar Anexo
-    document.getElementById('add-attachment-btn').addEventListener('click', () => {
-        const attachmentsContainer = document.getElementById('attachments-container');
-        const index = attachmentsContainer.querySelectorAll('.attachment-group').length;
-        attachmentsContainer.innerHTML += attachmentTemplate(index);
-    });
-
-    // Botão para adicionar custa
-    document.getElementById('add-cost-btn').addEventListener('click', () => {
-        const costsContainer = document.getElementById('costs-container');
-        const index = costsContainer.querySelectorAll('.cost-expense-group').length;
-
-        // Adiciona novo grupo com inputs editáveis
-        costsContainer.innerHTML += costExpenseTemplate('cost', index);
-
-        console.log('Novo custa adicionado');
-    });
-
-    document.getElementById('add-expense-btn').addEventListener('click', () => {
-        const expensesContainer = document.getElementById('expenses-container');
-        const index = expensesContainer.querySelectorAll('.cost-expense-group').length;
-
-        // Adiciona novo grupo com inputs editáveis
-        expensesContainer.innerHTML += costExpenseTemplate('expense', index);
-
-        console.log('Nova despesa adicionada');
-    });
-
-    // Botão cancelar
-    document.getElementById('cancel-edit').addEventListener('click', () => {
-        // Redireciona SEM enviar dados para o backend
-        window.location.href = 'index.html';
-    });
-
-
-});
-
-function handleFileUpload(input, type, groupId) {
-    if (input.files.length > 0) {
-        // Esconde o link do arquivo anterior
-        const group = document.querySelector(`.cost-expense-group[data-id="${groupId}"]`);
-        const preview = group.querySelector('.file-preview');
-        preview.querySelector('a')?.style.setProperty('display', 'none');
-
-        // Adiciona mensagem de arquivo novo
-        const newFileMsg = document.createElement('div');
-        newFileMsg.className = 'text-success';
-        newFileMsg.innerHTML = '<i class="fas fa-check"></i> Novo arquivo selecionado';
-        preview.appendChild(newFileMsg);
-    }
-}
-
-function setupRemoveCompleteEvents() {
-    // Remover custa completo
-    document.querySelectorAll('.remove-cost-complete').forEach(btn => {
-        btn.addEventListener('click', function () {
-            const group = this.closest('.cost-expense-group');
-            group.style.display = 'none';
-            group.setAttribute('data-removed', 'true');
-        });
-    });
-
-    // Remover despesa completa
-    document.querySelectorAll('.remove-expense-complete').forEach(btn => {
-        btn.addEventListener('click', function () {
-            const group = this.closest('.cost-expense-group');
-            group.style.display = 'none';
-            group.setAttribute('data-removed', 'true');
-        });
-    });
-}
-
-// Função para salvar as alterações
 async function saveBasicChanges() {
     const formData = new FormData();
 
-    // Todos os campos do registro
     const recordData = {
         record_id: document.getElementById('edit-record-id').value,
         name: document.getElementById('edit-name').value,
         status: document.getElementById('edit-status').value,
         priority: document.getElementById('edit-priority').value,
         document_type: document.getElementById('edit-document-type').value,
-        state: document.getElementById('edit-state').value, //estado aqui
+        state: document.getElementById('edit-state').value,
         city: document.getElementById('edit-city').value,
         researchedName: document.getElementById('edit-researched-name').value,
         researchedCpf_cnpj: document.getElementById('edit-researched-cpf-cnpj').value,
         info: document.getElementById('edit-info').value,
-        register_date: document.getElementById('edit-register-date').value,  // Nova linha
+        register_date: document.getElementById('edit-register-date').value,
         client_id: document.getElementById('edit-client-id').value,
         provider_id: document.getElementById('edit-provider-id').value,
         original_costs: currentRecord.costs || [],
         original_expenses: currentRecord.expenses || []
     };
 
-    // Adiciona todos os campos ao FormData
     formData.append('record_data', JSON.stringify(recordData));
-    formData.append('name', recordData.name);
-    formData.append('status', recordData.status);
-    formData.append('priority', recordData.priority);
-    formData.append('document_type', recordData.document_type);
-    formData.append('state', recordData.state);
-    formData.append('city', recordData.city);
-    formData.append('researched_name', recordData.researchedName);
-    formData.append('researched_cpf_cnpj', recordData.researchedCpf_cnpj);
-    formData.append('info', recordData.info);
-    formData.append('register_date', recordData.register_date);  // Nova linha
-    formData.append('client_id', recordData.client_id);
-    formData.append('provider_id', recordData.provider_id);
+    Object.keys(recordData).forEach(key => {
+        if (key !== 'original_costs' && key !== 'original_expenses') {
+            formData.append(key, recordData[key]);
+        }
+    });
 
     try {
         const response = await safeFetch(`${apiBaseUrl}/records/${currentRecord.id}`, {
@@ -688,14 +339,8 @@ async function saveBasicChanges() {
             body: formData
         });
 
-        if (!response) {
-            const errorData = await response.json();
-            throw new Error(errorData.detail || 'Erro ao atualizar registro');
-        }
-
         return response;
     } catch (error) {
-        console.error('Erro ao salvar dados básicos:', error);
         throw error;
     }
 }
@@ -707,8 +352,6 @@ async function loadClients() {
                 'Authorization': `Bearer ${localStorage.getItem('access_token')}`
             }
         });
-
-        if (!response) throw new Error('Erro ao carregar clientes');
 
         const clients = response;
         const clientSelect = document.getElementById('edit-client-id');
@@ -732,12 +375,9 @@ async function loadProviders() {
             }
         });
 
-        if (!response) throw new Error('Erro ao carregar prestadores');
-
         const users = response;
         const providerSelect = document.getElementById('edit-provider-id');
 
-        // Limpa options existentes
         providerSelect.innerHTML = '<option value="">Selecione um prestador</option>';
 
         users.forEach(user => {
@@ -749,15 +389,11 @@ async function loadProviders() {
             }
         });
 
-        // DEFINE O VALOR APÓS CARREGAR AS OPÇÕES - CRÍTICO
         if (currentRecord.provider && currentRecord.provider.id) {
             providerSelect.value = currentRecord.provider.id;
         } else if (currentUser && currentUser.type !== 'admin') {
-            // Para prestadores, define automaticamente
             providerSelect.value = currentUser.id;
         }
-
-        console.log('Prestador selecionado:', providerSelect.value);
     } catch (error) {
         console.error('Erro ao carregar prestadores:', error);
     }
@@ -766,14 +402,14 @@ async function loadProviders() {
 function validateAllFields() {
     const errors = [];
     const requiredFields = [
-        { id: 'edit-record-id', name: 'ID do Registro' },  // Nova linha
+        { id: 'edit-record-id', name: 'ID do Registro' },
         { id: 'edit-name', name: 'Nome do registro' },
         { id: 'edit-document-type', name: 'Tipo de Documento' },
-        { id: 'edit-state', name: 'Estado' }, //estado aqui
+        { id: 'edit-state', name: 'Estado' },
         { id: 'edit-city', name: 'Cidade' },
         { id: 'edit-researched-name', name: 'Nome do Pesquisado' },
         { id: 'edit-researched-cpf-cnpj', name: 'CPF/CNPJ do Pesquisado' },
-        { id: 'edit-register-date', name: 'Data de Registro' },  // Nova linha
+        { id: 'edit-register-date', name: 'Data de Registro' },
         { id: 'edit-client-id', name: 'Cliente' },
         { id: 'edit-provider-id', name: 'Prestador' }
     ];
@@ -782,36 +418,30 @@ function validateAllFields() {
         const element = document.getElementById(field.id);
         if (element && !element.value.trim()) {
             errors.push(`${field.name} é obrigatório`);
-
-            // Destaca visualmente o campo com erro
             element.classList.add('is-invalid');
         } else if (element) {
             element.classList.remove('is-invalid');
         }
     });
 
-    // Validação específica para record_id (não pode estar vazio)
     const recordIdField = document.getElementById('edit-record-id');
     if (recordIdField && !recordIdField.value.trim()) {
         errors.push('ID do Registro é obrigatório');
         recordIdField.classList.add('is-invalid');
     }
 
-    // Validação específica para data de registro
     const registerDateField = document.getElementById('edit-register-date');
     if (registerDateField && !registerDateField.value) {
         errors.push('Data de Registro é obrigatória');
         registerDateField.classList.add('is-invalid');
     }
 
-    // Validação específica para Estado (2 caracteres)
-    const stateField = document.getElementById('edit-state'); //estado aqui
+    const stateField = document.getElementById('edit-state');
     if (stateField && stateField.value.trim() && stateField.value.trim().length !== 2) {
         errors.push('Estado deve ter exatamente 2 caracteres');
         stateField.classList.add('is-invalid');
     }
 
-    // Validação específica para CPF/CNPJ
     const cpfCnpjField = document.getElementById('edit-researched-cpf-cnpj');
     if (cpfCnpjField && cpfCnpjField.value.trim()) {
         const value = cpfCnpjField.value.trim();
@@ -825,134 +455,52 @@ function validateAllFields() {
 }
 
 function clearValidations() {
-    // Remove classes de erro de todos os campos
     document.querySelectorAll('.is-invalid').forEach(element => {
         element.classList.remove('is-invalid');
     });
-
-    // Esconde mensagens de erro
-    document.querySelectorAll('.invalid-feedback').forEach(element => {
-        element.style.display = 'none';
-    });
-}
-
-// Função principal de salvamento
-
-// Função para validar novos itens antes de salvar
-function validateNewItems() {
-    const errors = [];
-
-    // Validar novos custas
-    const newCostGroups = document.querySelectorAll('.cost-expense-group[data-type="cost"]:not([data-removed="true"])');
-    newCostGroups.forEach((group, index) => {
-        const titleInput = group.querySelector('.cost-title-input');
-        const valueInput = group.querySelector('.cost-value-input');
-        const existingTitle = group.getAttribute('data-title');
-
-        if ((!existingTitle || existingTitle === '') && titleInput && valueInput) {
-            if (!titleInput.value.trim()) {
-                errors.push(`Custas ${index + 1}: Título é obrigatório`);
-            }
-            if (!valueInput.value.trim()) {
-                errors.push(`Custas ${index + 1}: Valor é obrigatório`);
-            }
-        }
-    });
-
-    // Validar novas despesas
-    const newExpenseGroups = document.querySelectorAll('.cost-expense-group[data-type="expense"]:not([data-removed="true"])');
-    newExpenseGroups.forEach((group, index) => {
-        const titleInput = group.querySelector('.expense-title-input');
-        const valueInput = group.querySelector('.expense-value-input');
-        const existingTitle = group.getAttribute('data-title');
-
-        if ((!existingTitle || existingTitle === '') && titleInput && valueInput) {
-            if (!titleInput.value.trim()) {
-                errors.push(`Despesa ${index + 1}: Título é obrigatório`);
-            }
-            if (!valueInput.value.trim()) {
-                errors.push(`Despesa ${index + 1}: Valor é obrigatório`);
-            }
-        }
-    });
-
-    return errors;
 }
 
 async function checkAuth() {
-    console.log('🔐 Verificando autenticação...');
-    
     const token = localStorage.getItem('access_token');
-    console.log('📦 Token no localStorage:', token ? `Encontrado (${token.length} chars)` : 'Não encontrado');
     
     if (!token) {
-        console.log('❌ Nenhum token encontrado, redirecionando para login...');
         window.location.href = 'login.html';
         return false;
     }
 
     try {
-        console.log('🌐 Testando token com API...');
         const response = await safeFetch(`${apiBaseUrl}/users/me/`, {
             method: 'GET',
             headers: {
                 'Authorization': `Bearer ${token}`
             },
-            credentials: 'include' // 🔥 IMPORTANTE!
+            credentials: 'include'
         });
 
-        console.log('📊 Status da resposta:', response.status);
-        
-        if (!response) {
-            if (response.status === 401) {
-                console.log('❌ Token inválido ou expirado (401)');
-                throw new Error('Token inválido');
-            }
-            throw new Error(`Erro HTTP: ${response.status}`);
-        }
-
-        const userData = response;
-        console.log('✅ Autenticação válida! Usuário:', userData.email);
-        currentUser = userData;
+        currentUser = response;
         return true;
         
     } catch (error) {
-        console.error('❌ Erro na verificação de autenticação:', error);
-        
-        // Mostrar feedback para o usuário
-        showError('Sessão expirada. Faça login novamente.');
-        
-        // Limpar token inválido
         localStorage.removeItem('access_token');
-        
-        // Redirecionar para login
-        setTimeout(() => {
-            window.location.href = 'login.html';
-        }, 2000);
-        
+        window.location.href = 'login.html';
         return false;
     }
 }
 
-// Função para carregar o usuário atual
 async function loadCurrentUser() {
     try {
-        console.log('Usuário carregado:', currentUser);
-
         if (currentUser.type !== 'admin') {
             document.getElementById('adminLink').style.display = 'none';
             document.getElementById('reportsLink').style.display = 'none';
             document.getElementById('userListLink').style.display = 'none';
         }
     } catch (error) {
-        console.error('Erro ao carregar usuário:', error);
         logout();
     }
 }
 
 function setupProviderUI() {
     if (currentUser && currentUser.type !== 'admin') {
-        // Adiciona badge informativo
         const cardHeaders = document.querySelectorAll('.card-header');
         cardHeaders.forEach(header => {
             const badge = document.createElement('span');
@@ -962,7 +510,6 @@ function setupProviderUI() {
             header.appendChild(badge);
         });
 
-        // Mensagem informativa
         const alertDiv = document.createElement('div');
         alertDiv.className = 'alert alert-info';
         alertDiv.innerHTML = `
@@ -976,7 +523,6 @@ function setupProviderUI() {
             </ul>
         `;
 
-        // Insere a mensagem no início do formulário
         const form = document.getElementById('editRecordForm');
         form.insertBefore(alertDiv, form.firstChild);
     }
@@ -984,44 +530,28 @@ function setupProviderUI() {
 
 async function saveAllChanges() {
     try {
-        console.log('Iniciando salvamento completo...');
         if (currentUser && currentUser.type !== 'admin') {
-            // Prestadores não podem alterar o prestador do registro
             const providerSelect = document.getElementById('edit-provider-id');
             if (providerSelect.value != currentUser.id) {
                 throw new Error('Você só pode ser atribuído como prestador dos seus próprios registros');
             }
 
-            // Prestadores não podem finalizar registros
             const statusSelect = document.getElementById('edit-status');
             if (statusSelect.value === 'finalizada') {
                 throw new Error('Apenas administradores podem finalizar registros');
             }
         }
 
-        // Limpa validações anteriores
         clearValidations();
 
-        // VALIDAÇÃO: Chama a função de validação
         const validationErrors = validateAllFields();
         if (validationErrors.length > 0) {
             throw new Error(`Erros de validação:\n${validationErrors.join('\n')}`);
         }
 
-        // 1. Salva dados básicos
-        console.log('Salvando dados básicos...');
-        const result = await saveBasicChanges();
-        console.log('Dados básicos salvos:', result);
-
-        // 2. Processa NOVAS custas e despesas
-        console.log('Processando novos itens...');
+        await saveBasicChanges();
         await processNewItems();
-
-        // 3. Remove custas/despesas marcados para remoção
-        console.log('Removendo itens marcados...');
         await removeMarkedItems();
-
-        console.log('Salvamento completo realizado com sucesso!');
 
         Swal.fire({
             icon: 'success',
@@ -1031,9 +561,6 @@ async function saveAllChanges() {
             window.location.href = 'index.html';
         });
     } catch (error) {
-        console.error('Erro no salvamento completo:', error);
-
-        // Mostra erros de validação de forma mais amigável
         if (error.message.includes('Erros de validação')) {
             Swal.fire({
                 icon: 'warning',
@@ -1051,144 +578,96 @@ async function saveAllChanges() {
     }
 }
 
-// Processa novos itens adicionados
 async function processNewItems() {
-    try {
-        // Novos anexos
-        const newAttachmentGroups = document.querySelectorAll('.cost-expense-group[data-type="attachment"]:not([data-removed="true"])');
-        for (const group of newAttachmentGroups) {
-            const titleInput = group.querySelector('.attachment-title-input');
-            const descriptionInput = group.querySelector('.attachment-description-input');
-            const fileInput = group.querySelector('.attachment-file-input');
+    const newAttachmentGroups = document.querySelectorAll('.cost-expense-group[data-type="attachment"]:not([data-removed="true"])');
+    for (const group of newAttachmentGroups) {
+        const titleInput = group.querySelector('.attachment-title-input');
+        const descriptionInput = group.querySelector('.attachment-description-input');
+        const fileInput = group.querySelector('.attachment-file-input');
 
-            const existingTitle = group.getAttribute('data-title');
-            if ((!existingTitle || existingTitle === '') && titleInput) {
-                const title = titleInput.value.trim();
-                const description = descriptionInput?.value.trim() || '';
-                const file = fileInput?.files[0];
+        const existingTitle = group.getAttribute('data-title');
+        if ((!existingTitle || existingTitle === '') && titleInput) {
+            const title = titleInput.value.trim();
+            const description = descriptionInput?.value.trim() || '';
+            const file = fileInput?.files[0];
 
-                if (title && file) {
-                    console.log('Adicionando novo anexo:', title);
-                    const result = await addNewAttachment(title, description, file);
-                    console.log('Anexo adicionado:', result);
-                }
+            if (title && file) {
+                await addNewItem('attachment', title, null, file, description);
             }
         }
+    }
 
-        // Novos custas
-        const newCostGroups = document.querySelectorAll('.cost-expense-group[data-type="cost"]:not([data-removed="true"])');
+    const newCostGroups = document.querySelectorAll('.cost-expense-group[data-type="cost"]:not([data-removed="true"])');
+    for (const group of newCostGroups) {
+        const titleInput = group.querySelector('.cost-title-input');
+        const valueInput = group.querySelector('.cost-value-input');
+        const fileInput = group.querySelector('.cost-file-input');
 
-        for (const group of newCostGroups) {
-            const titleInput = group.querySelector('.cost-title-input');
-            const valueInput = group.querySelector('.cost-value-input');
-            const fileInput = group.querySelector('.cost-file-input');
+        const existingTitle = group.getAttribute('data-title');
+        if ((!existingTitle || existingTitle === '') && titleInput && valueInput) {
+            const title = titleInput.value.trim();
+            const value = valueInput.value.trim();
+            const file = fileInput?.files[0];
 
-            // Verifica se é um novo item (sem título definido no data-title)
-            const existingTitle = group.getAttribute('data-title');
-            if ((!existingTitle || existingTitle === '') && titleInput && valueInput) {
-                const title = titleInput.value.trim();
-                const value = valueInput.value.trim();
-                const file = fileInput?.files[0];
-
-                if (title && value) {
-                    console.log('Adicionando novo custa:', title, value);
-                    const result = await addNewCost(title, value, file);
-                    console.log('Custa adicionado:', result);
-                }
+            if (title && value) {
+                await addNewItem('cost', title, value, file);
             }
         }
+    }
 
-        // Novas despesas
-        const newExpenseGroups = document.querySelectorAll('.cost-expense-group[data-type="expense"]:not([data-removed="true"])');
+    const newExpenseGroups = document.querySelectorAll('.cost-expense-group[data-type="expense"]:not([data-removed="true"])');
+    for (const group of newExpenseGroups) {
+        const titleInput = group.querySelector('.expense-title-input');
+        const valueInput = group.querySelector('.expense-value-input');
+        const fileInput = group.querySelector('.expense-file-input');
 
-        for (const group of newExpenseGroups) {
-            const titleInput = group.querySelector('.expense-title-input');
-            const valueInput = group.querySelector('.expense-value-input');
-            const fileInput = group.querySelector('.expense-file-input');
+        const existingTitle = group.getAttribute('data-title');
+        if ((!existingTitle || existingTitle === '') && titleInput && valueInput) {
+            const title = titleInput.value.trim();
+            const value = valueInput.value.trim();
+            const file = fileInput?.files[0];
 
-            const existingTitle = group.getAttribute('data-title');
-            if ((!existingTitle || existingTitle === '') && titleInput && valueInput) {
-                const title = titleInput.value.trim();
-                const value = valueInput.value.trim();
-                const file = fileInput?.files[0];
-
-                if (title && value) {
-                    console.log('Adicionando nova despesa:', title, value);
-                    const result = await addNewExpense(title, value, file);
-                    console.log('Despesa adicionada:', result);
-                }
+            if (title && value) {
+                await addNewItem('expense', title, value, file);
             }
         }
-    } catch (error) {
-        console.error('Erro ao processar novos itens:', error);
-        throw error;
     }
 }
 
-// Remove itens marcados
 async function removeMarkedItems() {
     const removedGroups = document.querySelectorAll('.cost-expense-group[data-removed="true"]');
-    console.log('Itens para remover:', removedGroups.length);
 
     for (const group of removedGroups) {
         const title = group.getAttribute('data-title');
         const type = group.getAttribute('data-type');
 
-        // Só remove itens existentes (que têm título)
         if (title && title !== '') {
-            console.log(`Processando remoção: ${type} "${title}"`);
-
             try {
-                if (type === 'cost') {
-                    await removeCost(title);
-                    console.log(`Custa "${title}" removido`);
-                } else if (type === 'expense') {
-                    await removeExpense(title);
-                    console.log(`Despesa "${title}" removida`);
-                } else if (type === 'attachment') {
-                    await removeAttachment(title);
-                    console.log(`Anexo "${title}" removido`);
-                }
+                await removeItem(type, title);
             } catch (error) {
                 console.error(`Erro ao remover ${type} "${title}":`, error);
             }
-        } else {
-            console.log(`Item novo ${type} - apenas removendo visualmente`);
         }
     }
 }
 
-// Configuração de eventos - CORRIGIDA
 function setupEventListeners() {
-    console.log('Configurando event listeners...');
-
-    // Remove event listeners antigos para evitar duplicação
-    const oldSaveButton = document.getElementById('save-edit');
-    if (oldSaveButton) {
-        oldSaveButton.replaceWith(oldSaveButton.cloneNode(true));
-    }
-
-    // Evento para o botão salvar - CORRIGIDO
     const saveButton = document.getElementById('save-edit');
     if (saveButton) {
         saveButton.addEventListener('click', async (e) => {
             e.preventDefault();
-            console.log('Botão salvar clicado - evento funcionando!');
             await saveAllChanges();
         });
     }
 
-    // Evento para o formulário - CORRIGIDO
     const form = document.getElementById('editRecordForm');
     if (form) {
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
-            console.log('Formulário submetido - evento funcionando!');
             await saveAllChanges();
         });
     }
 
-    // Evento para remover itens - CORRIGIDO (delegation)
     document.addEventListener('click', function (e) {
         if (e.target.tagName === 'A' && e.target.getAttribute('href') === '#') {
             e.preventDefault();
@@ -1203,51 +682,8 @@ function setupEventListeners() {
             const type = button.getAttribute('data-type');
             const title = button.getAttribute('data-title');
 
-            console.log('Botão remover clicado:', type, title);
-
-            Swal.fire({
-                title: 'Confirmar remoção?',
-                text: `Deseja remover ${type === 'cost' ? 'a custa' : type === 'expense' ? 'a despesa' : 'o anexo'} "${title}"?`,
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonText: 'Sim, remover!',
-                cancelButtonText: 'Cancelar'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    // Encontra o grupo pai usando a classe correta
-                    const group = button.closest('.cost-expense-group');
-                    if (group) {
-                        group.style.display = 'none';
-                        group.setAttribute('data-removed', 'true');
-
-                        // Feedback imediato
-                        button.disabled = true;
-                        button.innerHTML = '<i class="fas fa-check"></i> Será removido';
-                        button.classList.remove('btn-danger');
-                        button.classList.add('btn-secondary');
-
-                        Swal.fire('Marcado para remoção!', 'O item será removido quando você salvar as alterações.', 'success');
-                    } else {
-                        console.error('Grupo não encontrado para remoção');
-                        Swal.fire('Erro', 'Não foi possível encontrar o item para remover.', 'error');
-                    }
-                }
-            });
-        }
-
-
-        if (e.target.closest('.remove-item')) {
-            e.preventDefault();
-            const button = e.target.closest('.remove-item');
-            const type = button.getAttribute('data-type');
-            const title = button.getAttribute('data-title');
-
-            console.log('Botão remover clicado:', type, title);
-
-            // Verificação de segurança - garante que o grupo existe
             const group = button.closest('.cost-expense-group');
             if (!group) {
-                console.error('Grupo não encontrado para remoção');
                 Swal.fire('Erro', 'Não foi possível encontrar o item para remover.', 'error');
                 return;
             }
@@ -1264,7 +700,6 @@ function setupEventListeners() {
                     group.style.display = 'none';
                     group.setAttribute('data-removed', 'true');
 
-                    // Feedback imediato
                     button.disabled = true;
                     button.innerHTML = '<i class="fas fa-check"></i> Será removido';
                     button.classList.remove('btn-danger');
@@ -1275,131 +710,59 @@ function setupEventListeners() {
             });
         }
     });
-
-
-    console.log('Event listeners configurados com sucesso');
 }
 
-// Função de debug para testar as rotas - CORRIGIDA
-async function testRemoveFunctions() {
-    console.log('=== TESTANDO FUNÇÕES DE REMOÇÃO ===');
-
-    if (currentRecord.costs && currentRecord.costs.length > 0) {
-        const testCost = currentRecord.costs[0];
-        console.log('Testando remoção de custa:', testCost.title);
-
-        try {
-            const result = await removeCost(testCost.title);
-            console.log('Teste de custa bem-sucedido:', result);
-        } catch (error) {
-            console.error('Teste de custa falhou:', error.message);
-        }
-    } else {
-        console.log('Nenhum custa para testar');
-    }
-
-    if (currentRecord.expenses && currentRecord.expenses.length > 0) {
-        const testExpense = currentRecord.expenses[0];
-        console.log('Testando remoção de despesa:', testExpense.title);
-
-        try {
-            const result = await removeExpense(testExpense.title);
-            console.log('Teste de despesa bem-sucedido:', result);
-        } catch (error) {
-            console.error('Teste de despesa falhou:', error.message);
-        }
-    } else {
-        console.log('Nenhuma despesa para testar');
-    }
-}
-
-// Chame testRemoveFunctions() no console para testar
-
-// Função para debug da estrutura dos dados
-function debugDataStructure() {
-    console.log('=== ESTRUTURA DOS DADOS ===');
-    console.log('Current Record:', currentRecord);
-
-    if (currentRecord.costs && currentRecord.costs.length > 0) {
-        console.log('Primeiro custa:', currentRecord.costs[0]);
-        console.log('Tipo do ID do custa:', typeof currentRecord.costs[0].id);
-        console.log('ID do primeiro custa:', currentRecord.costs[0].id);
-    } else {
-        console.log('Nenhum custa encontrado');
-    }
-
-    if (currentRecord.expenses && currentRecord.expenses.length > 0) {
-        console.log('Primeira despesa:', currentRecord.expenses[0]);
-        console.log('Tipo do ID da despesa:', typeof currentRecord.expenses[0].id);
-        console.log('ID da primeira despesa:', currentRecord.expenses[0].id);
-    } else {
-        console.log('Nenhuma despesa encontrada');
-    }
-}
-
-// Chame debugDataStructure() no console
-
-function debugEventListeners() {
-    console.log('=== DEBUG EVENT LISTENERS ===');
-
-    // Verifica se os botões existem
-    const saveButton = document.getElementById('save-edit');
-    const removeButtons = document.querySelectorAll('.remove-item');
-
-    console.log('Botão salvar encontrado:', !!saveButton);
-    console.log('Botões remover encontrados:', removeButtons.length);
-
-    // Verifica se os event listeners estão configurados
-    if (saveButton) {
-        const clickEvents = getEventListeners(saveButton).click;
-        console.log('Event listeners no botão salvar:', clickEvents ? clickEvents.length : 0);
-    }
-}
-
-// Teste manual dos event listeners
-function testEventListeners() {
-    console.log('=== TESTANDO EVENT LISTENERS ===');
-
-    // Simula clique no botão salvar
-    const saveButton = document.getElementById('save-edit');
-    if (saveButton) {
-        console.log('Testando botão salvar...');
-        saveButton.click();
-    } else {
-        console.log('Botão salvar não encontrado');
-    }
-
-    // Simula clique em um botão remover
-    const removeButton = document.querySelector('.remove-item');
-    if (removeButton) {
-        console.log('Testando botão remover...');
-        removeButton.click();
-    } else {
-        console.log('Botão remover não encontrado');
-    }
-}
-
-// Debug para verificar novos itens
-function debugNewItems() {
-    console.log('=== NOVOS ITENS ===');
-
-    const newCostInputs = document.querySelectorAll('.cost-title-input, .cost-value-input');
-    const newExpenseInputs = document.querySelectorAll('.expense-title-input, .expense-value-input');
-
-    console.log('Inputs de novos custas:', newCostInputs.length);
-    console.log('Inputs de novas despesas:', newExpenseInputs.length);
-
-    newCostInputs.forEach(input => {
-        console.log('Input custas:', input.className, input.value);
-    });
-
-    newExpenseInputs.forEach(input => {
-        console.log('Input despesa:', input.className, input.value);
-    });
-}
-
-// Função de logout
 function logout() {
     localStorage.removeItem('access_token');
     window.location.href = 'login.html';
 }
+
+document.addEventListener('DOMContentLoaded', async () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const recordId = urlParams.get('id');
+
+    if (!recordId) {
+        window.location.href = 'index.html';
+        return;
+    }
+
+    try {
+        await checkAuth();
+        await loadCurrentUser();
+        await Promise.all([
+            loadRecordData(recordId),
+            loadClients(),
+            loadProviders()
+        ]);
+    } catch (error) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Erro',
+            text: 'Não foi possível carregar a página de edição'
+        }).then(() => {
+            window.location.href = 'index.html';
+        });
+    }
+
+    document.getElementById('add-attachment-btn').addEventListener('click', () => {
+        const attachmentsContainer = document.getElementById('attachments-container');
+        const index = attachmentsContainer.querySelectorAll('.attachment-group').length;
+        attachmentsContainer.innerHTML += attachmentTemplate(index);
+    });
+
+    document.getElementById('add-cost-btn').addEventListener('click', () => {
+        const costsContainer = document.getElementById('costs-container');
+        const index = costsContainer.querySelectorAll('.cost-expense-group').length;
+        costsContainer.innerHTML += costExpenseTemplate('cost', index);
+    });
+
+    document.getElementById('add-expense-btn').addEventListener('click', () => {
+        const expensesContainer = document.getElementById('expenses-container');
+        const index = expensesContainer.querySelectorAll('.cost-expense-group').length;
+        expensesContainer.innerHTML += costExpenseTemplate('expense', index);
+    });
+
+    document.getElementById('cancel-edit').addEventListener('click', () => {
+        window.location.href = 'index.html';
+    });
+});
