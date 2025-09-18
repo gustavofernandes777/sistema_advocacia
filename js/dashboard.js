@@ -487,6 +487,35 @@ function handleApiError(error) {
     }
 }
 
+function fixSwappedClientProvider(record) {
+    // Verificar se os objetos estão trocados
+    const isClientSwapped = record.client && 
+                           (record.client.email !== undefined || 
+                            record.client.type !== undefined);
+    
+    const isProviderSwapped = record.provider && 
+                             (record.provider.cpf_cnpj !== undefined);
+
+    if (isClientSwapped && isProviderSwapped) {
+        console.warn('⚠️ Client e Provider trocados detectados - corrigindo...');
+        
+        // Salvar os valores originais
+        const tempClient = { ...record.client };
+        const tempProvider = { ...record.provider };
+        
+        // Trocar os valores
+        record.client = tempProvider;
+        record.provider = tempClient;
+        
+        console.log('✅ Client/Provider corrigidos:', {
+            client: record.client,
+            provider: record.provider
+        });
+    }
+    
+    return record;
+}
+
 // Inicialização quando o DOM estiver pronto
 document.addEventListener('DOMContentLoaded', async () => {
     try {
@@ -547,83 +576,87 @@ function setupEventListeners() {
 
     // Botão de salvar registro
     document.getElementById('saveRecordBtn').addEventListener('click', async () => {
-        const formData = new FormData();
+    const formData = new FormData();
 
-        // Dados básicos do registro
-        const recordData = {
-            record_id: document.getElementById('record_id').value,
-            name: document.getElementById('name').value,
-            researchedName: document.getElementById('researchedName').value,
-            document_type: document.getElementById('document_type').value,
-            state: document.getElementById('state').value,
-            city: document.getElementById('city').value,
-            researchedCpf_cnpj: document.getElementById('researchedCpf_cnpj').value,
-            info: document.getElementById('info').value,
-            status: document.getElementById('status').value,
-            priority: document.getElementById('priority').value
-        };
+    // Dados básicos do registro
+    const recordData = {
+        record_id: document.getElementById('record_id').value,
+        name: document.getElementById('name').value,
+        researchedName: document.getElementById('researchedName').value,
+        document_type: document.getElementById('document_type').value,
+        state: document.getElementById('state').value,
+        city: document.getElementById('city').value,
+        researchedCpf_cnpj: document.getElementById('researchedCpf_cnpj').value,
+        info: document.getElementById('info').value,
+        status: document.getElementById('status').value,
+        priority: document.getElementById('priority').value
+    };
 
-        formData.append('record_data', JSON.stringify(recordData));
-        formData.append('provider_id', document.getElementById('provider_id').value);
-        formData.append('client_id', document.getElementById('client_id').value);
-        formData.append('register_date', document.getElementById('register_date').value);
+    formData.append('record_data', JSON.stringify(recordData));
+    formData.append('provider_id', document.getElementById('provider_id').value);
+    formData.append('client_id', document.getElementById('client_id').value);
+    formData.append('register_date', document.getElementById('register_date').value);
 
-        // Anexos
-        const attachmentGroups = document.querySelectorAll('.attachment-group');
-        attachmentGroups.forEach(group => {
-            formData.append('attachment_titles', group.querySelector('.attachment-title').value);
-            formData.append('attachment_descriptions', group.querySelector('.attachment-description').value || '');
-            const file = group.querySelector('.attachment-file').files[0];
-            if (file) {
-                formData.append('attachment_files', file);
-            }
-        });
-
-        // Custas
-        const costGroups = document.querySelectorAll('.cost-group');
-        costGroups.forEach(group => {
-            formData.append('cost_titles', group.querySelector('.cost-title').value);
-            formData.append('cost_values', group.querySelector('.cost-value').value);
-            const file = group.querySelector('.cost-file').files[0];
-            if (file) {
-                formData.append('cost_files', file);
-            }
-        });
-
-        // Despesas
-        const expenseGroups = document.querySelectorAll('.expense-group');
-        expenseGroups.forEach(group => {
-            formData.append('expense_titles', group.querySelector('.expense-title').value);
-            formData.append('expense_values', group.querySelector('.expense-value').value);
-            const file = group.querySelector('.expense-file').files[0];
-            if (file) {
-                formData.append('expense_files', file);
-            }
-        });
-
-        try {
-            const response = await apiFetch(`${apiBaseUrl}/records/`, {
-                method: 'POST',
-                body: formData
-            });
-
-            Swal.fire({
-                icon: 'success',
-                title: 'Sucesso!',
-                text: 'Registro criado com sucesso'
-            });
-
-            bootstrap.Modal.getInstance(document.getElementById('recordModal')).hide();
-            await loadRecords();
-        } catch (error) {
-            console.error('Erro detalhado:', error);
-            Swal.fire({
-                icon: 'error',
-                title: 'Erro',
-                text: error.message
-            });
+    // Anexos
+    const attachmentGroups = document.querySelectorAll('.attachment-group');
+    attachmentGroups.forEach(group => {
+        formData.append('attachment_titles', group.querySelector('.attachment-title').value);
+        formData.append('attachment_descriptions', group.querySelector('.attachment-description').value || '');
+        const file = group.querySelector('.attachment-file').files[0];
+        if (file) {
+            formData.append('attachment_files', file);
         }
     });
+
+    // Custas
+    const costGroups = document.querySelectorAll('.cost-group');
+    costGroups.forEach(group => {
+        formData.append('cost_titles', group.querySelector('.cost-title').value);
+        formData.append('cost_values', group.querySelector('.cost-value').value);
+        const file = group.querySelector('.cost-file').files[0];
+        if (file) {
+            formData.append('cost_files', file);
+        }
+    });
+
+    // Despesas
+    const expenseGroups = document.querySelectorAll('.expense-group');
+    expenseGroups.forEach(group => {
+        formData.append('expense_titles', group.querySelector('.expense-title').value);
+        formData.append('expense_values', group.querySelector('.expense-value').value);
+        const file = group.querySelector('.expense-file').files[0];
+        if (file) {
+            formData.append('expense_files', file);
+        }
+    });
+
+    try {
+        const response = await apiFetch(`${apiBaseUrl}/records/`, {
+            method: 'POST',
+            body: formData
+        });
+
+        // CORREÇÃO: Verificar e corrigir client/provider trocados na resposta
+        const correctedResponse = fixSwappedClientProvider(response);
+        
+        Swal.fire({
+            icon: 'success',
+            title: 'Sucesso!',
+            text: 'Registro criado com sucesso'
+        });
+
+        bootstrap.Modal.getInstance(document.getElementById('recordModal')).hide();
+        await loadRecords();
+    } catch (error) {
+        console.error('Erro detalhado:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Erro',
+            text: error.message
+        });
+    }
+});
+
 
     // Delegation para botões de ação na tabela
     document.getElementById('records-body').addEventListener('click', async (e) => {
