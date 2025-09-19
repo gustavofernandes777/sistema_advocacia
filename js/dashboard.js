@@ -1,9 +1,10 @@
 // Variáveis globais
+import { CONFIG } from "../js/config";
 let currentUser = null;
 let clientsData = [];
 let recordsData = [];
 let dataTable;
-const apiBaseUrl = 'https://c91c9cee7148.ngrok-free.app';
+const apiBaseUrl = CONFIG.API_URL;
 
 function getTokenInfo() {
     const keys = [];

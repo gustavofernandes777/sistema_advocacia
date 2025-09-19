@@ -1,7 +1,8 @@
 // Variáveis globais
+import { CONFIG } from "../js/config";
 let currentRecord = null;
 let currentUser = null;
-const apiBaseUrl = 'https://c91c9cee7148.ngrok-free.app';
+const apiBaseUrl = CONFIG.API_URL;
 
 // FUNÇÕES DE AUTENTICAÇÃO E API FETCH DO DASHBOARD.JS
 function getTokenInfo() {

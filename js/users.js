@@ -1,4 +1,5 @@
-const apiBaseUrl = 'https://c91c9cee7148.ngrok-free.app';
+import { CONFIG } from "../js/config";
+const apiBaseUrl = CONFIG.API_URL;
 let currentUser = null;
 
 function getTokenInfo() {

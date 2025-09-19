@@ -1,14 +1,17 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Login - Sistema</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
+
 <body class="bg-light">
   <div class="container d-flex flex-column justify-content-center align-items-center vh-100">
-    <img src="logos/Logo_vertical_Azulpng.rgb.png" class="img-fluid mb-3" style="max-width:20em; margin-left: 0.6em;" alt="">
+    <img src="logos/Logo_vertical_Azulpng.rgb.png" class="img-fluid mb-3" style="max-width:20em; margin-left: 0.6em;"
+      alt="">
     <div class="card p-4" style="max-width:420px; width:100%">
       <h4 class="mb-3 text-center">Acesso ao Sistema</h4>
       <form id="loginForm">
@@ -26,45 +29,7 @@
     </div>
   </div>
 
-<script>
-const API_URL = "https://c91c9cee7148.ngrok-free.app"; // ajuste se necessário
-
-document.getElementById('loginForm').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const email = document.getElementById('email').value;
-  const password = document.getElementById('password').value;
-  try {
-    const resp = await fetch(`${API_URL}/token`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({ username: email, password })
-    });
-
-    if (!resp.ok) {
-      const txt = await resp.text().catch(()=>null);
-      console.error('Login falhou. status:', resp.status, 'body:', txt);
-      document.getElementById('loginError').textContent = 'Usuário ou senha inválidos.';
-      document.getElementById('loginError').classList.remove('d-none');
-      return;
-    }
-
-    const data = await resp.json();
-    console.log('Token recebido:', data);
-
-    // salvar com chaves alternativas — ajuda a evitar mismatch entre páginas
-    localStorage.setItem('access_token', data.access_token);
-    localStorage.setItem('token', data.access_token);
-    localStorage.setItem('token_type', data.token_type || 'Bearer');
-    localStorage.setItem('token_timestamp', Date.now().toString());
-
-    console.log('localStorage keys após login:', Object.keys(localStorage));
-    window.location.href = 'index.html';
-  } catch (err) {
-    console.error('Erro no fetch do /token:', err);
-    document.getElementById('loginError').textContent = 'Erro ao conectar com o servidor.';
-    document.getElementById('loginError').classList.remove('d-none');
-  }
-});
-</script>
+  <script src="js/login.js"></script>
 </body>
+
 </html>

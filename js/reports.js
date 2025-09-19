@@ -1,11 +1,12 @@
 // Variáveis globais
+import { CONFIG } from "../js/config";
 let charts = {};
 let allData = [];
 let filteredData = [];
 let previousPeriodData = [];
 let currentPeriodData = [];
 let comparisonPeriod = 'month'; // month, quarter, year
-const apiBaseUrl = 'https://c91c9cee7148.ngrok-free.app';
+const apiBaseUrl = CONFIG.API_URL;
 
 const statusMap = {
     'ativa': 'Ativa',
