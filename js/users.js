@@ -112,6 +112,8 @@ async function checkAuth() {
             }
 
             currentUser = data;
+            loadUserData();
+            loadUsersList();
             return true;
             
         } catch (jsonError) {
