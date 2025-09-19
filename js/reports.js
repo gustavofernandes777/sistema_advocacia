@@ -641,6 +641,7 @@ function showRecordModal(record) {
                                     </div>
                                     <p><strong>Valor da Diligência:</strong> R$ ${record.financial.diligence_value.toLocaleString('pt-BR')}</p>
                                     <p><strong>Pagamento do Prestador:</strong> R$ ${record.financial.provider_payment.toLocaleString('pt-BR')}</p>
+                                    <p><strong>Porcentagem do Prestador:</strong>${record.financial.provider_percentagem}</p>
                                     <p><strong>Lucro:</strong> R$ ${record.financial.profit.toLocaleString('pt-BR')}</p>
                                 ` : ''}
                             </div>
