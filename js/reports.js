@@ -1153,6 +1153,44 @@ function updateDashboard() {
     updateTable();
 }
 
+function updateComparisonPeriod() {
+    const comparisonElement = document.getElementById('comparison-period');
+    if (comparisonElement) {
+        comparisonElement.textContent = getComparisonPeriodText();
+    }
+}
+
+function getComparisonPeriodText() {
+    const periodoSelect = document.getElementById('periodo');
+    const dataInicioInput = document.getElementById('dataInicio');
+    const dataFimInput = document.getElementById('dataFim');
+
+    if (periodoSelect.value === 'custom' && dataInicioInput.value && dataFimInput.value) {
+        const startDate = new Date(dataInicioInput.value);
+        const endDate = new Date(dataFimInput.value);
+
+        const previousStart = new Date(startDate);
+        previousStart.setMonth(previousStart.getMonth() - 1);
+
+        const previousEnd = new Date(endDate);
+        previousEnd.setMonth(previousEnd.getMonth() - 1);
+
+        return `vs ${previousStart.toLocaleDateString('pt-BR')} - ${previousEnd.toLocaleDateString('pt-BR')}`;
+    } else {
+        const endDate = new Date();
+        const startDate = new Date();
+        startDate.setDate(startDate.getDate() - parseInt(periodoSelect.value || 30));
+
+        const previousStart = new Date(startDate);
+        previousStart.setMonth(previousStart.getMonth() - 1);
+
+        const previousEnd = new Date(endDate);
+        previousEnd.setMonth(previousEnd.getMonth() - 1);
+
+        return `vs ${previousStart.toLocaleDateString('pt-BR')} - ${previousEnd.toLocaleDateString('pt-BR')}`;
+    }
+}
+
 function calculateMonthlyVariations(pedidos, despesa, diligencia, provider, lucro) {
     // Obter período atual dos filtros
     const periodoSelect = document.getElementById('periodo');
