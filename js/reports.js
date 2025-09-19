@@ -534,9 +534,9 @@ function calculateProfit(input) {
         }
         
         if (providerPayment == 0 || diligenceValue == 0){
-            document.getElementById( 'percentage' ).style.display = 'none';
+            document.getElementById( 'provider-percentage' ).style.display = 'none';
         } else{
-            document.getElementById( 'percentage' ).style.display = 'block';
+            document.getElementById( 'provider-percentage' ).style.display = 'block';
         }
     }
 }
