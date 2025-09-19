@@ -7930,7 +7930,7 @@ fieldset:disabled .btn {
 }
 
 .fixed-top,
-.sb-nav-fixed #layoutSidenav ,
+.sb-nav-fixed #layoutSidenav #navbarToggleExternalContent,
 .sb-nav-fixed .sb-topnav {
   position: fixed;
   top: 0;
@@ -12800,7 +12800,7 @@ body {
   display: flex;
 }
 
-#layoutSidenav  {
+#layoutSidenav #navbarToggleExternalContent {
   flex-basis: 225px;
   flex-shrink: 0;
   transition: transform 0.15s ease-in-out;
@@ -12819,7 +12819,7 @@ body {
   margin-left: -225px;
 }
 
-.sb-sidenav-toggled #layoutSidenav  {
+.sb-sidenav-toggled #layoutSidenav #navbarToggleExternalContent {
   transform: translateX(0);
 }
 
@@ -12838,7 +12838,7 @@ body {
 }
 
 @media (min-width: 992px) {
-  #layoutSidenav  {
+  #layoutSidenav #navbarToggleExternalContent {
     transform: translateX(0);
   }
 
@@ -12847,7 +12847,7 @@ body {
     transition: margin 0.15s ease-in-out;
   }
 
-  .sb-sidenav-toggled #layoutSidenav  {
+  .sb-sidenav-toggled #layoutSidenav #navbarToggleExternalContent {
     transform: translateX(-225px);
   }
 
@@ -12864,17 +12864,17 @@ body {
   z-index: 1039;
 }
 
-.sb-nav-fixed #layoutSidenav  {
+.sb-nav-fixed #layoutSidenav #navbarToggleExternalContent {
   width: 225px;
   height: 100vh;
   z-index: 1038;
 }
 
-.sb-nav-fixed #layoutSidenav  .sb-sidenav {
+.sb-nav-fixed #layoutSidenav #navbarToggleExternalContent .sb-sidenav {
   padding-top: 56px;
 }
 
-.sb-nav-fixed #layoutSidenav  .sb-sidenav .sb-sidenav-menu {
+.sb-nav-fixed #layoutSidenav #navbarToggleExternalContent .sb-sidenav .sb-sidenav-menu {
   overflow-y: auto;
 }
 
