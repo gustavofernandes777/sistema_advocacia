@@ -439,6 +439,11 @@ async function loadClients() {
             option.textContent = `${client.name} (${client.cpf_cnpj})`;
             clientSelect.appendChild(option);
         });
+
+        if (currentRecord.client && currentRecord.client.id) {
+            clientSelect.value = currentRecord.client.id;
+        } 
+        
     } catch (error) {
         console.error('Erro ao carregar clientes:', error);
     }
