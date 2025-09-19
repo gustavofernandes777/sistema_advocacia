@@ -505,6 +505,17 @@ document.addEventListener('DOMContentLoaded', async () => {
         await loadProviders();
         await loadClients();
         await loadRecords();
+
+        const links = document.querySelectorAll('.ver-detalhes');
+    
+    links.forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            const status = this.getAttribute('data-status');
+            filterRecords(status);
+        });
+    });
+    
         setupEventListeners();
     } catch (error) {
         showError(error);
