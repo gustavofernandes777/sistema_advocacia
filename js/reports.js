@@ -22,51 +22,133 @@ document.addEventListener('DOMContentLoaded', async () => {
     loadDataFromAPI();
 });
 
-async function safeFetch(url, options = {}) {
+// Função para obter informações do token
+function getTokenInfo() {
+    const token = localStorage.getItem('access_token') || null;
+    const tokenType = localStorage.getItem('token_type') || 'Bearer';
+    return { token, tokenType };
+}
+
+// Função para fazer fetch com headers anti-ngrok
+async function apiFetch(url, options = {}) {
+    const { token, tokenType } = getTokenInfo();
+    const authHeader = `Bearer ${token}`;
+
+    const defaultHeaders = {
+        'Authorization': authHeader,
+        'Accept': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest',
+        'Ngrok-Skip-Browser-Warning': 'true',
+        'User-Agent': 'MyApp/1.0'
+    };
+
+    // Não adicionar Content-Type para FormData
+    if (!(options.body instanceof FormData)) {
+        defaultHeaders['Content-Type'] = 'application/json';
+    }
+
+    const mergedHeaders = { ...defaultHeaders, ...options.headers };
+
     try {
-        // Fazer a requisição
-        const response = await fetch(url, {
-            headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json',
-                ...options.headers
-            },
-            credentials: 'include',
-            ...options
+        const resp = await fetch(url, {
+            ...options,
+            mode: 'cors',
+            credentials: 'omit',
+            headers: mergedHeaders
         });
 
-        // Verificar se response é válido
-        if (!response) {
-            throw new Error('Nenhuma resposta recebida do servidor');
+        const contentType = resp.headers.get('content-type') || '';
+        const text = await resp.text();
+
+        // Verificar se é página do ngrok
+        if (text.includes('ngrok') || text.includes('<!DOCTYPE')) {
+            throw new Error('Ngrok bloqueando acesso - página HTML recebida');
         }
 
-        // Verificar se headers existe
-        if (!response.headers) {
-            throw new Error('Resposta sem headers do servidor');
+        if (!contentType.includes('application/json')) {
+            throw new Error(`Content-Type inesperado: ${contentType}`);
         }
 
-        // Verificar tipo de conteúdo
-        const contentType = response.headers.get('content-type');
-        if (!contentType || !contentType.includes('application/json')) {
-            const text = await response.text();
-            
-            if (text.includes('<!DOCTYPE') || text.includes('<html')) {
-                throw new Error(`Servidor retornou HTML em vez de JSON. Status: ${response.status}`);
-            }
-            
-            throw new Error(`Resposta inesperada: ${contentType}. Status: ${response.status}`);
+        const data = JSON.parse(text);
+
+        if (!resp.ok) {
+            throw new Error(data.detail || `HTTP Error ${resp.status}`);
         }
-        
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.detail || `HTTP ${response.status}: ${response.statusText}`);
-        }
-        
-        return response.json();
-        
+
+        return data;
+
     } catch (error) {
-        console.error('Erro no safeFetch:', error);
-        throw error; // Re-lançar o erro para ser tratado pelo chamador
+        console.error('❌ apiFetch error:', error);
+        throw error;
+    }
+}
+
+// Verificar autenticação
+async function checkAuth() {
+    const { token, tokenType } = getTokenInfo();
+
+    if (!token) {
+        window.location.href = 'login.html';
+        return false;
+    }
+
+    try {
+        const authHeader = `Bearer ${token}`;
+
+        const resp = await fetch(`${apiBaseUrl}/users/me/`, {
+            method: 'GET',
+            mode: 'cors',
+            cache: 'no-store',
+            credentials: 'omit',
+            headers: {
+                'Authorization': authHeader,
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'Ngrok-Skip-Browser-Warning': 'true',
+                'User-Agent': 'MyApp/1.0'
+            }
+        });
+
+        const text = await resp.text();
+
+        // Verificar se é a página do ngrok
+        if (text.includes('ngrok') || text.includes('<!DOCTYPE')) {
+            throw new Error('Ngrok bloqueando acesso');
+        }
+
+        // Tentar parsear como JSON
+        try {
+            const data = JSON.parse(text);
+            
+            if (!resp.ok) {
+                throw new Error(data.detail || `Erro HTTP ${resp.status}`);
+            }
+
+            currentUser = data;
+            
+            if (currentUser.type !== 'admin') {
+                alert('Acesso restrito a administradores');
+                window.location.href = 'index.html';
+                return;
+            }
+
+            return true;
+            
+        } catch (jsonError) {
+            throw new Error('Resposta inválida do servidor');
+        }
+        
+    } catch (err) {
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('token');
+        localStorage.removeItem('token_type');
+        
+        setTimeout(() => {
+            window.location.href = 'login.html';
+        }, 1000);
+        
+        return false;
     }
 }
 
@@ -81,29 +163,14 @@ async function loadDataFromAPI() {
 
         // Buscar registros e clientes em paralelo
         const [recordsResponse, clientsResponse, usersResponse] = await Promise.all([
-            safeFetch(`${apiBaseUrl}/records/reports/`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                }
-            }),
-            safeFetch(`${apiBaseUrl}/clients/`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                }
-            }),
-            safeFetch(`${apiBaseUrl}/users/`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                }
-            })
+            apiFetch(`${apiBaseUrl}/records/reports/`),
+            apiFetch(`${apiBaseUrl}/clients/`),
+            apiFetch(`${apiBaseUrl}/users/`)
         ]);
 
         const records = recordsResponse;
-        const clients = clientsResponse.ok ? clientsResponse : [];
-        const users = usersResponse.ok ? usersResponse : [];
+        const clients = clientsResponse;
+        const users = usersResponse;
 
         // Transformar dados
         allData = await transformRecordsData(records);
@@ -135,18 +202,8 @@ async function transformRecordsData(records) {
             let financialData = null;
             if (record.status === 'finalizada' || record.status === 'fechada') {
                 try {
-                    const financialResponse = await safeFetch(`${apiBaseUrl}/records/${record.id}/financial`, {
-                        headers: {
-                            'Authorization': `Bearer ${token}`,
-                            'Content-Type': 'application/json'
-                        }
-                    });
-
-                    if (financialResponse.ok) {
-                        financialData = financialResponse;
-                    } else {
-                        console.warn(`Erro ao buscar dados financeiros para registro ${record.id}: ${financialResponse.status}`);
-                    }
+                    const financialResponse = await apiFetch(`${apiBaseUrl}/records/${record.id}/financial`);
+                    financialData = financialResponse;
                 } catch (error) {
                     console.error('Erro ao buscar dados financeiros:', error);
                 }
@@ -183,46 +240,6 @@ async function transformRecordsData(records) {
     }
 
     return transformedData;
-}
-
-// Buscar dados adicionais da API quando necessário
-async function fetchAdditionalData() {
-    try {
-        const token = localStorage.getItem('access_token');
-        if (!token) return;
-
-        // Buscar clientes para filtro
-        const clientsResponse = await safeFetch(`${apiBaseUrl}/clients/`, {
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            }
-        });
-
-        const usersResponse = await safeFetch(`${apiBaseUrl}/users/`, {
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            }
-        });
-
-        if (clientsResponse.ok) {
-            const clients = clientsResponse;
-            updateClientFilter(clients);
-        } else {
-            console.warn('Erro ao buscar clientes para filtro');
-        }
-
-        if (usersResponse.ok) {
-            const users = usersResponse;
-            updateProviderFilter(users);
-        } else {
-            console.warn('Erro ao buscar usuários para filtro');
-        }
-
-    } catch (error) {
-        console.error('Erro ao buscar dados adicionais:', error);
-    }
 }
 
 // Atualizar filtro de clientes
@@ -323,69 +340,6 @@ function applyFilters() {
         updateCharts();
         hideLoading();
     }, 500);
-}
-
-// Verificar autenticação
-async function checkAuth() {
-    console.log('🔐 Verificando autenticação...');
-    
-    const token = localStorage.getItem('access_token');
-    console.log('📦 Token no localStorage:', token ? `Encontrado (${token.length} chars)` : 'Não encontrado');
-    
-    if (!token) {
-        console.log('❌ Nenhum token encontrado, redirecionando para login...');
-        window.location.href = 'login.html';
-        return false;
-    }
-
-    try {
-        console.log('🌐 Testando token com API...');
-        const response = await fetch(`${apiBaseUrl}/users/me/`, {
-            method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${token}`
-            },
-            credentials: 'include' // 🔥 IMPORTANTE!
-        });
-
-        console.log('📊 Status da resposta:', response.status);
-        
-        if (!response.ok) {
-            if (response.status === 401) {
-                console.log('❌ Token inválido ou expirado (401)');
-                throw new Error('Token inválido');
-            }
-            throw new Error(`Erro HTTP: ${response.status}`);
-        }
-
-        const userData = await response.json();
-        console.log('✅ Autenticação válida! Usuário:', userData.email);
-        currentUser = userData;
-
-        if (currentUser.type !== 'admin') {
-            alert('Acesso restrito a administradores');
-            window.location.href = 'index.html';
-            return;
-        }
-
-        return true;
-        
-    } catch (error) {
-        console.error('❌ Erro na verificação de autenticação:', error);
-        
-        // Mostrar feedback para o usuário
-        showError('Sessão expirada. Faça login novamente.');
-        
-        // Limpar token inválido
-        localStorage.removeItem('access_token');
-        
-        // Redirecionar para login
-        setTimeout(() => {
-            window.location.href = 'login.html';
-        }, 2000);
-        
-        return false;
-    }
 }
 
 // Configurar event listeners
@@ -609,29 +563,12 @@ function addTableEventListeners() {
     });
 }
 
-
 // Função para visualizar detalhes do registro
 async function viewRecordDetails(recordId) {
     showLoading();
 
     try {
-        const token = localStorage.getItem('access_token');
-        if (!token) {
-            throw new Error('Token de autenticação não encontrado');
-        }
-
-        const response = await safeFetch(`${apiBaseUrl}/records/${recordId}`, {
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            }
-        });
-
-        if (!response) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.detail || `Erro ao carregar detalhes: ${response.status}`);
-        }
-
+        const response = await apiFetch(`${apiBaseUrl}/records/${recordId}`);
         showRecordModal(response);
 
     } catch (error) {
@@ -641,6 +578,7 @@ async function viewRecordDetails(recordId) {
 
     hideLoading();
 }
+
 // Função para mostrar modal com detalhes do registro
 function showRecordModal(record) {
     // Calcular totais
@@ -1034,160 +972,57 @@ async function exportToExcel() {
     try {
         // Preparar dados para exportação
         const dataForExport = filteredData.map(item => {
-            // Calcular totais de despesas
+            // Calcular totais de despesas (excluindo custas)
             const totalExpenses = item.expenses && item.expenses.length > 0
                 ? item.expenses.reduce((sum, expense) => sum + parseFloat(expense.value || 0), 0)
                 : 0;
 
-            // Informações financeiras
-            const diligenceValue = item.financial ? parseFloat(item.financial.diligence_value) || 0 : 0;
-            const providerPayment = item.financial ? parseFloat(item.financial.provider_payment) || 0 : 0;
-            const profit = item.financial ? parseFloat(item.financial.profit) || 0 : 0;
-
             return {
-                'ID do Registro': item.record_id,
+                'ID': item.record_id,
                 'Data': formatDate(item.date),
                 'Empresa': item.company,
-                'Cidade': item.city,
-                'Estado': item.state,
-                'Status': statusMap[item.status] || item.status,
+                'Cidade/Estado': `${item.city}/${item.state.toUpperCase()}`,
+                'Provedor': item.provider,
+                'Status': getStatusText(item.status),
                 'Tipo Documento': item.document_type,
-                'Pesquisado': item.researchedName,
-                'CPF/CNPJ Pesquisado': item.researchedCpf_cnpj,
-                'Total Despesas (R$)': totalExpenses,
-                'Valor Diligência (R$)': diligenceValue,
-                'Pagamento Prestador (R$)': providerPayment,
-                'Lucro (R$)': profit,
-                'Prestador': item.provider,
+                'Nome Pesquisado': item.researchedName,
+                'CPF/CNPJ': item.researchedCpf_cnpj,
+                'Despesas': totalExpenses,
+                'Pagamento Prestador': item.financial ? item.financial.provider_payment : 0,
+                'Valor Diligência': item.financial ? item.financial.diligence_value : 0,
+                'Lucro': item.financial ? item.financial.profit : 0,
                 'Prioridade': item.priority,
-                'Informações Adicionais': item.info || '',
-                'Data de Registro': item.date,
-                'Última Atualização': item.last_update ? formatDateTime(item.last_update) : ''
+                'Última Atualização': item.last_update ? formatDate(item.last_update) : ''
             };
         });
 
-        // Adicionar estatísticas resumidas
-        const totalDespesa = filteredData.reduce((sum, item) => sum + (parseFloat(item.expense) || 0), 0);
+        // Criar planilha
+        const worksheet = XLSX.utils.json_to_sheet(dataForExport);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Relatório');
 
-        const financialData = filteredData.filter(item =>
-            item.status === 'finalizada' && item.financial
-        );
+        // Gerar arquivo
+        const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+        const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
 
-        const totalDiligencia = financialData.reduce((sum, item) =>
-            sum + (parseFloat(item.financial.diligence_value) || 0), 0
-        );
-
-        const totalProviderPayment = financialData.reduce((sum, item) =>
-            sum + (parseFloat(item.financial.provider_payment) || 0), 0
-        );
-
-        const totalLucro = financialData.reduce((sum, item) =>
-            sum + (parseFloat(item.financial.profit) || 0), 0
-        );
-
-        const summaryData = [
-            {},
-            { 'ID do Registro': 'RELATÓRIO RESUMIDO', 'Data': '', 'Empresa': '', 'Cidade': '', 'Estado': '', 'Status': '', 'Tipo Documento': '', 'Pesquisado': '', 'CPF/CNPJ Pesquisado': '', 'Total Despesas (R$)': '', 'Valor Diligência (R$)': '', 'Pagamento Prestador (R$)': '', 'Lucro (R$)': '', 'Prestador': '', 'Prioridade': '', 'Informações Adicionais': '', 'Data de Registro': '', 'Última Atualização': '' },
-            { 'ID do Registro': 'Total de Pedidos', 'Data': filteredData.length, 'Empresa': '', 'Cidade': '', 'Estado': '', 'Status': '', 'Tipo Documento': '', 'Pesquisado': '', 'CPF/CNPJ Pesquisado': '', 'Total Despesas (R$)': '', 'Valor Diligência (R$)': '', 'Pagamento Prestador (R$)': '', 'Lucro (R$)': '', 'Prestador': '', 'Prioridade': '', 'Informações Adicionais': '', 'Data de Registro': '', 'Última Atualização': '' },
-            { 'ID do Registro': 'Total Despesas', 'Data': '', 'Empresa': '', 'Cidade': '', 'Estado': '', 'Status': '', 'Tipo Documento': '', 'Pesquisado': '', 'CPF/CNPJ Pesquisado': '', 'Total Despesas (R$)': totalDespesa, 'Valor Diligência (R$)': '', 'Pagamento Prestador (R$)': '', 'Lucro (R$)': '', 'Prestador': '', 'Prioridade': '', 'Informações Adicionais': '', 'Data de Registro': '', 'Última Atualização': '' },
-            { 'ID do Registro': 'Total Valor Diligências', 'Data': '', 'Empresa': '', 'Cidade': '', 'Estado': '', 'Status': '', 'Tipo Documento': '', 'Pesquisado': '', 'CPF/CNPJ Pesquisado': '', 'Total Despesas (R$)': '', 'Valor Diligência (R$)': totalDiligencia, 'Pagamento Prestador (R$)': '', 'Lucro (R$)': '', 'Prestador': '', 'Prioridade': '', 'Informações Adicionais': '', 'Data de Registro': '', 'Última Atualização': '' },
-            { 'ID do Registro': 'Total Pagamento Prestadores', 'Data': '', 'Empresa': '', 'Cidade': '', 'Estado': '', 'Status': '', 'Tipo Documento': '', 'Pesquisado': '', 'CPF/CNPJ Pesquisado': '', 'Total Despesas (R$)': '', 'Valor Diligência (R$)': '', 'Pagamento Prestador (R$)': totalProviderPayment, 'Lucro (R$)': '', 'Prestador': '', 'Prioridade': '', 'Informações Adicionais': '', 'Data de Registro': '', 'Última Atualização': '' },
-            { 'ID do Registro': 'Lucro Total', 'Data': '', 'Empresa': '', 'Cidade': '', 'Estado': '', 'Status': '', 'Tipo Documento': '', 'Pesquisado': '', 'CPF/CNPJ Pesquisado': '', 'Total Despesas (R$)': '', 'Valor Diligência (R$)': '', 'Pagamento Prestador (R$)': '', 'Lucro (R$)': totalLucro, 'Prestador': '', 'Prioridade': '', 'Informações Adicionais': '', 'Data de Registro': '', 'Última Atualização': '' },
-            {}
-        ];
-
-        // Combinar dados
-        const allData = [...summaryData, ...dataForExport];
-
-        // Criar workbook
-        const wb = XLSX.utils.book_new();
-        const ws = XLSX.utils.json_to_sheet(allData, { skipHeader: true });
-
-        // Adicionar cabeçalhos manualmente
-        const headers = [
-            'ID do Registro', 'Data', 'Empresa', 'Cidade', 'Estado', 'Status',
-            'Tipo Documento', 'Pesquisado', 'CPF/CNPJ Pesquisado', 'Total Despesas (R$)',
-            'Valor Diligência (R$)', 'Pagamento Prestador (R$)', 'Lucro (R$)',
-            'Prestador', 'Prioridade', 'Informações Adicionais', 'Data de Registro',
-            'Última Atualização'
-        ];
-
-        XLSX.utils.sheet_add_aoa(ws, [headers], { origin: 'A1' });
-
-        // Formatar células monetárias
-        const range = XLSX.utils.decode_range(ws['!ref']);
-        for (let R = 1; R <= range.e.r; ++R) {
-            // Colunas J, K, L, M (Despesas, Diligência, Pagamento, Lucro)
-            ['J', 'K', 'L', 'M'].forEach(col => {
-                const cell = XLSX.utils.encode_cell({ r: R, c: col.charCodeAt(0) - 65 });
-                if (ws[cell] && typeof ws[cell].v === 'number') {
-                    ws[cell].z = '"R$"#,##0.00';
-                }
-            });
-        }
-
-        // Formatar cabeçalhos
-        for (let C = range.s.c; C <= range.e.c; ++C) {
-            const headerCell = XLSX.utils.encode_cell({ r: 0, c: C });
-            if (!ws[headerCell]) continue;
-            ws[headerCell].s = {
-                font: { bold: true, color: { rgb: "FFFFFF" } },
-                fill: { fgColor: { rgb: "4472C4" } }
-            };
-        }
-
-        // Ajustar largura das colunas
-        const colWidths = [
-            { wch: 15 }, { wch: 12 }, { wch: 20 }, { wch: 15 }, { wch: 10 },
-            { wch: 12 }, { wch: 15 }, { wch: 20 }, { wch: 20 }, { wch: 15 },
-            { wch: 15 }, { wch: 18 }, { wch: 15 }, { wch: 20 }, { wch: 12 },
-            { wch: 25 }, { wch: 15 }, { wch: 20 }
-        ];
-
-        ws['!cols'] = colWidths;
-
-        // Adicionar worksheet ao workbook
-        XLSX.utils.book_append_sheet(wb, ws, "Relatório");
-
-        // Gerar nome do arquivo com data atual
-        const date = new Date();
-        const fileName = `relatorio_financeiro_${date.getDate()}${date.getMonth() + 1}${date.getFullYear()}_${date.getHours()}${date.getMinutes()}.xlsx`;
-
-        // Salvar arquivo
-        XLSX.writeFile(wb, fileName);
+        // Download
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `relatorio_diligencias_${new Date().toISOString().split('T')[0]}.xlsx`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
 
         hideLoading();
-        showNotification('Excel exportado com sucesso!', 'success');
+        showNotification('Relatório exportado com sucesso!', 'success');
+
     } catch (error) {
-        console.error('Erro ao exportar Excel:', error);
         hideLoading();
-        showNotification('Erro ao exportar Excel', 'error');
+        console.error('Erro ao exportar para Excel:', error);
+        showNotification('Erro ao exportar para Excel: ' + error.message, 'error');
     }
-}
-
-// Adicionar esta função para formatar dados completos
-function prepareCompleteExportData() {
-    return filteredData.map(item => {
-        const saldo = item.value - item.expense;
-
-        return {
-            'ID do Registro': item.record_id,
-            'Data': formatDate(item.date),
-            'Empresa': item.company,
-            'Cidade': item.city,
-            'Estado': item.state,
-            'Tipo Documento': item.document_type,
-            'Valor Recebido (R$)': item.value,
-            'Despesa (R$)': item.expense,
-            'Saldo Líquido (R$)': saldo,
-            'Status': statusMap[item.status] || item.status,
-            'Pesquisado': item.researchedName,
-            'CPF/CNPJ': item.researchedCpf_cnpj,
-            'Prestador': item.provider,
-            'Prioridade': item.priority,
-            'Informações': item.info
-        };
-    });
 }
 
 // Exportar para PDF (ATUALIZADA)
@@ -1195,246 +1030,120 @@ async function exportToPDF() {
     showLoading();
 
     try {
-        // Usar jsPDF com autoTable
+        // Preparar dados para exportação
+        const dataForExport = filteredData.map(item => {
+            // Calcular totais de despesas (excluindo custas)
+            const totalExpenses = item.expenses && item.expenses.length > 0
+                ? item.expenses.reduce((sum, expense) => sum + parseFloat(expense.value || 0), 0)
+                : 0;
+
+            return {
+                'ID': item.record_id,
+                'Data': formatDate(item.date),
+                'Empresa': item.company,
+                'Cidade/Estado': `${item.city}/${item.state.toUpperCase()}`,
+                'Provedor': item.provider,
+                'Status': getStatusText(item.status),
+                'Tipo Documento': item.document_type,
+                'Nome Pesquisado': item.researchedName,
+                'CPF/CNPJ': item.researchedCpf_cnpj,
+                'Despesas': totalExpenses,
+                'Pagamento Prestador': item.financial ? item.financial.provider_payment : 0,
+                'Valor Diligência': item.financial ? item.financial.diligence_value : 0,
+                'Lucro': item.financial ? item.financial.profit : 0,
+                'Prioridade': item.priority,
+                'Última Atualização': item.last_update ? formatDate(item.last_update) : ''
+            };
+        });
+
+        // Criar documento PDF
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
 
         // Adicionar título
         doc.setFontSize(18);
-        doc.setTextColor(40, 40, 40);
-        doc.text('Relatório Financeiro de Pedidos', 14, 22);
-
-        // Adicionar data de emissão
-        doc.setFontSize(10);
-        doc.setTextColor(100, 100, 100);
-        doc.text(`Emitido em: ${new Date().toLocaleDateString('pt-BR')} ${new Date().toLocaleTimeString('pt-BR')}`, 14, 30);
-
-        // Adicionar estatísticas resumidas
-        const totalDespesa = filteredData.reduce((sum, item) => sum + (parseFloat(item.expense) || 0), 0);
-
-        const financialData = filteredData.filter(item =>
-            item.status === 'finalizada' && item.financial
-        );
-
-        const totalDiligencia = financialData.reduce((sum, item) =>
-            sum + (parseFloat(item.financial.diligence_value) || 0), 0
-        );
-
-        const totalProviderPayment = financialData.reduce((sum, item) =>
-            sum + (parseFloat(item.financial.provider_payment) || 0), 0
-        );
-
-        const totalLucro = financialData.reduce((sum, item) =>
-            sum + (parseFloat(item.financial.profit) || 0), 0
-        );
-
+        doc.text('Relatório de Diligências', 14, 22);
         doc.setFontSize(12);
-        doc.setTextColor(40, 40, 40);
-        doc.text(`Total de Pedidos: ${filteredData.length}`, 14, 45);
-        doc.text(`Total Despesas: R$ ${totalDespesa.toLocaleString('pt-BR')}`, 14, 55);
-        doc.text(`Total Valor Diligências: R$ ${totalDiligencia.toLocaleString('pt-BR')}`, 14, 65);
-        doc.text(`Total Pagamento Prestadores: R$ ${totalProviderPayment.toLocaleString('pt-BR')}`, 14, 75);
-        doc.text(`Lucro Total: R$ ${totalLucro.toLocaleString('pt-BR')}`, 14, 85);
-
-        // Preparar dados para a tabela
-        const tableData = filteredData.map(item => {
-            // Calcular totais de despesas
-            const totalExpenses = item.expenses && item.expenses.length > 0
-                ? item.expenses.reduce((sum, expense) => sum + parseFloat(expense.value || 0), 0)
-                : 0;
-
-            // Informações financeiras
-            const diligenceValue = item.financial ? parseFloat(item.financial.diligence_value) || 0 : 0;
-            const providerPayment = item.financial ? parseFloat(item.financial.provider_payment) || 0 : 0;
-            const profit = item.financial ? parseFloat(item.financial.profit) || 0 : 0;
-
-            return [
-                item.record_id,
-                formatDate(item.date),
-                item.company,
-                `${item.city}/${item.state}`,
-                statusMap[item.status] || item.status,
-                `R$ ${totalExpenses.toLocaleString('pt-BR')}`,
-                `R$ ${diligenceValue.toLocaleString('pt-BR')}`,
-                `R$ ${providerPayment.toLocaleString('pt-BR')}`,
-                `R$ ${profit.toLocaleString('pt-BR')}`,
-                item.provider
-            ];
-        });
+        doc.text(`Gerado em: ${new Date().toLocaleString('pt-BR')}`, 14, 30);
+        doc.text(`Total de registros: ${dataForExport.length}`, 14, 38);
 
         // Adicionar tabela
+        const tableColumn = Object.keys(dataForExport[0]);
+        const tableRows = dataForExport.map(item => Object.values(item));
+
+        // Adicionar tabela ao PDF
         doc.autoTable({
-            startY: 95,
-            head: [['ID', 'Data', 'Empresa', 'Local', 'Status', 'Despesas (R$)', 'Diligência (R$)', 'Pagamento (R$)', 'Lucro (R$)', 'Prestador']],
-            body: tableData,
+            head: [tableColumn],
+            body: tableRows,
+            startY: 45,
             theme: 'grid',
-            headStyles: {
-                fillColor: [65, 114, 196],
-                textColor: 255,
-                fontStyle: 'bold'
-            },
-            alternateRowStyles: {
-                fillColor: [240, 240, 240]
-            },
-            styles: {
-                fontSize: 8,
-                cellPadding: 2,
-                overflow: 'linebreak'
-            },
-            margin: { left: 14, right: 14 },
-            columnStyles: {
-                0: { cellWidth: 15 },
-                1: { cellWidth: 15 },
-                2: { cellWidth: 20 },
-                3: { cellWidth: 20 },
-                4: { cellWidth: 15 },
-                5: { cellWidth: 15 },
-                6: { cellWidth: 15 },
-                7: { cellWidth: 15 },
-                8: { cellWidth: 15 },
-                9: { cellWidth: 20 }
-            }
+            styles: { fontSize: 8 },
+            headStyles: { fillColor: [105, 72, 211] }
         });
-
-        // Adicionar gráficos ao PDF
-        await addChartsToPDF(doc);
-
-        // Adicionar número de páginas
-        const totalPages = doc.internal.getNumberOfPages();
-        for (let i = 1; i <= totalPages; i++) {
-            doc.setPage(i);
-            doc.setFontSize(10);
-            doc.setTextColor(100, 100, 100);
-            doc.text(`Página ${i} de ${totalPages}`, doc.internal.pageSize.width - 40, doc.internal.pageSize.height - 10);
-        }
-
-        // Gerar nome do arquivo com data atual
-        const date = new Date();
-        const fileName = `relatorio_financeiro_${date.getDate()}${date.getMonth() + 1}${date.getFullYear()}_${date.getHours()}${date.getMinutes()}.pdf`;
 
         // Salvar PDF
-        doc.save(fileName);
+        doc.save(`relatorio_diligencias_${new Date().toISOString().split('T')[0]}.pdf`);
 
         hideLoading();
-        showNotification('PDF exportado com sucesso!', 'success');
+        showNotification('Relatório exportado com sucesso!', 'success');
+
     } catch (error) {
-        console.error('Erro ao exportar PDF:', error);
         hideLoading();
-        showNotification('Erro ao exportar PDF', 'error');
+        console.error('Erro ao exportar para PDF:', error);
+        showNotification('Erro ao exportar para PDF: ' + error.message, 'error');
     }
 }
 
-// Função para adicionar gráficos ao PDF (ATUALIZADA)
-async function addChartsToPDF(doc) {
-    try {
-        // Adicionar nova página para gráficos
-        doc.addPage();
-        doc.setFontSize(16);
-        doc.text('Análise Financeira - Gráficos e Estatísticas', 14, 22);
-
-        // Estatísticas financeiras
-        const financialData = filteredData.filter(item =>
-            item.status === 'finalizada' && item.financial
-        );
-
-        const totalDiligencia = financialData.reduce((sum, item) =>
-            sum + (parseFloat(item.financial.diligence_value) || 0), 0
-        );
-
-        const totalProviderPayment = financialData.reduce((sum, item) =>
-            sum + (parseFloat(item.financial.provider_payment) || 0), 0
-        );
-
-        const totalLucro = financialData.reduce((sum, item) =>
-            sum + (parseFloat(item.financial.profit) || 0), 0
-        );
-
-        doc.setFontSize(12);
-        doc.text('Resumo Financeiro:', 14, 40);
-        doc.text(`Total Valor Diligências: R$ ${totalDiligencia.toLocaleString('pt-BR')}`, 20, 50);
-        doc.text(`Total Pagamento Prestadores: R$ ${totalProviderPayment.toLocaleString('pt-BR')}`, 20, 60);
-        doc.text(`Lucro Total: R$ ${totalLucro.toLocaleString('pt-BR')}`, 20, 70);
-
-        // Distribuição por empresa
-        doc.text('Distribuição por Empresa:', 14, 90);
-
-        const empresas = {};
-        financialData.forEach(item => {
-            empresas[item.company] = (empresas[item.company] || 0) + 1;
-        });
-
-        let yPosition = 100;
-        Object.entries(empresas).forEach(([empresa, quantidade], index) => {
-            if (yPosition > 250) {
-                doc.addPage();
-                yPosition = 20;
-            }
-            doc.text(`${empresa}: ${quantidade} pedidos (${((quantidade / financialData.length) * 100).toFixed(1)}%)`, 20, yPosition);
-            yPosition += 8;
-        });
-
-        // Análise de lucratividade por empresa
-        if (financialData.length > 0) {
-            yPosition += 15;
-            if (yPosition > 250) {
-                doc.addPage();
-                yPosition = 20;
-            }
-
-            doc.text('Lucratividade por Empresa:', 14, yPosition);
-            yPosition += 10;
-
-            const lucroPorEmpresa = {};
-            financialData.forEach(item => {
-                if (!lucroPorEmpresa[item.company]) {
-                    lucroPorEmpresa[item.company] = 0;
-                }
-                lucroPorEmpresa[item.company] += parseFloat(item.financial.profit) || 0;
-            });
-
-            Object.entries(lucroPorEmpresa).forEach(([empresa, lucro]) => {
-                if (yPosition > 250) {
-                    doc.addPage();
-                    yPosition = 20;
-                }
-                const status = lucro >= 0 ? 'Lucro' : 'Prejuízo';
-                doc.text(`${empresa}: R$ ${lucro.toLocaleString('pt-BR')} (${status})`, 20, yPosition);
-                yPosition += 8;
-            });
-        }
-
-    } catch (error) {
-        console.error('Erro ao adicionar gráficos ao PDF:', error);
-    }
+// Atualizar dashboard
+function updateDashboard() {
+    updateSummaryCards();
+    updateTable();
 }
 
-// Função para mostrar notificações
+// Atualizar cards de resumo
+function updateSummaryCards() {
+    // Total de registros
+    document.getElementById('totalRegistros').textContent = filteredData.length;
+
+    // Total de registros finalizados
+    const finalizados = filteredData.filter(item => item.status === 'finalizada' || item.status === 'fechada').length;
+    document.getElementById('totalFinalizados').textContent = finalizados;
+
+    // Total de registros ativos
+    const ativos = filteredData.filter(item => item.status === 'ativa').length;
+    document.getElementById('totalAtivos').textContent = ativos;
+
+    // Total de valor em despesas
+    const totalDespesas = filteredData.reduce((sum, item) => {
+        const expenses = item.expenses && item.expenses.length > 0
+            ? item.expenses.reduce((expSum, expense) => expSum + parseFloat(expense.value || 0), 0)
+            : 0;
+        return sum + expenses;
+    }, 0);
+    document.getElementById('totalDespesas').textContent = `R$ ${totalDespesas.toLocaleString('pt-BR')}`;
+
+    // Total de lucro (apenas registros com finanças configuradas)
+    const totalLucro = filteredData.reduce((sum, item) => {
+        return sum + (item.financial ? parseFloat(item.financial.profit || 0) : 0);
+    }, 0);
+    document.getElementById('totalLucro').textContent = `R$ ${totalLucro.toLocaleString('pt-BR')}`;
+}
+
+// Mostrar notificação
 function showNotification(message, type = 'info') {
-    // Remover notificações existentes
-    const existingNotifications = document.querySelectorAll('.custom-notification');
-    existingNotifications.forEach(notification => notification.remove());
-
     // Criar elemento de notificação
     const notification = document.createElement('div');
-    notification.className = `custom-notification alert alert-${type} alert-dismissible fade show`;
-    notification.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        z-index: 9999;
-        min-width: 300px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    `;
-
+    notification.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+    notification.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
     notification.innerHTML = `
         ${message}
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     `;
 
-    // Adicionar ao documento
+    // Adicionar ao DOM
     document.body.appendChild(notification);
 
-    // Remover automaticamente após 5 segundos
+    // Remover após 5 segundos
     setTimeout(() => {
         if (notification.parentNode) {
             notification.remove();
@@ -1442,362 +1151,46 @@ function showNotification(message, type = 'info') {
     }, 5000);
 }
 
-// Adicione estas funções utilitárias se não existirem
-function formatCurrency(value) {
-    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
-}
-
-// Atualize a função updateDashboard para incluir variações percentuais
-function updateDashboard() {
-    const totalPedidos = filteredData.length;
-
-    // Calcular total de despesas
-    const totalDespesa = filteredData.reduce((sum, item) => {
-        return sum + (parseFloat(item.expense) || 0);
-    }, 0);
-
-    // Calcular totais financeiros apenas para registros finalizados com dados financeiros
-    let totalDiligencia = 0;
-    let totalProviderPayment = 0;
-    let totalLucro = 0;
-
-    filteredData.forEach(item => {
-        if (item.status === 'fechada' && item.financial) {
-            totalDiligencia += parseFloat(item.financial.diligence_value) || 0;
-            totalProviderPayment += parseFloat(item.financial.provider_payment) || 0;
-            totalLucro += parseFloat(item.financial.profit) || 0;
-        }
-    });
-
-    // Garantir que não seja NaN
-    totalDiligencia = isNaN(totalDiligencia) ? 0 : totalDiligencia;
-    totalProviderPayment = isNaN(totalProviderPayment) ? 0 : totalProviderPayment;
-    totalLucro = isNaN(totalLucro) ? 0 : totalLucro;
-
-    // Calcular variações mensais
-    const variacoes = calculateMonthlyVariations(
-        totalPedidos,
-        totalDespesa,
-        totalDiligencia,
-        totalProviderPayment,
-        totalLucro
-    );
-
-    // Atualizar cards com valores e variações
-    updateCard('[data-stat="pedidos"]', totalPedidos, variacoes.pedidos, 'pedidos', variacoes.hasPreviousData);
-    updateCard('[data-stat="despesa"]', totalDespesa, variacoes.despesa, 'despesa', variacoes.hasPreviousData);
-    updateCard('[data-stat="saldo"]', totalLucro, variacoes.lucro, 'lucro', variacoes.hasPreviousData);
-
-    // Atualizar cards adicionais se existirem
-    const diligenceCard = document.querySelector('[data-stat="diligencia"]');
-    const providerCard = document.querySelector('[data-stat="provider-payment"]');
-
-    if (diligenceCard) {
-        updateCardElement(diligenceCard, totalDiligencia, variacoes.diligencia, 'diligencia', variacoes.hasPreviousData);
-    }
-
-    if (providerCard) {
-        updateCardElement(providerCard, totalProviderPayment, variacoes.provider, 'provider', variacoes.hasPreviousData);
-    }
-
-    updateComparisonPeriod();
-
-    // Atualizar tabela
-    updateTable();
-}
-
-function updateComparisonPeriod() {
-    const comparisonElement = document.getElementById('comparison-period');
-    if (comparisonElement) {
-        comparisonElement.textContent = getComparisonPeriodText();
-    }
-}
-
-// Função para calcular variações mensais
-function calculateMonthlyVariations(pedidos, despesa, diligencia, provider, lucro) {
-    // Obter período atual dos filtros
-    const periodoSelect = document.getElementById('periodo');
-    const dataInicioInput = document.getElementById('dataInicio');
-    const dataFimInput = document.getElementById('dataFim');
-
-    let startDate, endDate;
-
-    if (periodoSelect.value === 'custom' && dataInicioInput.value && dataFimInput.value) {
-        // Período personalizado
-        startDate = new Date(dataInicioInput.value);
-        endDate = new Date(dataFimInput.value);
-    } else {
-        // Período padrão (últimos 30 dias)
-        endDate = new Date();
-        startDate = new Date();
-        startDate.setDate(startDate.getDate() - parseInt(periodoSelect.value || 30));
-    }
-
-    // Calcular período do mês anterior
-    const previousMonthStart = new Date(startDate);
-    previousMonthStart.setMonth(previousMonthStart.getMonth() - 1);
-
-    const previousMonthEnd = new Date(endDate);
-    previousMonthEnd.setMonth(previousMonthEnd.getMonth() - 1);
-
-    // Filtrar dados do mês anterior
-    const previousMonthData = allData.filter(item => {
-        const itemDate = new Date(item.date);
-        return itemDate >= previousMonthStart && itemDate <= previousMonthEnd;
-    });
-
-    // Se não há dados do mês anterior, retornar variação zero
-    if (previousMonthData.length === 0) {
-        return {
-            pedidos: 0,
-            despesa: 0,
-            diligencia: 0,
-            provider: 0,
-            lucro: 0,
-            hasPreviousData: false
-        };
-    }
-
-    // Calcular totais do mês anterior
-    const previousPedidos = previousMonthData.length;
-
-    const previousDespesa = previousMonthData.reduce((sum, item) => {
-        return sum + (parseFloat(item.expense) || 0);
-    }, 0);
-
-    const previousFinancialData = previousMonthData.filter(item =>
-        item.status === 'finalizada' && item.financial
-    );
-
-    const previousDiligencia = previousFinancialData.reduce((sum, item) =>
-        sum + (parseFloat(item.financial.diligence_value) || 0), 0
-    );
-
-    const previousProvider = previousFinancialData.reduce((sum, item) =>
-        sum + (parseFloat(item.financial.provider_payment) || 0), 0
-    );
-
-    const previousLucro = previousFinancialData.reduce((sum, item) =>
-        sum + (parseFloat(item.financial.profit) || 0), 0
-    );
-
-    // Calcular variações percentuais
-    const calcularVariacao = (atual, anterior) => {
-        if (anterior === 0) return atual > 0 ? 100 : 0;
-        return ((atual - anterior) / anterior) * 100;
-    };
-
-    return {
-        pedidos: Math.round(calcularVariacao(pedidos, previousPedidos)),
-        despesa: Math.round(calcularVariacao(despesa, previousDespesa)),
-        diligencia: Math.round(calcularVariacao(diligencia, previousDiligencia)),
-        provider: Math.round(calcularVariacao(provider, previousProvider)),
-        lucro: Math.round(calcularVariacao(lucro, previousLucro)),
-        hasPreviousData: true
-    };
-}
-
-// Função para atualizar um card individual
-function updateCard(selector, valor, variacao, tipo, hasPreviousData) {
-    const element = document.querySelector(selector);
-    if (!element) return;
-
-    updateCardElement(element, valor, variacao, tipo, hasPreviousData);
-}
-
-// Função para atualizar elemento do card
-function updateCardElement(element, valor, variacao, tipo, hasPreviousData) {
-    const card = element.closest('.card');
-    const variationElement = card.querySelector('.variation');
-
-    // Formatando o valor
-    if (tipo === 'pedidos') {
-        element.textContent = valor.toLocaleString('pt-BR');
-    } else {
-        element.textContent = `R$ ${valor.toLocaleString('pt-BR')}`;
-    }
-
-    // Atualizar variação
-    if (variationElement) {
-        updateVariationElement(variationElement, variacao, tipo, hasPreviousData);
-    }
-}
-
-// Função para atualizar elemento de variação
-function updateVariationElement(element, variacao, tipo, hasPreviousData) {
-    if (!hasPreviousData) {
-        element.innerHTML = '<i class="bi bi-dash-circle"></i> N/D';
-        element.classList.add('text-warning');
-        element.title = 'Não há dados do mês anterior para comparação';
-        return;
-    }
-
-    const isNegative = tipo === 'despesa' ? variacao > 0 : variacao < 0;
-    const isNeutral = variacao === 0;
-
-    // Limpar classes anteriores
-    element.classList.remove('text-success', 'text-danger', 'text-warning');
-
-    if (isNeutral) {
-        element.classList.add('text-warning');
-        element.innerHTML = `<i class="bi bi-dash-circle"></i> ${variacao}%`;
-        element.title = 'Sem variação em relação ao mês anterior';
-    } else if (isNegative) {
-        element.classList.add('text-danger');
-        element.innerHTML = `<i class="bi bi-arrow-up"></i> ${Math.abs(variacao)}%`;
-        element.title = `Aumento de ${Math.abs(variacao)}% em relação ao mês anterior`;
-    } else {
-        element.classList.add('text-success');
-        element.innerHTML = `<i class="bi bi-arrow-up"></i> ${variacao}%`;
-        element.title = `Crescimento de ${variacao}% em relação ao mês anterior`;
-    }
-}
-
-// Função para formatar o período de comparação
-function getComparisonPeriodText() {
-    const periodoSelect = document.getElementById('periodo');
-    const dataInicioInput = document.getElementById('dataInicio');
-    const dataFimInput = document.getElementById('dataFim');
-
-    if (periodoSelect.value === 'custom' && dataInicioInput.value && dataFimInput.value) {
-        const startDate = new Date(dataInicioInput.value);
-        const endDate = new Date(dataFimInput.value);
-
-        const previousStart = new Date(startDate);
-        previousStart.setMonth(previousStart.getMonth() - 1);
-
-        const previousEnd = new Date(endDate);
-        previousEnd.setMonth(previousEnd.getMonth() - 1);
-
-        return `vs ${previousStart.toLocaleDateString('pt-BR')} - ${previousEnd.toLocaleDateString('pt-BR')}`;
-    } else {
-        const endDate = new Date();
-        const startDate = new Date();
-        startDate.setDate(startDate.getDate() - parseInt(periodoSelect.value || 30));
-
-        const previousStart = new Date(startDate);
-        previousStart.setMonth(previousStart.getMonth() - 1);
-
-        const previousEnd = new Date(endDate);
-        previousEnd.setMonth(previousEnd.getMonth() - 1);
-
-        return `vs ${previousStart.toLocaleDateString('pt-BR')} - ${previousEnd.toLocaleDateString('pt-BR')}`;
-    }
-}
-
-// Função para calcular variações percentuais
-function calculateVariations(pedidos, despesa, diligencia, provider, lucro) {
-    // Se não temos dados anteriores, retornar variação zero
-    if (previousPeriodData.length === 0) {
-        return {
-            pedidos: 0,
-            despesa: 0,
-            diligencia: 0,
-            provider: 0,
-            lucro: 0
-        };
-    }
-
-    // Calcular totais do período anterior
-    const previousPedidos = previousPeriodData.length;
-
-    const previousDespesa = previousPeriodData.reduce((sum, item) => {
-        return sum + (parseFloat(item.expense) || 0);
-    }, 0);
-
-    const previousFinancialData = previousPeriodData.filter(item =>
-        item.status === 'finalizada' && item.financial
-    );
-
-    const previousDiligencia = previousFinancialData.reduce((sum, item) =>
-        sum + (parseFloat(item.financial.diligence_value) || 0), 0
-    );
-
-    const previousProvider = previousFinancialData.reduce((sum, item) =>
-        sum + (parseFloat(item.financial.provider_payment) || 0), 0
-    );
-
-    const previousLucro = previousFinancialData.reduce((sum, item) =>
-        sum + (parseFloat(item.financial.profit) || 0), 0
-    );
-
-    // Calcular variações percentuais
-    const calcularVariacao = (atual, anterior) => {
-        if (anterior === 0) return atual > 0 ? 100 : 0;
-        return ((atual - anterior) / anterior) * 100;
-    };
-
-    return {
-        pedidos: Math.round(calcularVariacao(pedidos, previousPedidos)),
-        despesa: Math.round(calcularVariacao(despesa, previousDespesa)),
-        diligencia: Math.round(calcularVariacao(diligencia, previousDiligencia)),
-        provider: Math.round(calcularVariacao(provider, previousProvider)),
-        lucro: Math.round(calcularVariacao(lucro, previousLucro))
-    };
-}
-
+// Modal de finanças
 async function showFinancialModal(recordId) {
     const record = filteredData.find(item => item.id == recordId);
     if (!record) return;
 
-    // Obter valores dos inputs da tabela
-    const diligenceValueInput = document.querySelector(`.diligence-value[data-id="${recordId}"]`);
-    const providerPaymentInput = document.querySelector(`.provider-payment[data-id="${recordId}"]`);
+    // Calcular totais de despesas (excluindo custas)
+    const totalExpenses = record.expenses && record.expenses.length > 0
+        ? record.expenses.reduce((sum, expense) => sum + parseFloat(expense.value || 0), 0)
+        : 0;
 
-    const diligenceValue = diligenceValueInput ? parseFloat(diligenceValueInput.value) : 0;
-    const providerPayment = providerPaymentInput ? parseFloat(providerPaymentInput.value) : 0;
-
-    showFinancialFormModal(recordId, record.expense, {
-        diligence_value: diligenceValue,
-        provider_payment: providerPayment,
-        profit: diligenceValue - record.expense - providerPayment
-    });
-}
-
-// Função para mostrar formulário de finanças
-function showFinancialFormModal(recordId, expense, financialData) {
+    // Criar modal HTML
     const modalHTML = `
         <div class="modal fade" id="financialModal" tabindex="-1">
             <div class="modal-dialog">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title">Informações Financeiras e Fechamento</h5>
+                        <h5 class="modal-title">Configurar Finanças - ${record.record_id}</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
                     <div class="modal-body">
-                        <div class="alert alert-info">
-                            <i class="bi bi-info-circle"></i> 
-                            <strong>Atenção:</strong> Ao salvar as informações financeiras, 
-                            o registro será automaticamente fechado e não poderá mais ser editado.
+                        <div class="mb-3">
+                            <label class="form-label">Total de Despesas</label>
+                            <input type="text" class="form-control" value="R$ ${totalExpenses.toLocaleString('pt-BR')}" readonly>
                         </div>
-                        
-                        <form id="financialForm">
-                            <div class="mb-3">
-                                <label class="form-label">Valor da Diligência (R$)</label>
-                                <input type="number" step="0.01" class="form-control" id="diligenceValue" 
-                                       value="${financialData ? financialData.diligence_value : ''}" required>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Pagamento do Prestador (R$)</label>
-                                <input type="number" step="0.01" class="form-control" id="providerPayment" 
-                                       value="${financialData ? financialData.provider_payment : ''}" required>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Despesas</label>
-                                <div>(R$) ${expense.toLocaleString('pt-BR')}</div>
-                            </div>
-                            ${financialData ? `
-                            <div class="alert alert-info">
-                                <strong>Lucro Calculado:</strong> R$ ${financialData.profit.toLocaleString('pt-BR')}
-                            </div>
-                            ` : ''}
-                        </form>
+                        <div class="mb-3">
+                            <label class="form-label">Valor da Diligência (R$)</label>
+                            <input type="number" step="0.01" class="form-control" id="diligenceValue" placeholder="0,00">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Pagamento do Prestador (R$)</label>
+                            <input type="number" step="0.01" class="form-control" id="providerPayment" placeholder="0,00">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Lucro Estimado</label>
+                            <input type="text" class="form-control" id="estimatedProfit" value="R$ 0,00" readonly>
+                        </div>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                        <button type="button" class="btn btn-primary" id="saveFinancial">
-                            <i class="bi bi-lock-fill"></i> Salvar e Fechar Registro
-                        </button>
+                        <button type="button" class="btn btn-primary" id="saveFinancial">Salvar e Fechar Registro</button>
                     </div>
                 </div>
             </div>
@@ -1813,131 +1206,80 @@ function showFinancialFormModal(recordId, expense, financialData) {
     const modal = new bootstrap.Modal(document.getElementById('financialModal'));
     modal.show();
 
-    // Event listener para salvar
-    document.getElementById('saveFinancial').addEventListener('click', async () => {
-        await saveFinancialData(recordId);
+    // Calcular lucro quando os valores mudarem
+    document.getElementById('diligenceValue').addEventListener('input', calculateEstimatedProfit);
+    document.getElementById('providerPayment').addEventListener('input', calculateEstimatedProfit);
+
+    function calculateEstimatedProfit() {
+        const diligenceValue = parseFloat(document.getElementById('diligenceValue').value) || 0;
+        const providerPayment = parseFloat(document.getElementById('providerPayment').value) || 0;
+        const profit = diligenceValue - totalExpenses - providerPayment;
+        
+        document.getElementById('estimatedProfit').value = `R$ ${profit.toLocaleString('pt-BR')}`;
+        
+        // Destacar lucro negativo
+        if (profit < 0) {
+            document.getElementById('estimatedProfit').classList.add('text-danger');
+            document.getElementById('estimatedProfit').classList.remove('text-success');
+        } else {
+            document.getElementById('estimatedProfit').classList.add('text-success');
+            document.getElementById('estimatedProfit').classList.remove('text-danger');
+        }
+    }
+
+    // Salvar finanças
+    document.getElementById('saveFinancial').addEventListener('click', async function() {
+        const diligenceValue = parseFloat(document.getElementById('diligenceValue').value) || 0;
+        const providerPayment = parseFloat(document.getElementById('providerPayment').value) || 0;
+        
+        if (diligenceValue <= 0) {
+            showNotification('O valor da diligência deve ser maior que zero', 'error');
+            return;
+        }
+
+        showLoading();
+
+        try {
+            // Enviar dados para a API
+            const financialData = {
+                diligence_value: diligenceValue,
+                provider_payment: providerPayment
+            };
+
+            const response = await apiFetch(`${apiBaseUrl}/records/${recordId}/financial`, {
+                method: 'POST',
+                body: JSON.stringify(financialData)
+            });
+
+            // Atualizar dados locais
+            const updatedRecord = filteredData.find(item => item.id == recordId);
+            if (updatedRecord) {
+                updatedRecord.financial = response;
+                updatedRecord.status = 'fechada';
+            }
+
+            // Atualizar tabela
+            updateTable();
+            updateSummaryCards();
+
+            // Fechar modal
+            modal.hide();
+            showNotification('Finanças configuradas com sucesso!', 'success');
+
+        } catch (error) {
+            console.error('Erro ao salvar finanças:', error);
+            showNotification('Erro ao salvar finanças: ' + error.message, 'error');
+        }
+
+        hideLoading();
     });
 
     // Remover modal do DOM quando fechado
-    document.getElementById('financialModal').addEventListener('hidden.bs.modal', function () {
-        modalContainer.remove();
-    });
-}
-
-// Função para salvar dados financeiros E fechar o registro
-async function saveFinancialData(recordId) {
-    const diligenceValue = parseFloat(document.getElementById('diligenceValue').value);
-    const providerPayment = parseFloat(document.getElementById('providerPayment').value);
-
-    // Validações
-    if (!diligenceValue || diligenceValue <= 0) {
-        showNotification('Valor da diligência deve ser maior que zero', 'error');
-        return;
-    }
-
-    if (providerPayment < 0) {
-        showNotification('Pagamento do prestador não pode ser negativo', 'error');
-        return;
-    }
-
-    if (providerPayment > diligenceValue) {
-        showNotification('Pagamento do prestador não pode ser maior que o valor da diligência', 'error');
-        return;
-    }
-
-    showLoading();
-
-    try {
-        const token = localStorage.getItem('access_token');
-        if (!token) {
-            throw new Error('Token de autenticação não encontrado');
-        }
-
-        // Primeiro, salvar as informações financeiras
-        const financialResponse = await safeFetch(`${apiBaseUrl}/records/${recordId}/financial`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({
-                record_id: parseInt(recordId),
-                diligence_value: diligenceValue,
-                provider_payment: providerPayment
-            })
-        });
-
-        // Verificar se a resposta é OK
-        if (!financialResponse) {
-            let errorDetail = 'Erro ao salvar dados financeiros';
-            try {
-                const errorData = await financialResponse.json();
-                errorDetail = errorData.detail || errorDetail;
-            } catch (e) {
-                errorDetail = `HTTP ${financialResponse.status} - ${financialResponse.statusText}`;
-            }
-            throw new Error(errorDetail);
-        }
-
-        // Depois de salvar as informações financeiras com sucesso, fechar o registro
-        const closeResponse = await safeFetch(`${apiBaseUrl}/records/${recordId}/close`, {
-            method: 'PATCH',
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            }
-        });
-
-        // Verificar se a resposta de fechamento é OK
-        if (!closeResponse) {
-            let errorDetail = 'Erro ao fechar registro';
-            try {
-                const errorData = await closeResponse.json();
-                errorDetail = errorData.detail || errorDetail;
-            } catch (e) {
-                errorDetail = `HTTP ${closeResponse.status} - ${closeResponse.statusText}`;
-            }
-            throw new Error(errorDetail);
-        }
-
-        // Fechar modal
-        const modal = bootstrap.Modal.getInstance(document.getElementById('financialModal'));
-        if (modal) {
-            modal.hide();
-        }
-
-        showNotification('Informações financeiras salvas e registro fechado com sucesso!', 'success');
-
-        // Recarregar dados para atualizar a interface
+    document.getElementById('financialModal').addEventListener('hidden.bs.modal', function() {
         setTimeout(() => {
-            loadDataFromAPI();
-        }, 1000);
-
-    } catch (error) {
-        console.error('Erro detalhado ao salvar dados financeiros:', error);
-        
-        let errorMessage = error.message;
-        if (error.message.includes('Failed to fetch')) {
-            errorMessage = 'Erro de conexão com o servidor. Verifique se a API está rodando.';
-        } else if (error.message.includes('NetworkError')) {
-            errorMessage = 'Erro de rede. Verifique sua conexão com a internet.';
-        } else if (error.message.includes('401')) {
-            errorMessage = 'Sessão expirada. Faça login novamente.';
-            setTimeout(() => {
-                window.location.href = 'login.html';
-            }, 2000);
-        }
-
-        showNotification(errorMessage, 'error');
-    } finally {
-        hideLoading();
-    }
-}
-
-// Função para formatar data e hora
-function formatDateTime(dateString) {
-    if (!dateString) return '';
-
-    const date = new Date(dateString);
-    return date.toLocaleDateString('pt-BR') + ' ' + date.toLocaleTimeString('pt-BR');
+            if (modalContainer.parentNode) {
+                modalContainer.remove();
+            }
+        }, 300);
+    });
 }
