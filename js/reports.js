@@ -1378,18 +1378,7 @@ async function saveFinancialData(recordId) {
         }
 
         // Primeiro, salvar as informações financeiras
-        const financialResponse = await safeFetch(`${apiBaseUrl}/records/${recordId}/financial`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({
-                record_id: parseInt(recordId),
-                diligence_value: diligenceValue,
-                provider_payment: providerPayment
-            })
-        });
+        const financialResponse = await apiFetch(`${apiBaseUrl}/records/${recordId}/financial`);
 
         // Verificar se a resposta é OK
         if (!financialResponse) {
