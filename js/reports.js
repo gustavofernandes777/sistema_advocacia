@@ -1350,45 +1350,49 @@ function showNotification(message, type = 'info') {
 }
 
 // Modal de finanças
-async function showFinancialModal(recordId) {
-    const record = filteredData.find(item => item.id == recordId);
-    if (!record) return;
-
-    // Calcular totais de despesas (excluindo custas)
-    const totalExpenses = record.expenses && record.expenses.length > 0
-        ? record.expenses.reduce((sum, expense) => sum + parseFloat(expense.value || 0), 0)
-        : 0;
-
-    // Criar modal HTML
+function showFinancialModal(recordId, expense, financialData) {
     const modalHTML = `
         <div class="modal fade" id="financialModal" tabindex="-1">
             <div class="modal-dialog">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title">Configurar Finanças - ${record.record_id}</h5>
+                        <h5 class="modal-title">Informações Financeiras e Fechamento</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
                     <div class="modal-body">
-                        <div class="mb-3">
-                            <label class="form-label">Total de Despesas</label>
-                            <input type="text" class="form-control" value="R$ ${totalExpenses.toLocaleString('pt-BR')}" readonly>
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle"></i> 
+                            <strong>Atenção:</strong> Ao salvar as informações financeiras, 
+                            o registro será automaticamente fechado e não poderá mais ser editado.
                         </div>
-                        <div class="mb-3">
-                            <label class="form-label">Valor da Diligência (R$)</label>
-                            <input type="number" step="0.01" class="form-control" id="diligenceValue" placeholder="0,00">
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Pagamento do Prestador (R$)</label>
-                            <input type="number" step="0.01" class="form-control" id="providerPayment" placeholder="0,00">
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Lucro Estimado</label>
-                            <input type="text" class="form-control" id="estimatedProfit" value="R$ 0,00" readonly>
-                        </div>
+                        
+                        <form id="financialForm">
+                            <div class="mb-3">
+                                <label class="form-label">Valor da Diligência (R$)</label>
+                                <input type="number" step="0.01" class="form-control" id="diligenceValue" 
+                                       value="${financialData ? financialData.diligence_value : ''}" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Pagamento do Prestador (R$)</label>
+                                <input type="number" step="0.01" class="form-control" id="providerPayment" 
+                                       value="${financialData ? financialData.provider_payment : ''}" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Despesas</label>
+                                <div>(R$) ${expense.toLocaleString('pt-BR')}</div>
+                            </div>
+                            ${financialData ? `
+                            <div class="alert alert-info">
+                                <strong>Lucro Calculado:</strong> R$ ${financialData.profit.toLocaleString('pt-BR')}
+                            </div>
+                            ` : ''}
+                        </form>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                        <button type="button" class="btn btn-primary" id="saveFinancial">Salvar e Fechar Registro</button>
+                        <button type="button" class="btn btn-primary" id="saveFinancial">
+                            <i class="bi bi-lock-fill"></i> Salvar e Fechar Registro
+                        </button>
                     </div>
                 </div>
             </div>
@@ -1404,80 +1408,13 @@ async function showFinancialModal(recordId) {
     const modal = new bootstrap.Modal(document.getElementById('financialModal'));
     modal.show();
 
-    // Calcular lucro quando os valores mudarem
-    document.getElementById('diligenceValue').addEventListener('input', calculateEstimatedProfit);
-    document.getElementById('providerPayment').addEventListener('input', calculateEstimatedProfit);
-
-    function calculateEstimatedProfit() {
-        const diligenceValue = parseFloat(document.getElementById('diligenceValue').value) || 0;
-        const providerPayment = parseFloat(document.getElementById('providerPayment').value) || 0;
-        const profit = diligenceValue - totalExpenses - providerPayment;
-        
-        document.getElementById('estimatedProfit').value = `R$ ${profit.toLocaleString('pt-BR')}`;
-        
-        // Destacar lucro negativo
-        if (profit < 0) {
-            document.getElementById('estimatedProfit').classList.add('text-danger');
-            document.getElementById('estimatedProfit').classList.remove('text-success');
-        } else {
-            document.getElementById('estimatedProfit').classList.add('text-success');
-            document.getElementById('estimatedProfit').classList.remove('text-danger');
-        }
-    }
-
-    // Salvar finanças
-    document.getElementById('saveFinancial').addEventListener('click', async function() {
-        const diligenceValue = parseFloat(document.getElementById('diligenceValue').value) || 0;
-        const providerPayment = parseFloat(document.getElementById('providerPayment').value) || 0;
-        
-        if (diligenceValue <= 0) {
-            showNotification('O valor da diligência deve ser maior que zero', 'error');
-            return;
-        }
-
-        showLoading();
-
-        try {
-            // Enviar dados para a API
-            const financialData = {
-                diligence_value: diligenceValue,
-                provider_payment: providerPayment
-            };
-
-            const response = await apiFetch(`${apiBaseUrl}/records/${recordId}/financial`, {
-                method: 'POST',
-                body: JSON.stringify(financialData)
-            });
-
-            // Atualizar dados locais
-            const updatedRecord = filteredData.find(item => item.id == recordId);
-            if (updatedRecord) {
-                updatedRecord.financial = response;
-                updatedRecord.status = 'fechada';
-            }
-
-            // Atualizar tabela
-            updateTable();
-            updateSummaryCards();
-
-            // Fechar modal
-            modal.hide();
-            showNotification('Finanças configuradas com sucesso!', 'success');
-
-        } catch (error) {
-            console.error('Erro ao salvar finanças:', error);
-            showNotification('Erro ao salvar finanças: ' + error.message, 'error');
-        }
-
-        hideLoading();
+    // Event listener para salvar
+    document.getElementById('saveFinancial').addEventListener('click', async () => {
+        await saveFinancialData(recordId);
     });
 
     // Remover modal do DOM quando fechado
-    document.getElementById('financialModal').addEventListener('hidden.bs.modal', function() {
-        setTimeout(() => {
-            if (modalContainer.parentNode) {
-                modalContainer.remove();
-            }
-        }, 300);
+    document.getElementById('financialModal').addEventListener('hidden.bs.modal', function () {
+        modalContainer.remove();
     });
 }
