@@ -1153,7 +1153,88 @@ function updateDashboard() {
     updateTable();
 }
 
-// Atualizar cards de resumo
+function calculateMonthlyVariations(pedidos, despesa, diligencia, provider, lucro) {
+    // Obter período atual dos filtros
+    const periodoSelect = document.getElementById('periodo');
+    const dataInicioInput = document.getElementById('dataInicio');
+    const dataFimInput = document.getElementById('dataFim');
+
+    let startDate, endDate;
+
+    if (periodoSelect.value === 'custom' && dataInicioInput.value && dataFimInput.value) {
+        // Período personalizado
+        startDate = new Date(dataInicioInput.value);
+        endDate = new Date(dataFimInput.value);
+    } else {
+        // Período padrão (últimos 30 dias)
+        endDate = new Date();
+        startDate = new Date();
+        startDate.setDate(startDate.getDate() - parseInt(periodoSelect.value || 30));
+    }
+
+    // Calcular período do mês anterior
+    const previousMonthStart = new Date(startDate);
+    previousMonthStart.setMonth(previousMonthStart.getMonth() - 1);
+
+    const previousMonthEnd = new Date(endDate);
+    previousMonthEnd.setMonth(previousMonthEnd.getMonth() - 1);
+
+    // Filtrar dados do mês anterior
+    const previousMonthData = allData.filter(item => {
+        const itemDate = new Date(item.date);
+        return itemDate >= previousMonthStart && itemDate <= previousMonthEnd;
+    });
+
+    // Se não há dados do mês anterior, retornar variação zero
+    if (previousMonthData.length === 0) {
+        return {
+            pedidos: 0,
+            despesa: 0,
+            diligencia: 0,
+            provider: 0,
+            lucro: 0,
+            hasPreviousData: false
+        };
+    }
+
+    // Calcular totais do mês anterior
+    const previousPedidos = previousMonthData.length;
+
+    const previousDespesa = previousMonthData.reduce((sum, item) => {
+        return sum + (parseFloat(item.expense) || 0);
+    }, 0);
+
+    const previousFinancialData = previousMonthData.filter(item =>
+        item.status === 'finalizada' && item.financial
+    );
+
+    const previousDiligencia = previousFinancialData.reduce((sum, item) =>
+        sum + (parseFloat(item.financial.diligence_value) || 0), 0
+    );
+
+    const previousProvider = previousFinancialData.reduce((sum, item) =>
+        sum + (parseFloat(item.financial.provider_payment) || 0), 0
+    );
+
+    const previousLucro = previousFinancialData.reduce((sum, item) =>
+        sum + (parseFloat(item.financial.profit) || 0), 0
+    );
+
+    // Calcular variações percentuais
+    const calcularVariacao = (atual, anterior) => {
+        if (anterior === 0) return atual > 0 ? 100 : 0;
+        return ((atual - anterior) / anterior) * 100;
+    };
+
+    return {
+        pedidos: Math.round(calcularVariacao(pedidos, previousPedidos)),
+        despesa: Math.round(calcularVariacao(despesa, previousDespesa)),
+        diligencia: Math.round(calcularVariacao(diligencia, previousDiligencia)),
+        provider: Math.round(calcularVariacao(provider, previousProvider)),
+        lucro: Math.round(calcularVariacao(lucro, previousLucro)),
+        hasPreviousData: true
+    };
+}
 
 // Mostrar notificação
 function showNotification(message, type = 'info') {
