@@ -150,8 +150,6 @@ function loadUserData() {
     if (currentUser.type !== 'admin') {
         document.getElementById('adminLink').style.display = 'none';
         document.getElementById('newUserBtn').style.display = 'none';
-        document.getElementById('addRecordBtn').style.display = 'none';
-        document.getElementById('newRecordBtn').style.display = 'none';
         document.getElementById('reportsLink').style.display = 'none';
         document.getElementById('userListLink').style.display = 'none';
     }
