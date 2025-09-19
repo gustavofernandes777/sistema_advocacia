@@ -1404,13 +1404,7 @@ async function saveFinancialData(recordId) {
         }
 
         // Depois de salvar as informações financeiras com sucesso, fechar o registro
-        const closeResponse = await safeFetch(`${apiBaseUrl}/records/${recordId}/close`, {
-            method: 'PATCH',
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            }
-        });
+        const closeResponse = await apiFetch(`${apiBaseUrl}/records/${recordId}/close`);
 
         // Verificar se a resposta de fechamento é OK
         if (!closeResponse) {
