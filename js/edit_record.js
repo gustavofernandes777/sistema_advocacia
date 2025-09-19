@@ -1,5 +1,5 @@
 // Variáveis globais
-import { CONFIG } from "../js/config";
+import { CONFIG } from "./config.js";
 let currentRecord = null;
 let currentUser = null;
 const apiBaseUrl = CONFIG.API_URL;

@@ -1,5 +1,5 @@
 // Variáveis globais
-import { CONFIG } from "../js/config";
+import { CONFIG } from "./config.js";
 let currentUser = null;
 let clientsData = [];
 let recordsData = [];

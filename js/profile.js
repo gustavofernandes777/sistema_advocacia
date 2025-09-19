@@ -1,4 +1,4 @@
-import { CONFIG } from "../js/config";
+import { CONFIG } from "./config.js";
 const apiBaseUrl = CONFIG.API_URL;
 let currentUser = null;
 
