@@ -3850,6 +3850,8 @@ fieldset:disabled .btn {
 
 .dropdown-menu-end {
   --bs-position: end;
+  z-index: 9999;
+  position: absolute;
 }
 
 .dropdown-menu-end[data-bs-popper] {
