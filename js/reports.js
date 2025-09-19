@@ -442,7 +442,7 @@ function updateTable() {
                     <td>${financialInfo ? `R$ ${financialInfo.provider_payment.toLocaleString('pt-BR')}` :
                         `<input type="number" step="0.01" class="form-control form-control-sm provider-payment" 
                                placeholder="R$ 0,00" data-id="${item.id}" style="width: 100px;">`}
-                               <span class="provider-percentage" style="font-size: 80%;">${financialInfo ? `${financialInfo.provider_percentagem.toLocaleString('pt-BR')}` : '0 %'} da diligência</span>
+                               <span class="provider-percentage" style="font-size: 80%;">${financialInfo ? `${financialInfo.provider_percentage.toLocaleString('pt-BR')}` : '0 %'} da diligência</span>
                     </td>
                     <td>${financialInfo ? `R$ ${financialInfo.diligence_value.toLocaleString('pt-BR')}` :
                         `<input type="number" step="0.01" class="form-control form-control-sm diligence-value" 
@@ -519,10 +519,10 @@ function calculateProfit(input) {
 
         // Calcular lucro: LUCRO = VALOR_DILIGÊNCIA - DESPESAS - PAGAMENTO_PRESTADOR
         const profit = diligenceValue - totalExpenses - providerPayment;
-        const provider_percentagem = providerPayment * 100 / diligenceValue;
+        const provider_percentage = providerPayment * 100 / diligenceValue;
 
         profitCell.textContent = `R$ ${profit.toLocaleString('pt-BR')}`;
-        providerPercentageCell.textContent = `${provider_percentagem.toLocaleString('pt-BR')} % da diligência`;
+        providerPercentageCell.textContent = `${provider_percentage.toLocaleString('pt-BR')} % da diligência`;
 
         // Destacar lucro negativo
         if (profit < 0) {
@@ -531,6 +531,12 @@ function calculateProfit(input) {
         } else {
             profitCell.classList.add('text-success');
             profitCell.classList.remove('text-danger');
+        }
+        
+        if (providerPayment == 0 || diligenceValue == 0){
+            document.getElementById( 'percentage' ).style.display = 'none';
+        } else{
+            document.getElementById( 'percentage' ).style.display = 'block';
         }
     }
 }
