@@ -1,114 +1,134 @@
 const apiBaseUrl = 'https://c91c9cee7148.ngrok-free.app';
 let currentUser = null;
 
-async function safeFetch(url, options = {}) {
+function getTokenInfo() {
+    const keys = [];
+    for (let i = 0; i < localStorage.length; i++) keys.push(localStorage.key(i));
+
+    const token = localStorage.getItem('access_token')
+               || localStorage.getItem('token')
+               || localStorage.getItem('auth_token')
+               || null;
+
+    const tokenType = localStorage.getItem('token_type') || 'Bearer';
+    return { token, tokenType };
+}
+
+async function apiFetch(url, options = {}) {
+    const { token, tokenType } = getTokenInfo();
+    const authHeader = `Bearer ${token}`;
+
+    const defaultHeaders = {
+        'Authorization': authHeader,
+        'Accept': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest',
+        'Ngrok-Skip-Browser-Warning': 'true',
+        'User-Agent': 'MyApp/1.0'
+    };
+
+    // Não adicionar Content-Type para FormData
+    if (!(options.body instanceof FormData)) {
+        defaultHeaders['Content-Type'] = 'application/json';
+    }
+
+    const mergedHeaders = { ...defaultHeaders, ...options.headers };
+
     try {
-        // Fazer a requisição
-        const response = await fetch(url, {
-            headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json',
-                ...options.headers
-            },
-            credentials: 'include',
-            ...options
+        const resp = await fetch(url, {
+            ...options,
+            mode: 'cors',
+            credentials: 'omit',
+            headers: mergedHeaders
         });
 
-        // Verificar se response é válido
-        if (!response) {
-            throw new Error('Nenhuma resposta recebida do servidor');
+        const contentType = resp.headers.get('content-type') || '';
+        const text = await resp.text();
+
+        // Verificar se é página do ngrok
+        if (text.includes('ngrok') || text.includes('<!DOCTYPE')) {
+            throw new Error('Ngrok bloqueando acesso - página HTML recebida');
         }
 
-        // Verificar se headers existe
-        if (!response.headers) {
-            throw new Error('Resposta sem headers do servidor');
+        if (!contentType.includes('application/json')) {
+            throw new Error(`Content-Type inesperado: ${contentType}`);
         }
 
-        // Verificar tipo de conteúdo
-        const contentType = response.headers.get('content-type');
-        if (!contentType || !contentType.includes('application/json')) {
-            const text = await response.text();
-            
-            if (text.includes('<!DOCTYPE') || text.includes('<html')) {
-                throw new Error(`Servidor retornou HTML em vez de JSON. Status: ${response.status}`);
-            }
-            
-            throw new Error(`Resposta inesperada: ${contentType}. Status: ${response.status}`);
+        const data = JSON.parse(text);
+
+        if (!resp.ok) {
+            throw new Error(data.detail || `HTTP Error ${resp.status}`);
         }
-        
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.detail || `HTTP ${response.status}: ${response.statusText}`);
-        }
-        
-        return response.json();
-        
+
+        return data;
+
     } catch (error) {
-        console.error('Erro no safeFetch:', error);
-        throw error; // Re-lançar o erro para ser tratado pelo chamador
+        console.error('❌ apiFetch error:', error);
+        throw error;
     }
 }
 
 async function checkAuth() {
-    console.log('🔐 Verificando autenticação...');
-    
-    const token = localStorage.getItem('access_token');
-    console.log('📦 Token no localStorage:', token ? `Encontrado (${token.length} chars)` : 'Não encontrado');
-    
+    const { token, tokenType } = getTokenInfo();
+
     if (!token) {
-        console.log('❌ Nenhum token encontrado, redirecionando para login...');
+        console.warn('❌ Nenhum token no localStorage — redirecionando');
         window.location.href = 'login.html';
         return false;
     }
 
     try {
-        console.log('🌐 Testando token com API...');
-        const response = await fetch(`${apiBaseUrl}/users/me/`, {
+        const authHeader = `Bearer ${token}`;
+
+        // Headers específicos para evitar a página do ngrok
+        const resp = await fetch(`${apiBaseUrl}/users/me/`, {
             method: 'GET',
+            mode: 'cors',
+            cache: 'no-store',
+            credentials: 'omit',
             headers: {
-                'Authorization': `Bearer ${token}`
-            },
-            credentials: 'include' // 🔥 IMPORTANTE!
+                'Authorization': authHeader,
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'Ngrok-Skip-Browser-Warning': 'true',
+                'User-Agent': 'MyApp/1.0'
+            }
         });
 
-        console.log('📊 Status da resposta:', response.status);
-        
-        if (!response.ok) {
-            if (response.status === 401) {
-                console.log('❌ Token inválido ou expirado (401)');
-                throw new Error('Token inválido');
+        const text = await resp.text();
+
+        // Verificar se é a página do ngrok
+        if (text.includes('ngrok') || text.includes('<!DOCTYPE')) {
+            console.error('❌ Ngrok interceptando a requisição');
+            throw new Error('Ngrok bloqueando acesso');
+        }
+
+        // Tentar parsear como JSON
+        try {
+            const data = JSON.parse(text);
+            
+            if (!resp.ok) {
+                throw new Error(data.detail || `Erro HTTP ${resp.status}`);
             }
-            throw new Error(`Erro HTTP: ${response.status}`);
+
+            currentUser = data;
+            return true;
+            
+        } catch (jsonError) {
+            console.error('❌ Falha ao parsear JSON:', jsonError);
+            throw new Error('Resposta inválida do servidor');
         }
-
-        const userData = await response.json();
-        console.log('✅ Autenticação válida! Usuário:', userData.email);
-        currentUser = userData;
-
-        if (currentUser.type !== 'admin') {
-            alert('Acesso restrito a administradores');
-            window.location.href = 'index.html';
-            return;
-        }
-
-        loadUserData();
-        loadUsersList();
-
-        return true;
         
-    } catch (error) {
-        console.error('❌ Erro na verificação de autenticação:', error);
+    } catch (err) {
+        console.error('❌ Erro na autenticação:', err.message);
         
-        // Mostrar feedback para o usuário
-        showError('Sessão expirada. Faça login novamente.');
-        
-        // Limpar token inválido
         localStorage.removeItem('access_token');
+        localStorage.removeItem('token');
+        localStorage.removeItem('token_type');
         
-        // Redirecionar para login
         setTimeout(() => {
             window.location.href = 'login.html';
-        }, 2000);
+        }, 1000);
         
         return false;
     }
@@ -130,11 +150,7 @@ async function loadUsersList() {
         tableBody.innerHTML = '';
 
         const token = localStorage.getItem('access_token');
-        const response = await safeFetch(`${apiBaseUrl}/users/`, {
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
-        });
+        const response = await apiFetch(`${apiBaseUrl}/users/`);
 
         if (!response) {
             throw new Error('Erro ao carregar usuários');
@@ -202,13 +218,8 @@ async function resetPassword(userId, userName) {
     }).then(async (result) => {
         if (result.isConfirmed) {
             try {
-                const token = localStorage.getItem('access_token');
-                const response = await safeFetch(`${apiBaseUrl}/users/${userId}/reset-password`, {
+                const response = await apiFetch(`${apiBaseUrl}/users/${userId}/reset-password`, {
                     method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    },
                     body: JSON.stringify({
                         new_password: '12345678'
                     })
