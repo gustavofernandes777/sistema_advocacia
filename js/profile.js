@@ -146,15 +146,6 @@ function loadUserData() {
     document.getElementById('userLastName').value = currentUser.last_name;
     document.getElementById('userEmail').value = currentUser.email;
     document.getElementById('userBirthday').value = currentUser.birthday;
-
-    if (currentUser.type !== 'admin') {
-        document.getElementById('adminLink').style.display = 'none';
-        document.getElementById('newUserBtn').style.display = 'none';
-        document.getElementById('addRecordBtn').style.display = 'none';
-        document.getElementById('newRecordBtn').style.display = 'none';
-        document.getElementById('reportsLink').style.display = 'none';
-        document.getElementById('userListLink').style.display = 'none';
-    }
 }
 
 async function updateUserProfile() {
@@ -240,16 +231,6 @@ async function changePassword() {
 function logout() {
     localStorage.removeItem('access_token');
     window.location.href = 'login.html';
-}
-
-// Filtra registros por status NAO USADA
-function filterRecords(status) {
-    const filtered = recordsData.filter(record => record.status === status);
-    renderRecords(filtered);
-
-    // Atualiza o título da tabela
-    document.querySelector('.card-header i.fa-table').parentElement.textContent =
-        `Registros - ${status.charAt(0).toUpperCase() + status.slice(1)}`;
 }
 
 // Event Listeners
