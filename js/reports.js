@@ -523,6 +523,7 @@ function calculateProfit(input) {
 
         profitCell.textContent = `R$ ${profit.toLocaleString('pt-BR')}`;
         providerPercentageCell.textContent = `${provider_percentage.toLocaleString('pt-BR')} % da diligência`;
+        providerPercentageCell.style.display = 'none';
 
         // Destacar lucro negativo
         if (profit < 0) {
@@ -533,9 +534,7 @@ function calculateProfit(input) {
             profitCell.classList.remove('text-danger');
         }
         
-        if (providerPayment == 0 || diligenceValue == 0){
-            providerPercentageCell.style.display = 'none';
-        } else{
+        if (providerPayment != 0 && diligenceValue != 0){
             providerPercentageCell.style.display = 'block';
         }
     }
