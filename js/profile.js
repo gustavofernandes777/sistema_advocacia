@@ -146,6 +146,15 @@ function loadUserData() {
     document.getElementById('userLastName').value = currentUser.last_name;
     document.getElementById('userEmail').value = currentUser.email;
     document.getElementById('userBirthday').value = currentUser.birthday;
+
+    if (currentUser.type !== 'admin') {
+        document.getElementById('adminLink').style.display = 'none';
+        document.getElementById('newUserBtn').style.display = 'none';
+        document.getElementById('addRecordBtn').style.display = 'none';
+        document.getElementById('newRecordBtn').style.display = 'none';
+        document.getElementById('reportsLink').style.display = 'none';
+        document.getElementById('userListLink').style.display = 'none';
+    }
 }
 
 async function updateUserProfile() {
