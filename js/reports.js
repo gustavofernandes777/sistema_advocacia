@@ -1350,7 +1350,26 @@ function showNotification(message, type = 'info') {
 }
 
 // Modal de finanças
-function showFinancialModal(recordId, expense, financialData) {
+async function showFinancialModal(recordId) {
+    const record = filteredData.find(item => item.id == recordId);
+    if (!record) return;
+
+    // Obter valores dos inputs da tabela
+    const diligenceValueInput = document.querySelector(`.diligence-value[data-id="${recordId}"]`);
+    const providerPaymentInput = document.querySelector(`.provider-payment[data-id="${recordId}"]`);
+
+    const diligenceValue = diligenceValueInput ? parseFloat(diligenceValueInput.value) : 0;
+    const providerPayment = providerPaymentInput ? parseFloat(providerPaymentInput.value) : 0;
+
+    showFinancialFormModal(recordId, record.expense, {
+        diligence_value: diligenceValue,
+        provider_payment: providerPayment,
+        profit: diligenceValue - record.expense - providerPayment
+    });
+}
+
+// Função para mostrar formulário de finanças
+function showFinancialFormModal(recordId, expense, financialData) {
     const modalHTML = `
         <div class="modal fade" id="financialModal" tabindex="-1">
             <div class="modal-dialog">
