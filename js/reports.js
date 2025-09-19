@@ -533,7 +533,9 @@ function calculateProfit(input) {
             profitCell.classList.remove('text-danger');
         }
         
-        if (providerPayment != 0 && diligenceValue != 0){
+        if (providerPayment == 0 || diligenceValue == 0){
+            providerPercentageCell.style.display = 'none';
+        } else{
             providerPercentageCell.style.display = 'block';
         }
     }
