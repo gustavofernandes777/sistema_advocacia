@@ -1349,6 +1349,115 @@ function showNotification(message, type = 'info') {
     }, 5000);
 }
 
+async function saveFinancialData(recordId) {
+    const diligenceValue = parseFloat(document.getElementById('diligenceValue').value);
+    const providerPayment = parseFloat(document.getElementById('providerPayment').value);
+
+    // Validações
+    if (!diligenceValue || diligenceValue <= 0) {
+        showNotification('Valor da diligência deve ser maior que zero', 'error');
+        return;
+    }
+
+    if (providerPayment < 0) {
+        showNotification('Pagamento do prestador não pode ser negativo', 'error');
+        return;
+    }
+
+    if (providerPayment > diligenceValue) {
+        showNotification('Pagamento do prestador não pode ser maior que o valor da diligência', 'error');
+        return;
+    }
+
+    showLoading();
+
+    try {
+        const token = localStorage.getItem('access_token');
+        if (!token) {
+            throw new Error('Token de autenticação não encontrado');
+        }
+
+        // Primeiro, salvar as informações financeiras
+        const financialResponse = await safeFetch(`${apiBaseUrl}/records/${recordId}/financial`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+                record_id: parseInt(recordId),
+                diligence_value: diligenceValue,
+                provider_payment: providerPayment
+            })
+        });
+
+        // Verificar se a resposta é OK
+        if (!financialResponse) {
+            let errorDetail = 'Erro ao salvar dados financeiros';
+            try {
+                const errorData = await financialResponse.json();
+                errorDetail = errorData.detail || errorDetail;
+            } catch (e) {
+                errorDetail = `HTTP ${financialResponse.status} - ${financialResponse.statusText}`;
+            }
+            throw new Error(errorDetail);
+        }
+
+        // Depois de salvar as informações financeiras com sucesso, fechar o registro
+        const closeResponse = await safeFetch(`${apiBaseUrl}/records/${recordId}/close`, {
+            method: 'PATCH',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        // Verificar se a resposta de fechamento é OK
+        if (!closeResponse) {
+            let errorDetail = 'Erro ao fechar registro';
+            try {
+                const errorData = await closeResponse.json();
+                errorDetail = errorData.detail || errorDetail;
+            } catch (e) {
+                errorDetail = `HTTP ${closeResponse.status} - ${closeResponse.statusText}`;
+            }
+            throw new Error(errorDetail);
+        }
+
+        // Fechar modal
+        const modal = bootstrap.Modal.getInstance(document.getElementById('financialModal'));
+        if (modal) {
+            modal.hide();
+        }
+
+        showNotification('Informações financeiras salvas e registro fechado com sucesso!', 'success');
+
+        // Recarregar dados para atualizar a interface
+        setTimeout(() => {
+            loadDataFromAPI();
+        }, 1000);
+
+    } catch (error) {
+        console.error('Erro detalhado ao salvar dados financeiros:', error);
+        
+        let errorMessage = error.message;
+        if (error.message.includes('Failed to fetch')) {
+            errorMessage = 'Erro de conexão com o servidor. Verifique se a API está rodando.';
+        } else if (error.message.includes('NetworkError')) {
+            errorMessage = 'Erro de rede. Verifique sua conexão com a internet.';
+        } else if (error.message.includes('401')) {
+            errorMessage = 'Sessão expirada. Faça login novamente.';
+            setTimeout(() => {
+                window.location.href = 'login.html';
+            }, 2000);
+        }
+
+        showNotification(errorMessage, 'error');
+    } finally {
+        hideLoading();
+    }
+}
+
 // Modal de finanças
 async function showFinancialModal(recordId) {
     const record = filteredData.find(item => item.id == recordId);
