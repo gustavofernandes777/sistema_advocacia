@@ -8,6 +8,8 @@ const apiBaseUrl = 'https://c91c9cee7148.ngrok-free.app';
 function getTokenInfo() {
     const keys = [];
     for (let i = 0; i < localStorage.length; i++) keys.push(localStorage.key(i));
+    console.log('DEBUG origin:', location.origin, 'href:', location.href);
+    console.log('DEBUG localStorage keys:', keys);
 
     const token = localStorage.getItem('access_token')
                || localStorage.getItem('token')
@@ -15,11 +17,13 @@ function getTokenInfo() {
                || null;
 
     const tokenType = localStorage.getItem('token_type') || 'Bearer';
+    console.log('DEBUG token found?', !!token, 'tokenType:', tokenType);
     return { token, tokenType };
 }
 
 // Verifica autenticação
 async function checkAuth() {
+    console.log('🔐 checkAuth() start');
     const { token, tokenType } = getTokenInfo();
 
     if (!token) {
@@ -30,6 +34,8 @@ async function checkAuth() {
 
     try {
         const authHeader = `Bearer ${token}`;
+
+        console.log('🔄 Fazendo requisição para:', `${apiBaseUrl}/users/me/`);
 
         // Headers específicos para evitar a página do ngrok
         const resp = await fetch(`${apiBaseUrl}/users/me/`, {
@@ -47,7 +53,11 @@ async function checkAuth() {
             }
         });
 
+        console.log('✅ Status:', resp.status);
+        console.log('✅ Content-Type:', resp.headers.get('content-type'));
+
         const text = await resp.text();
+        console.log('✅ Conteúdo bruto (início):', text.substring(0, 200));
 
         // Verificar se é a página do ngrok
         if (text.includes('ngrok') || text.includes('<!DOCTYPE')) {
@@ -63,6 +73,7 @@ async function checkAuth() {
                 throw new Error(data.detail || `Erro HTTP ${resp.status}`);
             }
 
+            console.log('✅ Autenticação válida. Usuário:', data.email || data.name);
             currentUser = data;
             return true;
             
@@ -160,6 +171,7 @@ async function loadUserData() {
 
 // Função de logout
 function logout() {
+    console.log('🚪 Efetuando logout...');
     localStorage.removeItem('access_token');
     localStorage.removeItem('token_type');
     window.location.href = 'login.html';
@@ -220,12 +232,15 @@ function openUserModal() {
 // Função para carregar clientes
 async function loadClients() {
     try {
+        console.log('🔄 Carregando clientes...');
+        
         const token = localStorage.getItem('access_token');
         if (!token) {
             throw new Error('Token não encontrado');
         }
 
         clientsData = await apiFetch(`${apiBaseUrl}/clients/`);
+        console.log(`✅ ${clientsData.length} clientes carregados`);
         updateClientSelect();
         return clientsData;
         
@@ -281,18 +296,22 @@ async function loadRecords() {
         loadingElement.style.display = 'flex';
         tableBody.innerHTML = '';
 
+        console.log('🔄 Carregando registros...');
+        
         const token = localStorage.getItem('access_token');
         if (!token) {
             throw new Error('Token não encontrado');
         }
 
         recordsData = await apiFetch(`${apiBaseUrl}/records/`);
+        console.log(`✅ ${recordsData.length} registros carregados`);
 
         // Filtra os registros no frontend também para consistência
         if (currentUser && currentUser.type !== 'admin') {
             recordsData = recordsData.filter(record =>
                 record.provider?.id === currentUser.id
             );
+            console.log(`📊 ${recordsData.length} registros após filtro`);
         }
 
         renderRecords(recordsData);
@@ -377,6 +396,7 @@ async function loadProviders() {
             return;
         }
 
+        console.log('🔄 Carregando provedores...');
         const users = await apiFetch(`${apiBaseUrl}/users/`);
         const providerSelect = document.getElementById('provider_id');
 
@@ -442,6 +462,38 @@ function updateStatusCounts() {
     document.getElementById('suspended-count').textContent = counts['suspensa'];
     document.getElementById('delivered-count').textContent = counts['entregue'];
     document.getElementById('completed-count').textContent = counts['finalizada'];
+}
+
+// Inicializa DataTable NAO USADA
+function initDataTable() {
+    dataTable = new simpleDatatables.DataTable("#recordsTable", {
+        perPage: 10,
+        labels: {
+            placeholder: "Pesquisar...",
+            perPage: "{select} registros por página",
+            noRows: "Nenhum registro encontrado",
+            info: "Mostrando {start} a {end} de {rows} registros",
+        }
+    });
+}
+//NAO USADA
+function handleApiError(error) {
+    if (error.message.includes('401') || error.message.includes('Não autorizado')) {
+        localStorage.removeItem('access_token');
+        window.location.href = 'login.html';
+    } else {
+        showError('Erro: ' + error.message);
+    }
+}
+
+// Filtra registros por status NAO USADA
+function filterRecords(status) {
+    const filtered = recordsData.filter(record => record.status === status);
+    renderRecords(filtered);
+
+    // Atualiza o título da tabela
+    document.querySelector('.card-header i.fa-table').parentElement.textContent =
+        `Registros - ${status.charAt(0).toUpperCase() + status.slice(1)}`;
 }
 
 // Inicialização quando o DOM estiver pronto

@@ -233,6 +233,16 @@ function logout() {
     window.location.href = 'login.html';
 }
 
+// Filtra registros por status NAO USADA
+function filterRecords(status) {
+    const filtered = recordsData.filter(record => record.status === status);
+    renderRecords(filtered);
+
+    // Atualiza o título da tabela
+    document.querySelector('.card-header i.fa-table').parentElement.textContent =
+        `Registros - ${status.charAt(0).toUpperCase() + status.slice(1)}`;
+}
+
 // Event Listeners
 document.addEventListener('DOMContentLoaded', async () => {
     await checkAuth();
