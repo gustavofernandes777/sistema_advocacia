@@ -1243,6 +1243,52 @@ function updateCard(selector, valor, variacao, tipo, hasPreviousData) {
     updateCardElement(element, valor, variacao, tipo, hasPreviousData);
 }
 
+function updateCardElement(element, valor, variacao, tipo, hasPreviousData) {
+    const card = element.closest('.card');
+    const variationElement = card.querySelector('.variation');
+
+    // Formatando o valor
+    if (tipo === 'pedidos') {
+        element.textContent = valor.toLocaleString('pt-BR');
+    } else {
+        element.textContent = `R$ ${valor.toLocaleString('pt-BR')}`;
+    }
+
+    // Atualizar variação
+    if (variationElement) {
+        updateVariationElement(variationElement, variacao, tipo, hasPreviousData);
+    }
+}
+
+function updateVariationElement(element, variacao, tipo, hasPreviousData) {
+    if (!hasPreviousData) {
+        element.innerHTML = '<i class="bi bi-dash-circle"></i> N/D';
+        element.classList.add('text-warning');
+        element.title = 'Não há dados do mês anterior para comparação';
+        return;
+    }
+
+    const isNegative = tipo === 'despesa' ? variacao > 0 : variacao < 0;
+    const isNeutral = variacao === 0;
+
+    // Limpar classes anteriores
+    element.classList.remove('text-success', 'text-danger', 'text-warning');
+
+    if (isNeutral) {
+        element.classList.add('text-warning');
+        element.innerHTML = `<i class="bi bi-dash-circle"></i> ${variacao}%`;
+        element.title = 'Sem variação em relação ao mês anterior';
+    } else if (isNegative) {
+        element.classList.add('text-danger');
+        element.innerHTML = `<i class="bi bi-arrow-up"></i> ${Math.abs(variacao)}%`;
+        element.title = `Aumento de ${Math.abs(variacao)}% em relação ao mês anterior`;
+    } else {
+        element.classList.add('text-success');
+        element.innerHTML = `<i class="bi bi-arrow-up"></i> ${variacao}%`;
+        element.title = `Crescimento de ${variacao}% em relação ao mês anterior`;
+    }
+}
+
 // Mostrar notificação
 function showNotification(message, type = 'info') {
     // Criar elemento de notificação
