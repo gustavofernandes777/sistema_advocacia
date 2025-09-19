@@ -5,6 +5,7 @@ let allData = [];
 let filteredData = [];
 let previousPeriodData = [];
 let currentPeriodData = [];
+let currentUser = null;
 let comparisonPeriod = 'month'; // month, quarter, year
 const apiBaseUrl = CONFIG.API_URL;
 
