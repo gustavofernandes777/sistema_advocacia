@@ -12,41 +12,54 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
     <link href="css/reports.css" rel="stylesheet">
+    <style>
+        .chart-container {
+            position: relative;
+            width: 100%;
+            height: 300px;
+        }
+
+        @media (max-width: 768px) {
+            .chart-container {
+                height: 250px;
+            }
+        }
+    </style>
 </head>
 
 <body class="bg-light">
+    <!-- Navbar -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container-fluid">
-            <a class="navbar-brand" href="index.html">
-                <i class="bi bi-graph-up"></i> Sistema de Relatórios
+            <a class="navbar-brand" href="dashboard.html">
+                <img src="logos/Logo alt  brancopng.rgb.png" class="img-fluid" style="max-width: 10.5em;" alt="">
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
+
             <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto ms-md-0 me-3 me-lg-4">
+                <ul class="navbar-nav ms-auto me-3">
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" id="userDropdown" href="#" role="button"
                             data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="fas fa-user fa-fw"></i> Bem-vinda(o),
+                            <i class="bi bi-person-circle"></i> Bem-vinda(o),
                             <span id="navbar-username">Usuário</span>
                         </a>
-                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
-                            <li><a class="dropdown-item" href="profile.html">Perfil</a></li>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item" href="/profile.html">Perfil</a></li>
                             <li>
                                 <hr class="dropdown-divider" />
                             </li>
                             <li><a class="dropdown-item logout-btn" onclick="logout()">Sair</a></li>
                         </ul>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="index.html">Dashboard</a>
-                    </li>
                 </ul>
             </div>
         </div>
     </nav>
 
+    <!-- Loading -->
     <div class="loading-overlay" id="loadingOverlay" style="display: none;">
         <div class="spinner-border text-primary" role="status">
             <span class="visually-hidden">Carregando...</span>
@@ -56,13 +69,13 @@
     <div class="container-fluid mt-4">
         <div class="row">
             <div class="col-12">
-                <div class="d-flex justify-content-between align-items-center mb-4">
+                <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
                     <h2><i class="bi bi-bar-chart"></i> Relatórios Analíticos</h2>
-                    <div>
+                    <div class="d-flex flex-wrap gap-2 justify-content-end">
                         <button class="btn btn-outline-success" id="exportExcel">
                             <i class="bi bi-file-earmark-excel"></i> Exportar Excel
                         </button>
-                        <button class="btn btn-outline-danger ms-2" id="exportPDF">
+                        <button class="btn btn-outline-danger" id="exportPDF">
                             <i class="bi bi-file-earmark-pdf"></i> Exportar PDF
                         </button>
                     </div>
@@ -77,7 +90,7 @@
             </div>
             <div class="card-body">
                 <div class="row">
-                    <div class="col-md-3 mb-2">
+                    <div class="col-12 col-md-6 col-lg-3 mb-2">
                         <label class="form-label">Período</label>
                         <select class="form-select" id="periodo">
                             <option value="30">Últimos 30 dias</option>
@@ -87,15 +100,15 @@
                             <option value="custom">Personalizado</option>
                         </select>
                     </div>
-                    <div class="col-md-3 mb-2 custom-date-fields">
+                    <div class="col-12 col-md-6 col-lg-3 mb-2 custom-date-fields">
                         <label class="form-label">Data Início</label>
                         <input type="date" class="form-control" id="dataInicio">
                     </div>
-                    <div class="col-md-3 mb-2 custom-date-fields">
+                    <div class="col-12 col-md-6 col-lg-3 mb-2 custom-date-fields">
                         <label class="form-label">Data Fim</label>
                         <input type="date" class="form-control" id="dataFim">
                     </div>
-                    <div class="col-md-3 mb-2">
+                    <div class="col-12 col-md-6 col-lg-3 mb-2">
                         <label class="form-label">Status</label>
                         <select class="form-select" id="status">
                             <option value="todos">Todos os status</option>
@@ -106,7 +119,7 @@
                             <option value="fechada">Fechada</option>
                         </select>
                     </div>
-                    <div class="col-md-3 mb-2">
+                    <div class="col-12 col-md-6 col-lg-3 mb-2">
                         <label class="form-label">Empresa</label>
                         <select class="form-select" id="empresa">
                             <option value="todas">Todas as Empresas</option>
@@ -114,7 +127,7 @@
                             <option value="2">Empresa B</option>
                         </select>
                     </div>
-                    <div class="col-md-3 mb-2">
+                    <div class="col-12 col-md-6 col-lg-3 mb-2">
                         <label class="form-label">Estado</label>
                         <select class="form-select" id="estado">
                             <option value="todos">Todos os estados</option>
@@ -147,7 +160,7 @@
                             <option value="to">TO</option>
                         </select>
                     </div>
-                    <div class="col-md-3 mb-2">
+                    <div class="col-12 col-md-6 col-lg-3 mb-2">
                         <label class="form-label">Prestador</label>
                         <select class="form-select" id="provedor">
                             <option value="todas">Todas os prestadores</option>
@@ -169,9 +182,8 @@
             </div>
         </div>
 
-        <!-- Cards Resumidos -->
+        <!-- Cards -->
         <div class="row mb-4">
-            <!-- Atualize os cards no reports.html para incluir a variação -->
             <div class="col-xl-3 col-md-6 mb-4">
                 <div class="card card-dashboard h-100">
                     <div class="card-body">
@@ -214,7 +226,6 @@
                 </div>
             </div>
 
-            <!-- Cards opcionais para diligência e pagamento -->
             <div class="col-xl-3 col-md-6 mb-4">
                 <div class="card card-dashboard h-100">
                     <div class="card-body">
@@ -334,36 +345,27 @@
             </div>
         </div>
 
-        <!-- Tabela Detalhada -->
+        <!-- Tabela -->
         <div class="card mb-4">
             <div class="card-header bg-white d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">Detalhamento de Registros</h5>
-                <!-- <div>
-                    <button class="btn btn-sm btn-outline-primary">
-                        <i class="bi bi-download"></i> Exportar
-                    </button>
-                </div> -->
             </div>
             <div class="card-body">
                 <div class="table-responsive">
                     <table class="table table-hover" id="detalhesTable">
                         <thead>
                             <tr>
-                                <thead>
-                                    <tr>
-                                        <th>Data</th>
-                                        <th>Empresa</th>
-                                        <th>Cidade/Estado</th>
-                                        <th>Prestador</th>
-                                        <th>Status</th>
-                                        <th>Detalhes</th>
-                                        <th>Despesas</th>
-                                        <th>Pagamento Prestador</th>
-                                        <th>Valor Diligência</th>
-                                        <th>Lucro</th>
-                                        <th>Fechar Relatório</th>
-                                    </tr>
-                                </thead>
+                                <th>Data</th>
+                                <th>Empresa</th>
+                                <th>Cidade/Estado</th>
+                                <th>Prestador</th>
+                                <th>Status</th>
+                                <th>Detalhes</th>
+                                <th>Despesas</th>
+                                <th>Pagamento Prestador</th>
+                                <th>Valor Diligência</th>
+                                <th>Lucro</th>
+                                <th>Fechar Relatório</th>
                             </tr>
                         </thead>
                         <tbody>
