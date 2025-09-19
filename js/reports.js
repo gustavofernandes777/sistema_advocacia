@@ -1378,8 +1378,15 @@ async function saveFinancialData(recordId) {
         }
 
         // Primeiro, salvar as informações financeiras
-        const financialResponse = await apiFetch(`${apiBaseUrl}/records/${recordId}/financial`);
-
+        const financialResponse = await apiFetch(`${apiBaseUrl}/records/${recordId}/financial`, {
+            method: 'PUT',
+            body: JSON.stringify({
+                record_id: parseInt(recordId),
+                diligence_value: diligenceValue,
+                provider_payment: providerPayment
+            })
+        });
+        
         // Verificar se a resposta é OK
         if (!financialResponse) {
             let errorDetail = 'Erro ao salvar dados financeiros';
@@ -1393,7 +1400,9 @@ async function saveFinancialData(recordId) {
         }
 
         // Depois de salvar as informações financeiras com sucesso, fechar o registro
-        const closeResponse = await apiFetch(`${apiBaseUrl}/records/${recordId}/close`);
+        const closeResponse = await apiFetch(`${apiBaseUrl}/records/${recordId}/close`, {
+            method: 'PATCH',
+        });
 
         // Verificar se a resposta de fechamento é OK
         if (!closeResponse) {
