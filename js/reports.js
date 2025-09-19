@@ -200,9 +200,8 @@ async function transformRecordsData(records) {
 
     for (const record of records) {
         try {
-            // Buscar informações financeiras se o registro estiver finalizado
             let financialData = null;
-            if (record.status === 'finalizada' || record.status === 'fechada') {
+            if (record.status === 'fechada') {
                 try {
                     const financialResponse = await apiFetch(`${apiBaseUrl}/records/${record.id}/financial`);
                     financialData = financialResponse;
