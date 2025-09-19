@@ -112,6 +112,7 @@ async function checkAuth() {
             }
 
             currentUser = data;
+            loadUserData()
             return true;
             
         } catch (jsonError) {
@@ -130,7 +131,6 @@ async function checkAuth() {
             window.location.href = 'login.html';
         }, 1000);
 
-        loadUserData()
         return false;
     }
 }
