@@ -493,7 +493,7 @@ function filterRecords(status) {
     renderRecords(filtered);
 
     // Atualiza o título da tabela
-    document.querySelector('.card-header i.fa-table').parentElement.textContent =
+    document.querySelector('.card-header .fa-table').parentElement.textContent =
         `Registros - ${status.charAt(0).toUpperCase() + status.slice(1)}`;
 }
 
