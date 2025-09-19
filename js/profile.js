@@ -129,7 +129,8 @@ async function checkAuth() {
         setTimeout(() => {
             window.location.href = 'login.html';
         }, 1000);
-        
+
+        loadUserData()
         return false;
     }
 }
