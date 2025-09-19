@@ -985,19 +985,20 @@ async function exportToExcel() {
 
             return {
                 'ID': item.record_id,
-                'Data': formatDate(item.date),
-                'Empresa': item.company,
+                'Data de criação': formatDate(item.date),
+                'Cliente': item.company,
                 'Cidade/Estado': `${item.city}/${item.state.toUpperCase()}`,
-                'Provedor': item.provider,
+                'Prestador': item.provider,
                 'Status': getStatusText(item.status),
+                'Prioridade': item.priority,
                 'Tipo Documento': item.document_type,
                 'Nome Pesquisado': item.researchedName,
                 'CPF/CNPJ': item.researchedCpf_cnpj,
                 'Despesas': totalExpenses,
                 'Pagamento Prestador': item.financial ? item.financial.provider_payment : 0,
-                'Valor Diligência': item.financial ? item.financial.diligence_value : 0,
+                'Porcentagem do Prestador': item.financial ? `${item.financial.provider_payment * 100 / item.financial.diligence_value} %` : '0%',
+                'Valor Diligência': item.financial ? item.financial.diligence_value : 0, 
                 'Lucro': item.financial ? item.financial.profit : 0,
-                'Prioridade': item.priority,
                 'Última Atualização': item.last_update ? formatDate(item.last_update) : ''
             };
         });
