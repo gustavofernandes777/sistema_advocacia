@@ -1096,38 +1096,64 @@ async function exportToPDF() {
 
 // Atualizar dashboard
 function updateDashboard() {
-    updateSummaryCards();
+    const totalPedidos = filteredData.length;
+
+    // Calcular total de despesas
+    const totalDespesa = filteredData.reduce((sum, item) => {
+        return sum + (parseFloat(item.expense) || 0);
+    }, 0);
+
+    // Calcular totais financeiros apenas para registros finalizados com dados financeiros
+    let totalDiligencia = 0;
+    let totalProviderPayment = 0;
+    let totalLucro = 0;
+
+    filteredData.forEach(item => {
+        if (item.status === 'fechada' && item.financial) {
+            totalDiligencia += parseFloat(item.financial.diligence_value) || 0;
+            totalProviderPayment += parseFloat(item.financial.provider_payment) || 0;
+            totalLucro += parseFloat(item.financial.profit) || 0;
+        }
+    });
+
+    // Garantir que não seja NaN
+    totalDiligencia = isNaN(totalDiligencia) ? 0 : totalDiligencia;
+    totalProviderPayment = isNaN(totalProviderPayment) ? 0 : totalProviderPayment;
+    totalLucro = isNaN(totalLucro) ? 0 : totalLucro;
+
+    // Calcular variações mensais
+    const variacoes = calculateMonthlyVariations(
+        totalPedidos,
+        totalDespesa,
+        totalDiligencia,
+        totalProviderPayment,
+        totalLucro
+    );
+
+    // Atualizar cards com valores e variações
+    updateCard('[data-stat="pedidos"]', totalPedidos, variacoes.pedidos, 'pedidos', variacoes.hasPreviousData);
+    updateCard('[data-stat="despesa"]', totalDespesa, variacoes.despesa, 'despesa', variacoes.hasPreviousData);
+    updateCard('[data-stat="saldo"]', totalLucro, variacoes.lucro, 'lucro', variacoes.hasPreviousData);
+
+    // Atualizar cards adicionais se existirem
+    const diligenceCard = document.querySelector('[data-stat="diligencia"]');
+    const providerCard = document.querySelector('[data-stat="provider-payment"]');
+
+    if (diligenceCard) {
+        updateCardElement(diligenceCard, totalDiligencia, variacoes.diligencia, 'diligencia', variacoes.hasPreviousData);
+    }
+
+    if (providerCard) {
+        updateCardElement(providerCard, totalProviderPayment, variacoes.provider, 'provider', variacoes.hasPreviousData);
+    }
+
+    updateComparisonPeriod();
+
+    // Atualizar tabela
     updateTable();
 }
 
 // Atualizar cards de resumo
-function updateSummaryCards() {
-    // Total de registros
-    document.getElementById('totalRegistros').textContent = filteredData.length;
-
-    // Total de registros finalizados
-    const finalizados = filteredData.filter(item => item.status === 'finalizada' || item.status === 'fechada').length;
-    document.getElementById('totalFinalizados').textContent = finalizados;
-
-    // Total de registros ativos
-    const ativos = filteredData.filter(item => item.status === 'ativa').length;
-    document.getElementById('totalAtivos').textContent = ativos;
-
-    // Total de valor em despesas
-    const totalDespesas = filteredData.reduce((sum, item) => {
-        const expenses = item.expenses && item.expenses.length > 0
-            ? item.expenses.reduce((expSum, expense) => expSum + parseFloat(expense.value || 0), 0)
-            : 0;
-        return sum + expenses;
-    }, 0);
-    document.getElementById('totalDespesas').textContent = `R$ ${totalDespesas.toLocaleString('pt-BR')}`;
-
-    // Total de lucro (apenas registros com finanças configuradas)
-    const totalLucro = filteredData.reduce((sum, item) => {
-        return sum + (item.financial ? parseFloat(item.financial.profit || 0) : 0);
-    }, 0);
-    document.getElementById('totalLucro').textContent = `R$ ${totalLucro.toLocaleString('pt-BR')}`;
-}
 
 // Mostrar notificação
 function showNotification(message, type = 'info') {
