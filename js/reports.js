@@ -1236,6 +1236,13 @@ function calculateMonthlyVariations(pedidos, despesa, diligencia, provider, lucr
     };
 }
 
+function updateCard(selector, valor, variacao, tipo, hasPreviousData) {
+    const element = document.querySelector(selector);
+    if (!element) return;
+
+    updateCardElement(element, valor, variacao, tipo, hasPreviousData);
+}
+
 // Mostrar notificação
 function showNotification(message, type = 'info') {
     // Criar elemento de notificação
