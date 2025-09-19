@@ -442,7 +442,7 @@ function updateTable() {
                     <td>${financialInfo ? `R$ ${financialInfo.provider_payment.toLocaleString('pt-BR')}` :
                         `<input type="number" step="0.01" class="form-control form-control-sm provider-payment" 
                                placeholder="R$ 0,00" data-id="${item.id}" style="width: 100px;">`}
-                               <span class="provider-percentage" style="font-size: 80%;">${financialInfo ? `${financialInfo.provider_percentage.toLocaleString('pt-BR')}` : '0 %'} da diligência</span>
+                               <span class="provider-percentage" style="font-size: 80%; display: none">${financialInfo ? `${financialInfo.provider_percentage.toLocaleString('pt-BR')}` : '0 %'} da diligência</span>
                     </td>
                     <td>${financialInfo ? `R$ ${financialInfo.diligence_value.toLocaleString('pt-BR')}` :
                         `<input type="number" step="0.01" class="form-control form-control-sm diligence-value" 
@@ -523,7 +523,6 @@ function calculateProfit(input) {
 
         profitCell.textContent = `R$ ${profit.toLocaleString('pt-BR')}`;
         providerPercentageCell.textContent = `${provider_percentage.toLocaleString('pt-BR')} % da diligência`;
-        providerPercentageCell.style.display = 'none';
 
         // Destacar lucro negativo
         if (profit < 0) {
