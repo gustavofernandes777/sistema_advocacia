@@ -18,12 +18,14 @@
 
 <body class="bg-light">
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-        <a class="navbar-brand" href="index.html">
+        <a class="navbar-brand" href="index.html" style="margin: 0 0 0 0.6em;">
             <img src="logos/Logo alt  brancopng.rgb.png" class="img-fluid" style="max-width: 10.5em;" alt="">
         </a>
         <!-- Sidebar Toggle-->
         <button class="btn btn-link btn-sm order-1 order-lg-0 me-4 me-lg-0 ml-5 toogleButton" id="sidebarToggle" href="#!"
-            style="margin-left: 1em;">
+            style="margin-left: 1em;"
+            data-bs-toggle="collapse" data-bs-target="#navbarToggleExternalContent" 
+            aria-controls="#navbarToggleExternalContent" aria-expanded="true" aria-label="Toggle navigation">
             <i class="fas fa-bars"></i>
         </button>
         <ul class="navbar-nav ms-auto ms-md-0 me-3 me-lg-4">
@@ -45,7 +47,7 @@
     </nav>
 
     <div id="layoutSidenav">
-        <div id="layoutSidenav_nav">
+        <div id="navbarToggleExternalContent" class="collapse-horizontal show">
             <nav class="sb-sidenav accordion sb-sidenav-dark" id="sidenavAccordion">
                 <div class="sb-sidenav-menu">
                     <div class="nav">
