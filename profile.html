@@ -20,7 +20,7 @@
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
-    
+
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto me-3">
                     <li class="nav-item">
@@ -39,7 +39,7 @@
                                     <i class="bi bi-people"></i> Lista de Usuários
                                 </a>
                             </li>
-    
+
                             <li>
                                 <a class="dropdown-item" id="reportsLink" href="reports.html">
                                     <i class="bi bi-clipboard-data"></i> Relatórios
@@ -74,79 +74,78 @@
         </div>
     </nav>
 
-    <div id="layoutSidenav">
-        <div id="layoutSidenav_content">
-            <main>
-                <div class="container-fluid px-4">
-                    <h1 class="mt-4">Configurações do Usuário</h1>
-                    <ol class="breadcrumb mb-4">
-                        <li class="breadcrumb-item"><a href="index.html">Dashboard</a></li>
-                        <li class="breadcrumb-item active">Configurações</li>
-                    </ol>
+    <main>
+        <div class="container-fluid px-4">
+            <h1 class="mt-4">Configurações do Usuário</h1>
+            <ol class="breadcrumb mb-4">
+                <li class="breadcrumb-item"><a href="index.html">Dashboard</a></li>
+                <li class="breadcrumb-item active">Configurações</li>
+            </ol>
 
-                    <div class="card mb-4">
-                        <div class="card-header">
-                            <i class="fas fa-user me-1"></i>
-                            Informações Pessoais
-                        </div>
-                        <div class="card-body">
-                            <form id="userSettingsForm">
-                                <div class="row mb-3">
-                                    <div class="col-md-6">
-                                        <label for="userName" class="form-label">Nome</label>
-                                        <input type="text" class="form-control" id="userName" required>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label for="userLastName" class="form-label">Sobrenome</label>
-                                        <input type="text" class="form-control" id="userLastName" required>
-                                    </div>
-                                </div>
-                                <div class="row mb-3">
-                                    <div class="col-md-6">
-                                        <label for="userEmail" class="form-label">Email</label>
-                                        <input type="email" class="form-control" id="userEmail" required>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label for="userBirthday" class="form-label">Data de Nascimento</label>
-                                        <input type="date" class="form-control" id="userBirthday" required>
-                                    </div>
-                                </div>
-                                <button type="submit" class="btn btn-primary">Salvar Alterações</button>
-                            </form>
-                        </div>
-                    </div>
-
-                    <div class="card mb-4">
-                        <div class="card-header">
-                            <i class="fas fa-lock me-1"></i>
-                            Alterar Senha
-                        </div>
-                        <div class="card-body">
-                            <form id="passwordForm">
-                                <div class="row mb-3">
-                                    <div class="col-md-4">
-                                        <label for="currentPassword" class="form-label">Senha Atual</label>
-                                        <input type="password" class="form-control" id="currentPassword" required>
-                                    </div>
-                                    <div class="col-md-4">
-                                        <label for="newPassword" class="form-label">Nova Senha</label>
-                                        <input type="password" class="form-control" id="newPassword" required
-                                            minlength="8">
-                                    </div>
-                                    <div class="col-md-4">
-                                        <label for="confirmPassword" class="form-label">Confirmar Nova Senha</label>
-                                        <input type="password" class="form-control" id="confirmPassword" required
-                                            minlength="8">
-                                    </div>
-                                </div>
-                                <button type="submit" class="btn btn-primary">Alterar Senha</button>
-                            </form>
-                        </div>
-                    </div>
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-user me-1"></i>
+                    Informações Pessoais
                 </div>
-            </main>
+                <div class="card-body">
+                    <form id="userSettingsForm">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="userName" class="form-label">Nome</label>
+                                <input type="text" class="form-control" id="userName" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="userLastName" class="form-label">Sobrenome</label>
+                                <input type="text" class="form-control" id="userLastName" required>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="userEmail" class="form-label">Email</label>
+                                <input type="email" class="form-control" id="userEmail" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="userBirthday" class="form-label">Data de Nascimento</label>
+                                <input type="date" class="form-control" id="userBirthday" required>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-lock me-1"></i>
+                    Alterar Senha
+                </div>
+                <div class="card-body">
+                    <form id="passwordForm">
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <label for="currentPassword" class="form-label">Senha Atual</label>
+                                <input type="password" class="form-control" id="currentPassword" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="newPassword" class="form-label">Nova Senha</label>
+                                <input type="password" class="form-control" id="newPassword" required minlength="8">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="confirmPassword" class="form-label">Confirmar Nova Senha</label>
+                                <input type="password" class="form-control" id="confirmPassword" required minlength="8">
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Alterar Senha</button>
+                    </form>
+                </div>
+            </div>
         </div>
-    </div>
+    </main>
+
+    <footer class="text-center p-2 pt-md-3">
+        <p>Ana Dulce Fernandes Advocacia | OAB/BA 59.128</p>
+        <p>© 2025 Copyright: <a href="https://github.com/gustavofernandes777" style="text-decoration:none; color: inherit;" target="_blank">Desenvolvido por Gustavo Fernandes</a></p> 
+    </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>

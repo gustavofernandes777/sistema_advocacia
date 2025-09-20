@@ -21,7 +21,7 @@
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
-    
+
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto me-3">
                     <li class="nav-item">
@@ -40,7 +40,7 @@
                                     <i class="bi bi-people"></i> Lista de Usuários
                                 </a>
                             </li>
-    
+
                             <li>
                                 <a class="dropdown-item" id="reportsLink" href="reports.html">
                                     <i class="bi bi-clipboard-data"></i> Relatórios
@@ -75,256 +75,242 @@
         </div>
     </nav>
 
-    <!-- Sidebar Navigation -->
-    <div id="layoutSidenav">
-        <!-- Main Content -->
-        <div id="layoutSidenav_content">
-            <main>
-                <div class="container-fluid px-4 mt-4">
-                    <div class="d-flex justify-content-between align-items-center mb-4">
-                        <h1 class="mb-0"><i class="bi bi-pencil me-2"></i>Editar Registro <span id="record-id"
-                                class="text-muted"></span></h1>
-                        <nav aria-label="breadcrumb">
-                            <ol class="breadcrumb">
-                                <li class="breadcrumb-item"><a href="index.html">Dashboard</a></li>
-                                <li class="breadcrumb-item"><a href="records.html">Registros</a></li>
-                                <li class="breadcrumb-item active" aria-current="page">Editar Registro</li>
-                            </ol>
-                        </nav>
+    <main>
+        <div class="container-fluid px-4 mt-4">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="mb-0"><i class="bi bi-pencil me-2"></i>Editar Registro <span id="record-id"
+                        class="text-muted"></span></h1>
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb">
+                        <li class="breadcrumb-item"><a href="index.html">Dashboard</a></li>
+                        <li class="breadcrumb-item"><a href="records.html">Registros</a></li>
+                        <li class="breadcrumb-item active" aria-current="page">Editar Registro</li>
+                    </ol>
+                </nav>
+            </div>
+
+            <form id="editRecordForm" class="mt-4">
+                <!-- Seção de Informações Básicas -->
+                <div class="card mb-4">
+                    <div class="card-header bg-primary text-white">
+                        <i class="fas fa-info-circle me-1"></i>
+                        Informações Básicas
                     </div>
-
-                    <form id="editRecordForm" class="mt-4">
-                        <!-- Seção de Informações Básicas -->
-                        <div class="card mb-4">
-                            <div class="card-header bg-primary text-white">
-                                <i class="fas fa-info-circle me-1"></i>
-                                Informações Básicas
+                    <div class="card-body">
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <label for="edit-record-id" class="form-label">ID do Registro</label>
+                                <input type="text" class="form-control" id="edit-record-id" required>
+                                <div class="form-text">ID personalizado do registro</div>
                             </div>
-                            <div class="card-body">
-                                <div class="row mb-3">
-                                    <div class="col-md-4">
-                                        <label for="edit-record-id" class="form-label">ID do Registro</label>
-                                        <input type="text" class="form-control" id="edit-record-id" required>
-                                        <div class="form-text">ID personalizado do registro</div>
-                                    </div>
-                                    <div class="col-md-4">
-                                        <label for="edit-register-date" class="form-label">Data de Registro</label>
-                                        <input type="date" class="form-control" id="edit-register-date" required>
-                                    </div>
-                                    <div class="col-md-4">
-                                        <label for="edit-last-update" class="form-label">Última Atualização</label>
-                                        <input type="text" class="form-control" id="edit-last-update" readonly>
-                                        <div class="form-text">Atualizado automaticamente</div>
-                                    </div>
-                                </div>
-                                <div class="row mb-3">
-                                    <div class="col-md-6">
-                                        <label for="edit-name" class="form-label">Descrição do registro</label>
-                                        <input type="text" class="form-control" id="edit-name" required>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label for="edit-document-type" class="form-label">Tipo de Documento</label>
-                                        <input type="text" class="form-control" id="edit-document-type" required>
-                                    </div>
-                                </div>
-                                <div class="row mb-3">
-                                    <div class="col-md-4">
-                                        <label for="edit-status" class="form-label">Status</label>
-                                        <select class="form-select" id="edit-status" required>
-                                            <option value="ativa">Ativa</option>
-                                            <option value="suspensa">Suspensa</option>
-                                            <option value="entregue">Entregue</option>
-                                            <option value="finalizada">Finalizada</option>
-                                        </select>
-                                    </div>
-                                    <div class="col-md-4">
-                                        <label for="edit-priority" class="form-label">Prioridade</label>
-                                        <select class="form-select" id="edit-priority" required>
-                                            <option value="baixa">Baixa</option>
-                                            <option value="media">Média</option>
-                                            <option value="alta">Alta</option>
-                                        </select>
-                                    </div>
-                                </div>
+                            <div class="col-md-4">
+                                <label for="edit-register-date" class="form-label">Data de Registro</label>
+                                <input type="date" class="form-control" id="edit-register-date" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="edit-last-update" class="form-label">Última Atualização</label>
+                                <input type="text" class="form-control" id="edit-last-update" readonly>
+                                <div class="form-text">Atualizado automaticamente</div>
                             </div>
                         </div>
-
-                        <!-- Seção de Detalhes do Registro -->
-                        <div class="card mb-4">
-                            <div class="card-header bg-primary text-white">
-                                <i class="fas fa-file-alt me-1"></i>
-                                Detalhes do Registro
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="edit-name" class="form-label">Descrição do registro</label>
+                                <input type="text" class="form-control" id="edit-name" required>
                             </div>
-                            <div class="card-body">
-                                <div class="row mb-3">
-                                    <div class="col-md-6">
-                                        <label for="edit-researched-name" class="form-label">Nome do Pesquisado</label>
-                                        <input type="text" class="form-control" id="edit-researched-name" required>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label for="edit-researched-cpf-cnpj" class="form-label">CPF/CNPJ do
-                                            Pesquisado</label>
-                                        <input type="text" class="form-control" id="edit-researched-cpf-cnpj" required>
-                                    </div>
-                                </div>
-
-                                <div class="row mb-3">
-                                    <div class="col-md-3">
-                                        <label for="edit-state" class="form-label">Estado</label>
-                                        <select class="form-select" id="edit-state">
-                                            <option value="ac">AC</option>
-                                            <option value="al">AL</option>
-                                            <option value="ap">AP</option>
-                                            <option value="am">AM</option>
-                                            <option value="ba">BA</option>
-                                            <option value="ce">CE</option>
-                                            <option value="df">DF</option>
-                                            <option value="es">ES</option>
-                                            <option value="go">GO</option>
-                                            <option value="ma">MA</option>
-                                            <option value="mt">MT</option>
-                                            <option value="ms">MS</option>
-                                            <option value="mg">MG</option>
-                                            <option value="pa">PA</option>
-                                            <option value="pb">PB</option>
-                                            <option value="pr">PR</option>
-                                            <option value="pe">PE</option>
-                                            <option value="pi">PI</option>
-                                            <option value="rj">RJ</option>
-                                            <option value="rn">RN</option>
-                                            <option value="rs">RS</option>
-                                            <option value="ro">RO</option>
-                                            <option value="rr">RR</option>
-                                            <option value="sc">SC</option>
-                                            <option value="sp">SP</option>
-                                            <option value="se">SE</option>
-                                            <option value="to">TO</option>
-                                        </select>
-                                    </div>
-                                    <div class="col-md-9">
-                                        <label for="edit-city" class="form-label">Cidade</label>
-                                        <input type="text" class="form-control" id="edit-city" required>
-                                    </div>
-                                </div>
-
-                                <div class="mb-3">
-                                    <label for="edit-info" class="form-label">Informações Adicionais</label>
-                                    <textarea class="form-control" id="edit-info" rows="3"></textarea>
-                                </div>
+                            <div class="col-md-6">
+                                <label for="edit-document-type" class="form-label">Tipo de Documento</label>
+                                <input type="text" class="form-control" id="edit-document-type" required>
                             </div>
                         </div>
-
-                        <!-- Seção de Cliente e Prestador -->
-                        <div class="card mb-4">
-                            <div class="card-header bg-primary text-white">
-                                <i class="fas fa-handshake me-1"></i>
-                                Cliente e Prestador
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <label for="edit-status" class="form-label">Status</label>
+                                <select class="form-select" id="edit-status" required>
+                                    <option value="ativa">Ativa</option>
+                                    <option value="suspensa">Suspensa</option>
+                                    <option value="entregue">Entregue</option>
+                                    <option value="finalizada">Finalizada</option>
+                                </select>
                             </div>
-                            <div class="card-body">
-                                <div class="row mb-3">
-                                    <div class="col-md-6">
-                                        <label for="edit-client-id" class="form-label">Cliente</label>
-                                        <select class="form-select" id="edit-client-id" required>
-                                            <option value="">Selecione um cliente</option>
-                                        </select>
-                                        <div class="invalid-feedback">Selecione um cliente</div>
-                                    </div>
-                                    <div class="col-md-6" id="provider-select">
-                                        <label for="edit-provider-id" class="form-label">Prestador</label>
-                                        <select class="form-select" id="edit-provider-id" required>
-                                            <option value="">Selecione um prestador</option>
-                                        </select>
-                                    </div>
-                                </div>
+                            <div class="col-md-4">
+                                <label for="edit-priority" class="form-label">Prioridade</label>
+                                <select class="form-select" id="edit-priority" required>
+                                    <option value="baixa">Baixa</option>
+                                    <option value="media">Média</option>
+                                    <option value="alta">Alta</option>
+                                </select>
                             </div>
-                        </div>
-
-                        <!-- Seção de Anexos -->
-                        <div class="card mb-4">
-                            <div class="card-header bg-primary text-white">
-                                <i class="fas fa-paperclip me-1"></i>
-                                Anexos
-                            </div>
-                            <div class="card-body" id="attachments-container">
-                                <!-- Anexos serão adicionados dinamicamente aqui -->
-                                <div class="alert alert-info">
-                                    <i class="fas fa-info-circle me-1"></i>
-                                    Nenhum anexo adicionado ainda.
-                                </div>
-                            </div>
-                            <div class="card-footer">
-                                <button type="button" class="btn btn-secondary btn-sm" id="add-attachment-btn">
-                                    <i class="fas fa-plus"></i> Adicionar Anexo
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- Seção de Custas -->
-                        <div class="card mb-4">
-                            <div class="card-header bg-primary text-white">
-                                <i class="fas fa-receipt me-1"></i>
-                                Custas
-                            </div>
-                            <div class="card-body" id="costs-container">
-                                <!-- Custas serão adicionados dinamicamente aqui -->
-                                <div class="alert alert-info">
-                                    <i class="fas fa-info-circle me-1"></i>
-                                    Nenhuma custa adicionada ainda.
-                                </div>
-                            </div>
-                            <div class="card-footer">
-                                <button type="button" class="btn btn-secondary btn-sm" id="add-cost-btn">
-                                    <i class="fas fa-plus"></i> Adicionar Custa
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- Seção de Despesas -->
-                        <div class="card mb-4">
-                            <div class="card-header bg-primary text-white">
-                                <i class="fas fa-money-bill-wave me-1"></i>
-                                Despesas
-                            </div>
-                            <div class="card-body" id="expenses-container">
-                                <!-- Despesas serão adicionadas dinamicamente aqui -->
-                                <div class="alert alert-info">
-                                    <i class="fas fa-info-circle me-1"></i>
-                                    Nenhuma despesa adicionada ainda.
-                                </div>
-                            </div>
-                            <div class="card-footer">
-                                <button type="button" class="btn btn-secondary btn-sm" id="add-expense-btn">
-                                    <i class="fas fa-plus"></i> Adicionar Despesa
-                                </button>
-                            </div>
-                        </div>
-
-                        <div class="d-grid gap-2 d-md-flex justify-content-md-end mb-5">
-                            <button type="button" class="btn btn-secondary me-md-2" id="cancel-edit">
-                                <i class="fas fa-times me-1"></i>Cancelar
-                            </button>
-                            <button type="submit" class="btn btn-primary" id="save-edit">
-                                <i class="fas fa-save me-1"></i>Salvar Alterações
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </main>
-
-            <footer class="py-4 bg-light mt-auto">
-                <div class="container-fluid px-4">
-                    <div class="d-flex align-items-center justify-content-between small">
-                        <div class="text-muted">Copyright &copy; Sistema Jurídico 2023</div>
-                        <div>
-                            <a href="#">Política de Privacidade</a>
-                            &middot;
-                            <a href="#">Termos &amp; Condições</a>
                         </div>
                     </div>
                 </div>
-            </footer>
+
+                <!-- Seção de Detalhes do Registro -->
+                <div class="card mb-4">
+                    <div class="card-header bg-primary text-white">
+                        <i class="fas fa-file-alt me-1"></i>
+                        Detalhes do Registro
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="edit-researched-name" class="form-label">Nome do Pesquisado</label>
+                                <input type="text" class="form-control" id="edit-researched-name" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="edit-researched-cpf-cnpj" class="form-label">CPF/CNPJ do
+                                    Pesquisado</label>
+                                <input type="text" class="form-control" id="edit-researched-cpf-cnpj" required>
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-3">
+                                <label for="edit-state" class="form-label">Estado</label>
+                                <select class="form-select" id="edit-state">
+                                    <option value="ac">AC</option>
+                                    <option value="al">AL</option>
+                                    <option value="ap">AP</option>
+                                    <option value="am">AM</option>
+                                    <option value="ba">BA</option>
+                                    <option value="ce">CE</option>
+                                    <option value="df">DF</option>
+                                    <option value="es">ES</option>
+                                    <option value="go">GO</option>
+                                    <option value="ma">MA</option>
+                                    <option value="mt">MT</option>
+                                    <option value="ms">MS</option>
+                                    <option value="mg">MG</option>
+                                    <option value="pa">PA</option>
+                                    <option value="pb">PB</option>
+                                    <option value="pr">PR</option>
+                                    <option value="pe">PE</option>
+                                    <option value="pi">PI</option>
+                                    <option value="rj">RJ</option>
+                                    <option value="rn">RN</option>
+                                    <option value="rs">RS</option>
+                                    <option value="ro">RO</option>
+                                    <option value="rr">RR</option>
+                                    <option value="sc">SC</option>
+                                    <option value="sp">SP</option>
+                                    <option value="se">SE</option>
+                                    <option value="to">TO</option>
+                                </select>
+                            </div>
+                            <div class="col-md-9">
+                                <label for="edit-city" class="form-label">Cidade</label>
+                                <input type="text" class="form-control" id="edit-city" required>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="edit-info" class="form-label">Informações Adicionais</label>
+                            <textarea class="form-control" id="edit-info" rows="3"></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Seção de Cliente e Prestador -->
+                <div class="card mb-4">
+                    <div class="card-header bg-primary text-white">
+                        <i class="fas fa-handshake me-1"></i>
+                        Cliente e Prestador
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="edit-client-id" class="form-label">Cliente</label>
+                                <select class="form-select" id="edit-client-id" required>
+                                    <option value="">Selecione um cliente</option>
+                                </select>
+                                <div class="invalid-feedback">Selecione um cliente</div>
+                            </div>
+                            <div class="col-md-6" id="provider-select">
+                                <label for="edit-provider-id" class="form-label">Prestador</label>
+                                <select class="form-select" id="edit-provider-id" required>
+                                    <option value="">Selecione um prestador</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Seção de Anexos -->
+                <div class="card mb-4">
+                    <div class="card-header bg-primary text-white">
+                        <i class="fas fa-paperclip me-1"></i>
+                        Anexos
+                    </div>
+                    <div class="card-body" id="attachments-container">
+                        <!-- Anexos serão adicionados dinamicamente aqui -->
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Nenhum anexo adicionado ainda.
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <button type="button" class="btn btn-secondary btn-sm" id="add-attachment-btn">
+                            <i class="fas fa-plus"></i> Adicionar Anexo
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Seção de Custas -->
+                <div class="card mb-4">
+                    <div class="card-header bg-primary text-white">
+                        <i class="fas fa-receipt me-1"></i>
+                        Custas
+                    </div>
+                    <div class="card-body" id="costs-container">
+                        <!-- Custas serão adicionados dinamicamente aqui -->
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Nenhuma custa adicionada ainda.
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <button type="button" class="btn btn-secondary btn-sm" id="add-cost-btn">
+                            <i class="fas fa-plus"></i> Adicionar Custa
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Seção de Despesas -->
+                <div class="card mb-4">
+                    <div class="card-header bg-primary text-white">
+                        <i class="fas fa-money-bill-wave me-1"></i>
+                        Despesas
+                    </div>
+                    <div class="card-body" id="expenses-container">
+                        <!-- Despesas serão adicionadas dinamicamente aqui -->
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Nenhuma despesa adicionada ainda.
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <button type="button" class="btn btn-secondary btn-sm" id="add-expense-btn">
+                            <i class="fas fa-plus"></i> Adicionar Despesa
+                        </button>
+                    </div>
+                </div>
+
+                <div class="d-grid gap-2 d-md-flex justify-content-md-end mb-5">
+                    <button type="button" class="btn btn-secondary me-md-2" id="cancel-edit">
+                        <i class="fas fa-times me-1"></i>Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-primary" id="save-edit">
+                        <i class="fas fa-save me-1"></i>Salvar Alterações
+                    </button>
+                </div>
+            </form>
         </div>
-    </div>
+    </main>
+
+    <footer class="text-center p-2 pt-md-3">
+        <p>Ana Dulce Fernandes Advocacia | OAB/BA 59.128</p>
+        <p>© 2025 Copyright: <a href="https://github.com/gustavofernandes777" style="text-decoration:none; color: inherit;" target="_blank">Desenvolvido por Gustavo Fernandes</a></p> 
+    </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
