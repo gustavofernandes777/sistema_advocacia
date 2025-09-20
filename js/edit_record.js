@@ -540,7 +540,6 @@ function clearValidations() {
 async function loadCurrentUser() {
     try {
         if (currentUser.type !== 'admin') {
-            document.getElementById('adminLink').style.display = 'none';
             document.getElementById('reportsLink').style.display = 'none';
             document.getElementById('userListLink').style.display = 'none';
         }

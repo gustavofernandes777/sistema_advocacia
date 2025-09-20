@@ -147,10 +147,8 @@ function loadUserData() {
     document.getElementById('userBirthday').value = currentUser.birthday;
 
     if (currentUser.type !== 'admin') {
-        document.getElementById('adminLink').style.display = 'none';
-        document.getElementById('newUserBtn').style.display = 'none';
         document.getElementById('reportsLink').style.display = 'none';
-        document.getElementById('userListLink').style.display = 'none';
+        document.getElementById('').style.display = 'none';
     }
 }
 
