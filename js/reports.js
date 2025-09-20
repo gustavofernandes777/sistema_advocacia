@@ -20,6 +20,7 @@ const statusMap = {
 // Inicialização
 document.addEventListener('DOMContentLoaded', async () => {
     await checkAuth();
+    loadUserData();
     setupEventListeners();
     loadDataFromAPI();
 });
@@ -151,6 +152,19 @@ async function checkAuth() {
         }, 1000);
         
         return false;
+    }
+}
+
+async function loadUserData() {
+    if (!currentUser) return;
+
+    document.getElementById('navbar-username').textContent = currentUser.name;
+
+    // Controle de visibilidade baseado no tipo de usuário
+    if (currentUser.type !== 'admin') {
+        document.getElementById('adminLink').style.display = 'none';
+        document.getElementById('reportsLink').style.display = 'none';
+        document.getElementById('userListLink').style.display = 'none';
     }
 }
 
