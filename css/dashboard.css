@@ -2252,6 +2252,7 @@ progress {
 }
 
 @media (max-width: 767.98px) {
+  .buttonsLabel{ display: none;}
   .table-responsive-md {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
