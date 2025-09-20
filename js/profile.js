@@ -138,9 +138,7 @@ async function checkAuth() {
 
 function loadUserData() {
     if (!currentUser) return;
-
     document.getElementById('navbar-username').textContent = currentUser.name;
-    document.getElementById('sidenav-username').textContent = `${currentUser.name} (${currentUser.type})`;
 
     // Preencher formulário com dados do usuário
     document.getElementById('userName').value = currentUser.name;

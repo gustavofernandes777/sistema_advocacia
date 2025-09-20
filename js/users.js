@@ -139,9 +139,7 @@ async function checkAuth() {
 
 function loadUserData() {
     if (!currentUser) return;
-
     document.getElementById('navbar-username').textContent = currentUser.name;
-    document.getElementById('sidenav-username').textContent = `${currentUser.name} (${currentUser.type})`;
 }
 
 async function loadUsersList() {
