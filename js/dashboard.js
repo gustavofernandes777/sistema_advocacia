@@ -369,10 +369,10 @@ function renderRecords(records) {
             <td>${new Date(record.register_date).toLocaleDateString('pt-BR')}</td>
             <td>${record.last_update ? new Date(record.last_update).toLocaleString('pt-BR') : 'N/A'}</td>
             <td>
-                <button class="btn btn-sm btn-outline-primary view-btn" data-id="${record.id}">
+                <button class="btn btn-sm btn-outline-primary mb-1 view-btn" data-id="${record.id}">
                     <i class="fas fa-eye"></i>
                 </button>
-                <button class="btn btn-sm btn-outline-warning edit-btn" data-id="${record.id}">
+                <button class="btn btn-sm btn-outline-warning mb-1 edit-btn" data-id="${record.id}">
                     <i class="fas fa-edit"></i>
                 </button>
                 ${currentUser?.type === 'admin' ? `
