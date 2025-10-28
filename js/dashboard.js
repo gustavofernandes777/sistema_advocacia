@@ -547,12 +547,6 @@ function setupEventListeners() {
         modal.show();
     });
 
-    document.getElementById('newRecordBtn').addEventListener('click', () => {
-        const modal = new bootstrap.Modal(document.getElementById('recordModal'));
-        document.getElementById('recordForm').reset();
-        modal.show();
-    });
-
     document.getElementById('newUserBtn')?.addEventListener('click', openUserModal);
 
     document.querySelectorAll('#addClientBtn, #newClientBtn').forEach(element => {
