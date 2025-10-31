@@ -573,7 +573,7 @@ function addTableEventListeners() {
         });
     });
 
-    // Botões de fechar relatório
+    // Botões de fechar lançamento
     document.querySelectorAll('.close-report').forEach(btn => {
         btn.addEventListener('click', function () {
             const recordId = this.getAttribute('data-id');
@@ -1426,14 +1426,14 @@ async function saveFinancialData(recordId) {
             throw new Error(errorDetail);
         }
 
-        // Depois de salvar as informações financeiras com sucesso, fechar o registro
+        // Depois de salvar as informações financeiras com sucesso, fechar o lançamento
         const closeResponse = await apiFetch(`${apiBaseUrl}/records/${recordId}/close`, {
             method: 'PATCH',
         });
 
         // Verificar se a resposta de fechamento é OK
         if (!closeResponse) {
-            let errorDetail = 'Erro ao fechar registro';
+            let errorDetail = 'Erro ao fechar lançamento';
             try {
                 const errorData = await closeResponse.json();
                 errorDetail = errorData.detail || errorDetail;
@@ -1538,7 +1538,7 @@ function showFinancialFormModal(recordId, expense, financialData) {
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
                         <button type="button" class="btn btn-primary" id="saveFinancial">
-                            <i class="bi bi-lock-fill"></i> Salvar e Fechar Registro
+                            <i class="bi bi-lock-fill"></i> Salvar e Fechar lançamento
                         </button>
                     </div>
                 </div>
