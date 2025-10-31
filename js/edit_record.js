@@ -579,6 +579,15 @@ function setupProviderUI() {
 
 async function saveAllChanges() {
     try {
+        const hasCostsDiv = document.getElementById('hasCostsDiv');
+        const hasExpensesDiv = document.getElementById('hasExpensesDiv');
+        const hasCosts = document.getElementById('hasCosts');
+        const hasExpenses = document.getElementById('hasExpenses');
+
+        if (statusSelect.value === 'entregue' && (hasCostsDiv && hasExpensesDiv) && (!hasCosts.checked || !hasExpenses.checked)) {
+            throw new Error('É obrigatório ter custas ou despesas ao mudar a diligências para "Entregue".');
+        }
+
         if (currentUser && currentUser.type !== 'admin') {
             const providerSelect = document.getElementById('edit-provider-id');
             if (providerSelect.value != currentUser.id) {
@@ -798,11 +807,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         let status = document.getElementById('edit-status').value;
 
         if (status === 'entregue') {
-            document.getElementById('hasCosts').style.display = 'block';
-            document.getElementById('hasExpenses').style.display = 'block';
+            document.getElementById('hasCostsDiv').style.display = 'block';
+            document.getElementById('hasExpensesDiv').style.display = 'block';
         } else {
-            document.getElementById('hasCosts').style.display = 'none';
-            document.getElementById('hasExpenses').style.display = 'none';
+            document.getElementById('hasCostsDiv').style.display = 'none';
+            document.getElementById('hasExpensesDiv').style.display = 'none';
         }
     });
     
