@@ -566,7 +566,7 @@ function setupEventListeners() {
         // Dados básicos do registro
         const recordData = {
             record_id: document.getElementById('record_id').value,
-            name: document.getElementById('name').value,
+            agency: document.getElementById('agency').value,
             researchedName: document.getElementById('researchedName').value,
             document_type: document.getElementById('document_type').value,
             state: document.getElementById('state').value,
@@ -827,7 +827,7 @@ function showRecordModal(record) {
                         <div class="row">
                             <div class="col-md-6">
                                 <h6>Informações Básicas</h6>
-                                <p><strong>Nome:</strong> ${record.name || ''}</p>
+                                <p><strong>Nome:</strong> ${record.agency || ''}</p>
                                 <p><strong>Status:</strong> <span class="badge badge-${record.status}">${statusText}</span></p>
                                 <p><strong>Prioridade:</strong> ${record.priority || ''}</p>
                                 <p><strong>Tipo Documento:</strong> ${record.document_type || ''}</p>

@@ -260,7 +260,7 @@ function populateForm() {
 
     document.getElementById('record-id').textContent = currentRecord.record_id;
     document.getElementById('edit-record-id').value = currentRecord.record_id;
-    document.getElementById('edit-name').value = currentRecord.name;
+    document.getElementById('edit-agency').value = currentRecord.agency;
     document.getElementById('edit-status').value = currentRecord.status;
     document.getElementById('edit-priority').value = currentRecord.priority;
     document.getElementById('edit-register-date').value = currentRecord.register_date;
@@ -392,7 +392,7 @@ async function saveBasicChanges() {
 
     const recordData = {
         record_id: document.getElementById('edit-record-id').value,
-        name: document.getElementById('edit-name').value,
+        agency: document.getElementById('edit-agency').value,
         status: document.getElementById('edit-status').value,
         priority: document.getElementById('edit-priority').value,
         document_type: document.getElementById('edit-document-type').value,
@@ -479,8 +479,8 @@ async function loadProviders() {
 function validateAllFields() {
     const errors = [];
     const requiredFields = [
-        { id: 'edit-record-id', name: 'ID do Registro' },
-        { id: 'edit-name', name: 'Nome do registro' },
+        { id: 'edit-record-id', name: 'ID da deligência' },
+        { id: 'edit-agency', name: 'Órgão da deligência' },
         { id: 'edit-document-type', name: 'Tipo de Documento' },
         { id: 'edit-state', name: 'Estado' },
         { id: 'edit-city', name: 'Cidade' },
