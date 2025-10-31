@@ -590,11 +590,11 @@ async function saveAllChanges() {
         const parentExpense= document.getElementById('expenses-container');
         const expenseChildrenCount = parentExpense.children.length;
 
-        if (statusSelect.value === 'entregue' && hasCostsDiv && !hasCosts.checked && costChildrenCount == 0 ) {
+        if (statusSelect.value === 'entregue' && hasCostsDiv && hasCosts.checked && costChildrenCount == 0 ) {
             throw new Error('É obrigatório ter custas para mudar a diligências para "Entregue".');
         }
 
-        if (statusSelect.value === 'entregue' && hasExpensesDiv && !hasExpenses.checked && expenseChildrenCount == 0) {
+        if (statusSelect.value === 'entregue' && hasExpensesDiv && hasExpenses.checked && expenseChildrenCount == 0) {
             throw new Error('É obrigatório ter  despesas para mudar a diligências para "Entregue".');
         }
 
