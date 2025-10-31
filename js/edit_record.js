@@ -586,6 +586,7 @@ async function saveAllChanges() {
             }
 
             const statusSelect = document.getElementById('edit-status');
+
             if (statusSelect.value === 'finalizada') {
                 throw new Error('Apenas administradores podem finalizar registros');
             }
@@ -773,6 +774,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!recordId) {
         window.location.href = 'index.html';
         return;
+    }
+
+    const statusSelect = document.getElementById('edit-status');
+    if (statusSelect.value === 'entregue') {
+        console.log('status entregue!!!!!')
     }
 
     try {
