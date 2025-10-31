@@ -40,9 +40,33 @@
 
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto me-3">
+            
+                    <li class="nav-item">
+                        <a class="nav-link" aria-current="page" href="index.html">
+                            <i class="bi bi-table"></i> Dashboard
+                        </a>
+                    </li>
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" id="userDropdown" href="#" role="button"
+                        <a class="nav-link dropdown-toggle active" id="adminDropdown" href="#" role="button"
                             data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-person-lines-fill"></i> Administração
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li>
+                                <a class="dropdown-item" id="userListLink" href="users.html">
+                                    <i class="bi bi-people"></i> Lista de Usuários
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item active" id="reportsLink" href="reports.html">
+                                    <i class="bi bi-clipboard-data"></i> Relatórios
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" id="userDropdown" href="#" role="button" data-bs-toggle="dropdown"
+                            aria-expanded="false">
                             <i class="bi bi-person-circle"></i> Bem-vinda(o),
                             <span id="navbar-username">Usuário</span>
                         </a>
@@ -64,6 +88,7 @@
                     </li>
                 </ul>
             </div>
+        </div>
         </div>
     </nav>
 

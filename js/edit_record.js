@@ -591,11 +591,11 @@ async function saveAllChanges() {
         const expenseChildrenCount = parentExpense.children.length;
 
         if (statusSelect.value === 'entregue' && hasCostsDiv && hasCosts.checked && costChildrenCount == 0 ) {
-            throw new Error('É obrigatório ter custas para mudar a diligências para "Entregue".');
+            throw new Error('Ao marcar a opção "Tem custas?", é obrigatório adicionar as custas mudar a diligências para "Entregue".');
         }
 
         if (statusSelect.value === 'entregue' && hasExpensesDiv && hasExpenses.checked && expenseChildrenCount == 0) {
-            throw new Error('É obrigatório ter  despesas para mudar a diligências para "Entregue".');
+            throw new Error('Ao marcar a opção "Tem despesas?", é obrigatório adicionar as despesas para mudar a diligências para "Entregue".');
         }
 
 
