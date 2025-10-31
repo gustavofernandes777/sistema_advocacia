@@ -134,17 +134,22 @@ async function apiFetch(url, options = {}) {
             throw new Error('Ngrok bloqueando acesso - página HTML recebida');
         }
 
-        if (!contentType.includes('application/json')) {
-            throw new Error(`Content-Type inesperado: ${contentType}`);
+        // PARA DELETE: se for 204 ou sem corpo, retorne null ou response direto
+        if (resp.status === 204) {
+            return null;
+        } else {
+            if (!contentType.includes('application/json')) {
+                throw new Error(`Content-Type inesperado: ${contentType}`);
+            }
+
+            const data = JSON.parse(text);
+
+            if (!resp.ok) {
+                throw new Error(data.detail || `HTTP Error ${resp.status}`);
+            }
+            
+            return data;
         }
-
-        const data = JSON.parse(text);
-
-        if (!resp.ok) {
-            throw new Error(data.detail || `HTTP Error ${resp.status}`);
-        }
-
-        return data;
 
     } catch (error) {
         console.error('❌ apiFetch error:', error);
