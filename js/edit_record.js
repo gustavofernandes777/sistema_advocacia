@@ -761,7 +761,7 @@ function setupEventListeners() {
         }
     });
 }
-
+    
 function logout() {
     localStorage.removeItem('access_token');
     window.location.href = 'login.html';
@@ -774,11 +774,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!recordId) {
         window.location.href = 'index.html';
         return;
-    }
-
-    const statusSelect = document.getElementById('edit-status');
-    if (statusSelect.value === 'entregue') {
-        console.log('status entregue!!!!!')
     }
 
     try {
@@ -799,6 +794,18 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
+    document.getElementById('edit-status').addEventListener('change', () => {
+        let status = document.getElementById('edit-status').value;
+
+        if (status === 'entregue') {
+            document.getElementById('hasCosts').style.display = 'block';
+            document.getElementById('hasExpenses').style.display = 'block';
+        } else {
+            document.getElementById('hasCosts').style.display = 'none';
+            document.getElementById('hasExpenses').style.display = 'none';
+        }
+    });
+    
     document.getElementById('add-attachment-btn').addEventListener('click', () => {
         const attachmentsContainer = document.getElementById('attachments-container');
         const index = attachmentsContainer.querySelectorAll('.attachment-group').length;
