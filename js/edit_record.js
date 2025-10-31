@@ -579,6 +579,7 @@ function setupProviderUI() {
 
 async function saveAllChanges() {
     try {
+        const statusSelect = document.getElementById('edit-status');
         const hasCostsDiv = document.getElementById('hasCostsDiv');
         const hasExpensesDiv = document.getElementById('hasExpensesDiv');
         const hasCosts = document.getElementById('hasCosts');
