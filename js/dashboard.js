@@ -147,7 +147,7 @@ async function apiFetch(url, options = {}) {
             if (!resp.ok) {
                 throw new Error(data.detail || `HTTP Error ${resp.status}`);
             }
-            
+
             return data;
         }
 
@@ -367,7 +367,7 @@ function renderRecords(records) {
             <td>${record.record_id}</td>
             <td><span class="badge ${statusClass}">${capitalized}</span></td>
             <td>${record.provider?.name || 'N/A'}</td>
-            <td><i class="fas ${priorityIcon}"></i> ${record.priority}</td>
+            <td><i class="fas ${priorityIcon}"></i> ${record.priority.charAt(0).toUpperCase() + record.priority.slice(1)}</td>
             <td>${record.document_type}</td>
             <td>${record.client.name}</td>
             <td>${record.researchedName}</td>
@@ -832,10 +832,12 @@ function showRecordModal(record) {
                         <div class="row">
                             <div class="col-md-6">
                                 <h6>Informações Básicas</h6>
-                                <p><strong>Nome:</strong> ${record.agency || ''}</p>
+                                <p><strong>Tipo do documento:</strong> ${record.document_type || ''}</p>
+                                <p><strong>Órgão:</strong> ${record.agency || ''}</p>
                                 <p><strong>Status:</strong> <span class="badge badge-${record.status}">${statusText}</span></p>
-                                <p><strong>Prioridade:</strong> ${record.priority || ''}</p>
-                                <p><strong>Tipo Documento:</strong> ${record.document_type || ''}</p>
+                                <p><strong>Prioridade:</strong> ${record.priority.charAt(0).toUpperCase() + record.priority.slice(1) || ''}</p>
+                                
+                                
                             </div>
                             <div class="col-md-6">
                                 <h6>Localização</h6>
