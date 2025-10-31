@@ -480,8 +480,8 @@ function validateAllFields() {
     const errors = [];
     const requiredFields = [
         { id: 'edit-record-id', name: 'ID da deligência' },
-        { id: 'edit-agency', name: 'Órgão da deligência' },
         { id: 'edit-document-type', name: 'Tipo de Documento' },
+        { id: 'edit-agency', name: 'Órgão da deligência' },
         { id: 'edit-state', name: 'Estado' },
         { id: 'edit-city', name: 'Cidade' },
         { id: 'edit-researched-name', name: 'Nome do Pesquisado' },
