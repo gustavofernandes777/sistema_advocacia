@@ -771,7 +771,7 @@ function setupEventListeners() {
     });
 }
 
-function checkStatus() {
+async function checkStatus() {
     let status = document.getElementById('edit-status').value;
 
     if (status === 'entregue') {
@@ -805,7 +805,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             loadClients(),
             loadProviders()
         ]);
-        checkStatus()
+        await checkStatus()
     } catch (error) {
         Swal.fire({
             icon: 'error',
@@ -816,7 +816,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    document.getElementById('edit-status').addEventListener('change', () => {
+    document.getElementById('edit-status').addEventListener('change', async () => {
         checkStatus()
     });
     
