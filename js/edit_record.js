@@ -585,7 +585,13 @@ async function saveAllChanges() {
         const hasCosts = document.getElementById('hasCosts');
         const hasExpenses = document.getElementById('hasExpenses');
 
-        if (statusSelect.value === 'entregue' && (hasCostsDiv && hasExpensesDiv) && (!hasCosts.checked || !hasExpenses.checked)) {
+        const parentCost= document.getElementById('costs-container');
+        const costChildrenCount = parentCost.children.length;
+        const parentExpense= document.getElementById('expenses-container');
+        const expenseChildrenCount = parentExpense.children.length;
+
+        if (statusSelect.value === 'entregue' && (hasCostsDiv && hasExpensesDiv) && (!hasCosts.checked || !hasExpenses.checked)
+            && (costChildrenCount > 0 || expenseChildrenCount > 0)) {
             throw new Error('É obrigatório ter custas ou despesas ao mudar a diligências para "Entregue".');
         }
 
