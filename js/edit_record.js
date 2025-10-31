@@ -770,6 +770,18 @@ function setupEventListeners() {
         }
     });
 }
+
+function checkStatus() {
+    let status = document.getElementById('edit-status').value;
+
+    if (status === 'entregue') {
+        document.getElementById('hasCostsDiv').style.display = 'block';
+        document.getElementById('hasExpensesDiv').style.display = 'block';
+    } else {
+        document.getElementById('hasCostsDiv').style.display = 'none';
+        document.getElementById('hasExpensesDiv').style.display = 'none';
+    }
+}
     
 function logout() {
     localStorage.removeItem('access_token');
@@ -793,6 +805,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             loadClients(),
             loadProviders()
         ]);
+        checkStatus()
     } catch (error) {
         Swal.fire({
             icon: 'error',
@@ -804,15 +817,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     document.getElementById('edit-status').addEventListener('change', () => {
-        let status = document.getElementById('edit-status').value;
-
-        if (status === 'entregue') {
-            document.getElementById('hasCostsDiv').style.display = 'block';
-            document.getElementById('hasExpensesDiv').style.display = 'block';
-        } else {
-            document.getElementById('hasCostsDiv').style.display = 'none';
-            document.getElementById('hasExpensesDiv').style.display = 'none';
-        }
+        checkStatus()
     });
     
     document.getElementById('add-attachment-btn').addEventListener('click', () => {
