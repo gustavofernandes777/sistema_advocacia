@@ -911,7 +911,7 @@ function showRecordModal(record) {
                                             <div class="card-body">
                                                 <h6 class="card-title">${att.title || 'Sem título'}</h6>
                                                 <p class="card-text">${att.description || 'Sem descrição'}</p>
-                                                ${att.file_url ? `<a href="${apiBaseUrl}${att.file_url}" target="_blank" class="btn btn-sm btn-primary"><i class="bi bi-download"></i> Baixar</a>` : ''}
+                                                ${att.file_url ? `<a href="${att.file_url}" target="_blank" class="btn btn-sm btn-primary"><i class="bi bi-download"></i> Baixar</a>` : ''}
                                             </div>
                                         </div>
                                     `).join('')}
