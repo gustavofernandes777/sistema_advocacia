@@ -1,3 +1,3 @@
 export const CONFIG = {
-  API_URL: 'http://adf-api.duckdns.org'
+  API_URL: 'https://adf-api.duckdns.org'
 };
