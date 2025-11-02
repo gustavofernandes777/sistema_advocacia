@@ -707,7 +707,7 @@ function showRecordModal(record) {
                                                         <td><span class="badge bg-info">Custa</span></td>
                                                         <td>${cost.title}</td>
                                                         <td>R$ ${parseFloat(cost.value || 0).toLocaleString('pt-BR')}</td>
-                                                        <td>${cost.file_url ? `<a href="${apiBaseUrl}${cost.file_url}" target="_blank">Ver</a>` : 'Nenhum'}</td>
+                                                        <td>${cost.file_url ? `<a href="${cost.file_url}" target="_blank">Ver</a>` : 'Nenhum'}</td>
                                                     </tr>
                                                 `).join('') : ''}
                                                 ${record.expenses ? record.expenses.map(expense => `
@@ -715,7 +715,7 @@ function showRecordModal(record) {
                                                         <td><span class="badge bg-warning text-dark">Despesa</span></td>
                                                         <td>${expense.title}</td>
                                                         <td>R$ ${parseFloat(expense.value || 0).toLocaleString('pt-BR')}</td>
-                                                        <td>${expense.file_url ? `<a href="${apiBaseUrl}${expense.file_url}" target="_blank">Ver</a>` : 'Nenhum'}</td>
+                                                        <td>${expense.file_url ? `<a href="${expense.file_url}" target="_blank">Ver</a>` : 'Nenhum'}</td>
                                                     </tr>
                                                 `).join('') : ''}
                                             </tbody>
@@ -737,7 +737,7 @@ function showRecordModal(record) {
                                                 <h6 class="card-title">${attachment.title}</h6>
                                                 <p class="card-text">${attachment.description || 'Sem descrição'}</p>
                                                 ${attachment.file_url ? `
-                                                    <a href="${apiBaseUrl}${attachment.file_url}" target="_blank" class="btn btn-sm btn-primary">
+                                                    <a href="${attachment.file_url}" target="_blank" class="btn btn-sm btn-primary">
                                                         <i class="bi bi-download"></i> Baixar
                                                     </a>
                                                 ` : ''}
