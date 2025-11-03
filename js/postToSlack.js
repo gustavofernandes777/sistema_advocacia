@@ -1,4 +1,4 @@
-async function postMessageToSlack(message) {
+export async function postMessageToSlack(message) {
     const webhookUrl = 'https://hooks.slack.com/services/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';
 
     fetch(webhookUrl, {
@@ -19,5 +19,3 @@ async function postMessageToSlack(message) {
             console.error('Error sending Slack message:', error);
         });
 }
-
-module.exports = { postMessageToSlack };

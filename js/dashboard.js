@@ -5,7 +5,7 @@ let clientsData = [];
 let recordsData = [];
 let dataTable;
 const apiBaseUrl = CONFIG.API_URL;
-const slack = require('./postToSlack.js')
+import { postMessageToSlack } from './postToSlack.js'
 
 function getTokenInfo() {
     const keys = [];
@@ -636,7 +636,7 @@ function setupEventListeners() {
             const sel = document.getElementById('provider_id')
             const providerName = sel.options[sel.selectedIndex].text.split(' (')[0]
             
-            await slack.postMessageToSlack(`Uma nova deligência foi criada: 
+            await postMessageToSlack(`Uma nova deligência foi criada: 
                 ID: ${recordData.record_id}, Provedor: @${providerName}, Status: ${recordData.status}, Prioridade: ${recordData.priority}`);
 
             bootstrap.Modal.getInstance(document.getElementById('recordModal')).hide();
