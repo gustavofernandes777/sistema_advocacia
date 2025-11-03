@@ -1,3 +1,19 @@
+function getTokenInfo() {
+    const keys = [];
+    for (let i = 0; i < localStorage.length; i++) keys.push(localStorage.key(i));
+    console.log('DEBUG origin:', location.origin, 'href:', location.href);
+    console.log('DEBUG localStorage keys:', keys);
+
+    const token = localStorage.getItem('access_token')
+               || localStorage.getItem('token')
+               || localStorage.getItem('auth_token')
+               || null;
+
+    const tokenType = localStorage.getItem('token_type') || 'Bearer';
+    console.log('DEBUG token found?', !!token, 'tokenType:', tokenType);
+    return { token, tokenType };
+}
+
 async function apiFetch(url, options = {}) {
     const { token, tokenType } = getTokenInfo();
     const authHeader = `Bearer ${token}`;
