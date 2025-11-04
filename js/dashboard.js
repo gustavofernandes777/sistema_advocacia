@@ -636,7 +636,7 @@ function setupEventListeners() {
             const sel = document.getElementById('provider_id')
             const providerName = sel.options[sel.selectedIndex].text.split(' (')[0]
             
-            await postMessageToSlack(`:heavy_plus_sign: *Uma nova diligência foi criada*: ID: ${recordData.record_id}, Provedor: *${providerName}*, Status: ${recordData.status}, Prioridade: ${recordData.priority}`);
+            await postMessageToSlack(`:heavy_plus_sign: *Uma nova diligência foi criada*: ID: ${recordData.record_id}, Prestador: *${providerName}*, Status: ${recordData.status}, Prioridade: ${recordData.priority}`);
 
             bootstrap.Modal.getInstance(document.getElementById('recordModal')).hide();
             await loadRecords();
