@@ -625,7 +625,7 @@ async function saveAllChanges() {
         await removeMarkedItems();
 
         const record_id = document.getElementById('edit-record-id').value;
-        await postMessageToSlack(`:pencil2: *Uma nova diligência foi editada*: ID: ${record_id}, Editor: *${currentUser.name}*`);
+        await postMessageToSlack(`:pencil2: *Uma diligência foi editada*: ID: ${record_id}, Editor: *${currentUser.name}*`);
 
         Swal.fire({
             icon: 'success',
