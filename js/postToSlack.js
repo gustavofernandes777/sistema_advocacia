@@ -1,97 +1,18 @@
-function getTokenInfo() {
-    const keys = [];
-    for (let i = 0; i < localStorage.length; i++) keys.push(localStorage.key(i));
-    console.log('DEBUG origin:', location.origin, 'href:', location.href);
-    console.log('DEBUG localStorage keys:', keys);
-
-    const token = localStorage.getItem('access_token')
-               || localStorage.getItem('token')
-               || localStorage.getItem('auth_token')
-               || null;
-
-    const tokenType = localStorage.getItem('token_type') || 'Bearer';
-    console.log('DEBUG token found?', !!token, 'tokenType:', tokenType);
-    return { token, tokenType };
-}
-
-async function apiFetch(url, options = {}) {
-    const { token, tokenType } = getTokenInfo();
-    const authHeader = `Bearer ${token}`;
-
-    const defaultHeaders = {
-        'Authorization': authHeader,
-        'Accept': 'application/json',
-        'X-Requested-With': 'XMLHttpRequest',
-        'Ngrok-Skip-Browser-Warning': 'true',
-        'User-Agent': 'MyApp/1.0'
-    };
-
-    // Não adicionar Content-Type para FormData
-    if (!(options.body instanceof FormData)) {
-        defaultHeaders['Content-Type'] = 'application/json';
-    }
-
-    const mergedHeaders = { ...defaultHeaders, ...options.headers };
-
+export async function postMessageToSlack(mensagem) {
     try {
-        const resp = await fetch(url, {
-            ...options,
-            mode: 'cors',
-            credentials: 'omit',
-            headers: mergedHeaders
+        const response = await fetch("/api/slack", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ message: mensagem }),
         });
 
-        const contentType = resp.headers.get('content-type') || '';
-        const text = await resp.text();
-
-        // Verificar se é página do ngrok
-        if (text.includes('ngrok') || text.includes('<!DOCTYPE')) {
-            throw new Error('Ngrok bloqueando acesso - página HTML recebida');
-        }
-
-        // PARA DELETE: se for 204 ou sem corpo, retorne null ou response direto
-        if (resp.status === 204) {
-            return null;
+        const result = await response.json();
+        if (response.ok && result.success) {
+            console.log("✅ Mensagem enviada com sucesso!");
         } else {
-            if (!contentType.includes('application/json')) {
-                throw new Error(`Content-Type inesperado: ${contentType}`);
-            }
-
-            const data = JSON.parse(text);
-
-            if (!resp.ok) {
-                throw new Error(data.detail || `HTTP Error ${resp.status}`);
-            }
-
-            return data;
-        }
-
-    } catch (error) {
-        console.error('❌ apiFetch error:', error);
-        throw error;
-    }
-}
-
-export async function postMessageToSlack(message) {
-    // 🔧 Substitua pela URL completa do webhook Slack:
-    const webhookUrl = 'https://hooks.slack.com/services/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';
-
-    try {
-
-        const response = await apiFetch(webhookUrl, {
-            method: 'POST',
-            body: JSON.stringify({
-                text: message,
-            })
-        });
-
-        if (!response.ok) {
-            const text = await response.text();
-            console.error(`❌ Falha ao enviar mensagem: ${response.status} ${response.statusText} - ${text}`);
-        } else {
-            console.log('✅ Mensagem enviada ao Slack com sucesso!');
+            console.error("❌ Falha:", result.detail || result.message);
         }
     } catch (error) {
-        console.error('🚨 Erro ao enviar mensagem para o Slack:', error);
+        console.error("🚨 Erro na requisição:", error);
     }
 }
