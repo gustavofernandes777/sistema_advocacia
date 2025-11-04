@@ -1,4 +1,5 @@
 // Variáveis globais
+import { postMessageToSlack } from './postToSlack.js'
 import { CONFIG } from "./config.js";
 let currentRecord = null;
 let currentUser = null;
@@ -623,12 +624,16 @@ async function saveAllChanges() {
         await processNewItems();
         await removeMarkedItems();
 
+        const record_id = document.getElementById('edit-record-id').value;
+        await postMessageToSlack(`:pencil2: *Uma nova diligência foi editada*: ID: ${record_id}, Editor: *${currentUser.name}*`);
+
         Swal.fire({
             icon: 'success',
             title: 'Sucesso!',
             text: 'Registro atualizado com sucesso'
         }).then(() => {
             window.location.href = 'index.html';
+            
         });
     } catch (error) {
         if (error.message.includes('Erros de validação')) {
