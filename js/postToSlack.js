@@ -79,7 +79,7 @@ export async function postMessageToSlack(mensagem) {
     try {
         const response = await apiFetch(`${apiBaseUrl}/api/slack`, {
             method: "POST",
-            body: JSON.stringify({mensagem}),
+            body: JSON.stringify(mensagem),
         });
 
         Swal.fire({
@@ -88,7 +88,6 @@ export async function postMessageToSlack(mensagem) {
             text: 'Mensagem enviada com sucesso!'
         });
 
-        const result = await response.json();
         if (response.ok && result.success) {
             console.log("✅ Mensagem enviada com sucesso!");
         } else {
