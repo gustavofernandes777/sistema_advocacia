@@ -82,12 +82,6 @@ export async function postMessageToSlack(mensagem) {
             body: JSON.stringify({ message: mensagem }),
         });
 
-        Swal.fire({
-            icon: 'success',
-            title: 'Sucesso!',
-            text: 'Mensagem enviada com sucesso!'
-        });
-
         if (response.ok && result.success) {
             console.log("✅ Mensagem enviada com sucesso!");
         } else {
