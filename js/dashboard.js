@@ -698,7 +698,7 @@ function setupEventListeners() {
                         text: 'Registro e todos os arquivos associados foram removidos'
                     });
 
-                    await postMessageToSlack(`:x: *Uma diligência foi removida*: ID: ${recordId}.`);
+                    await postMessageToSlack(`:x: *Uma diligência foi removida*: ID: ${record.record_id}.`);
 
                     await loadRecords();
                 } catch (error) {
