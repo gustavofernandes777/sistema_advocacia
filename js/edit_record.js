@@ -630,7 +630,7 @@ async function saveAllChanges() {
 
         await postMessageToSlack('notificacao', `:pencil2: *Uma diligência foi editada*: ID: ${record_id}, Editor: *${currentUser.name}*`);
         if (statusSelect.value === 'entregue'){
-            await postMessageToSlack('financeiro', `:check_box_with_check: *Uma diligência foi entregue*: ID: ${record_id}, Prestador: *${providerSelect}*, Cidade: ${citySelect}/${stateSelect}.`);
+            await postMessageToSlack('financeiro', `:white_check_mark: *Uma diligência foi entregue*: ID: ${record_id}, Prestador: *${providerSelect}*, Cidade: ${citySelect}/${stateSelect.toUpperCase()}.`);
         }
 
         Swal.fire({

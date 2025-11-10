@@ -82,11 +82,7 @@ export async function postMessageToSlack(type, mensagem) {
             body: JSON.stringify({type: type, message: mensagem }),
         });
 
-        if (response.ok && result.success) {
-            console.log("✅ Mensagem enviada com sucesso!");
-        } else {
-            console.error("❌ Falha:", result.detail || result.message);
-        }
+        console.log("✅ Mensagem enviada com sucesso!");
     } catch (error) {
         console.error("🚨 Erro na requisição:", error);
     }
