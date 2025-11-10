@@ -599,7 +599,6 @@ async function saveAllChanges() {
             throw new Error('Ao marcar a opção "Tem despesas?", é obrigatório adicionar as despesas para mudar a diligências para "Entregue".');
         }
 
-
         if (currentUser && currentUser.type !== 'admin') {
             const providerSelect = document.getElementById('edit-provider-id');
             if (providerSelect.value != currentUser.id) {
@@ -625,7 +624,14 @@ async function saveAllChanges() {
         await removeMarkedItems();
 
         const record_id = document.getElementById('edit-record-id').value;
-        await postMessageToSlack(`:pencil2: *Uma diligência foi editada*: ID: ${record_id}, Editor: *${currentUser.name}*`);
+        const providerSelect = document.getElementById('edit-researched-name').value;
+        const citySelect = document.getElementById('edit-city').value;
+        const stateSelect = document.getElementById('edit-state').value;
+
+        await postMessageToSlack('notificacao', `:pencil2: *Uma diligência foi editada*: ID: ${record_id}, Editor: *${currentUser.name}*`);
+        if (statusSelect.value === 'entregue'){
+            await postMessageToSlack('financeiro', `:check_box_with_check: *Uma diligência foi entregue*: ID: ${record_id}, Prestador: *${providerSelect}*, Cidade: ${citySelect}/${stateSelect}.`);
+        }
 
         Swal.fire({
             icon: 'success',

@@ -636,7 +636,7 @@ function setupEventListeners() {
             const sel = document.getElementById('provider_id')
             const providerName = sel.options[sel.selectedIndex].text.split(' (')[0]
             
-            await postMessageToSlack(`:heavy_plus_sign: *Uma nova diligência foi criada*: ID: ${recordData.record_id}, Prestador: *${providerName}*, Status: ${recordData.status}, Prioridade: ${recordData.priority}`);
+            await postMessageToSlack('notificacao', `:heavy_plus_sign: *Uma nova diligência foi criada*: ID: ${recordData.record_id}, Prestador: *${providerName}*, Cidade: ${recordData.city}/${recordData.state}, Prioridade: ${recordData.priority}`);
 
             bootstrap.Modal.getInstance(document.getElementById('recordModal')).hide();
             await loadRecords();
@@ -698,7 +698,7 @@ function setupEventListeners() {
                         text: 'Registro e todos os arquivos associados foram removidos'
                     });
 
-                    await postMessageToSlack(`:x: *Uma diligência foi removida*: ID: ${record.record_id}.`);
+                    await postMessageToSlack('notificacao', `:x: *Uma diligência foi removida*: ID: ${record.record_id}.`);
 
                     await loadRecords();
                 } catch (error) {

@@ -75,11 +75,11 @@ async function apiFetch(url, options = {}) {
     }
 }
 
-export async function postMessageToSlack(mensagem) {
+export async function postMessageToSlack(type, mensagem) {
     try {
         const response = await apiFetch(`${apiBaseUrl}/api/slack`, {
             method: "POST",
-            body: JSON.stringify({ message: mensagem }),
+            body: JSON.stringify({type: type, message: mensagem }),
         });
 
         if (response.ok && result.success) {
