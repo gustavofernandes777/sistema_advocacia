@@ -872,7 +872,7 @@ function showRecordModal(record) {
                                 <h6>Responsáveis</h6>
                                 <p><strong>Cliente:</strong> ${record.client.name}</p>
                                 <p><strong>Prestador:</strong> ${record.provider.name}</p>
-                                <p><strong>Data Registro:</strong> ${record.register_date}</p>
+                                <p><strong>Data Registro:</strong> ${formatarDataBR(record.register_date)}</p>
                                 ${record.last_update ? `<p><strong>Última Atualização:</strong> ${new Date(record.last_update).toLocaleString('pt-BR')}</p>` : ''}
                             </div>
 
