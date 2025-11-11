@@ -407,7 +407,7 @@ async function loadProviders() {
             return;
         }
 
-        console.log('🔄 Carregando provedores...');
+        console.log('🔄 Carregando prestadores...');
         const users = await apiFetch(`${apiBaseUrl}/users/`);
         const providerSelect = document.getElementById('provider_id');
 
@@ -419,9 +419,9 @@ async function loadProviders() {
         // Limpar select
         providerSelect.innerHTML = '<option value="">Selecione um prestador</option>';
         
-        // Adicionar provedores
+        // Adicionar prestadores
         users.forEach(user => {
-            if (user.type === 'provedor' || user.type === 'admin') {
+            if (user.type === 'prestador' || user.type === 'admin') {
                 const option = document.createElement('option');
                 option.value = user.id;
                 option.textContent = `${user.name} ${user.last_name || ''} (${user.type})`.trim();
@@ -429,7 +429,7 @@ async function loadProviders() {
             }
         });
 
-        console.log('✅ Provedores carregados com sucesso');
+        console.log('✅ Prestadores carregados com sucesso');
 
     } catch (error) {
         console.error('Erro ao carregar prestadores:', error);

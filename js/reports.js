@@ -275,13 +275,13 @@ function updateClientFilter(clients) {
     });
 }
 
-// Atualizar filtro de provedor
+// Atualizar filtro de prestador
 function updateProviderFilter(users) {
-    const provedorSelect = document.getElementById('provedor');
+    const prestadorSelect = document.getElementById('prestador');
 
-    // Limpar opções exceto "Todos os Provedores"
-    while (provedorSelect.options.length > 1) {
-        provedorSelect.remove(1);
+    // Limpar opções exceto "Todos os prestadores"
+    while (prestadorSelect.options.length > 1) {
+        prestadorSelect.remove(1);
     }
 
     // Adicionar clientes
@@ -289,7 +289,7 @@ function updateProviderFilter(users) {
         const option = document.createElement('option');
         option.value = client.id;
         option.textContent = client.name;
-        provedorSelect.appendChild(option);
+        prestadorSelect.appendChild(option);
     });
 }
 
@@ -304,7 +304,7 @@ function applyFilters() {
         const status = document.getElementById('status').value
         const empresa = document.getElementById('empresa').value;
         const estado = document.getElementById('estado').value;
-        const provedor = document.getElementById('provedor').value;
+        const prestador = document.getElementById('prestador').value;
 
         filteredData = allData.filter(item => {
             // Filtrar por empresa
@@ -326,11 +326,11 @@ function applyFilters() {
                 if (item.state.toLowerCase() !== estadoSelect) return false;
             }
 
-            // Filtrar por prestador(provedor)
-            if (provedor !== 'todas') {
-                const provedorSelect = document.getElementById('provedor');
-                const provedorNome = provedorSelect.options[provedorSelect.selectedIndex].text;
-                if (item.provider !== provedorNome) return false;
+            // Filtrar por prestador(prestador)
+            if (prestador !== 'todas') {
+                const prestadorSelect = document.getElementById('prestador');
+                const prestadorNome = prestadorSelect.options[prestadorSelect.selectedIndex].text;
+                if (item.provider !== prestadorNome) return false;
             }
 
             // Filtrar por período
@@ -1069,7 +1069,7 @@ async function exportToPDF() {
                 'Data': formatDate(item.date),
                 'Empresa': item.company,
                 'Cidade/Estado': `${item.city}/${item.state.toUpperCase()}`,
-                'Provedor': item.provider,
+                'Prestador': item.provider,
                 'Status': getStatusText(item.status),
                 'Tipo Documento': item.document_type,
                 'Nome Pesquisado': item.researchedName,
@@ -1522,7 +1522,7 @@ function showFinancialFormModal(recordId, expense, financialData) {
                             <div class="mb-3">
                                 <label class="form-label">Pagamento do Prestador (R$)</label>
                                 <input type="number" step="0.01" class="form-control" id="providerPayment" 
-                                       value="${financialData ? financialData.provider_payment : ''}" required>
+                                       value="${financialData ? financialData._payment : ''}" required>
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Despesas</label>

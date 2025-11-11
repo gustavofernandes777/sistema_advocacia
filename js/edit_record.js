@@ -459,7 +459,7 @@ async function loadProviders() {
         providerSelect.innerHTML = '<option value="">Selecione um prestador</option>';
 
         users.forEach(user => {
-            if (user.type === 'provedor' || user.type === 'admin') {
+            if (user.type === 'prestador' || user.type === 'admin') {
                 const option = document.createElement('option');
                 option.value = user.id;
                 option.textContent = `${user.name} ${user.last_name} (${user.type})`;
