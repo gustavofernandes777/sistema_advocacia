@@ -378,7 +378,7 @@ function renderRecords(records) {
             <td>${record.client.name}</td>
             <td>${record.researchedName}</td>
             <td>${formatarDataBR(record.register_date)}</td>
-            <td>${record.last_update ? formatarDataBR(record.last_update) : 'N/A'}</td>
+            <td>${record.last_update ? new Date(record.last_update).toLocaleString('pt-BR') : 'N/A'}</td>
             <td>
                 <button class="btn btn-sm btn-outline-primary mb-1 view-btn" data-id="${record.id}">
                     <i class="fas fa-eye"></i>
@@ -873,7 +873,7 @@ function showRecordModal(record) {
                                 <p><strong>Cliente:</strong> ${record.client.name}</p>
                                 <p><strong>Prestador:</strong> ${record.provider.name}</p>
                                 <p><strong>Data Registro:</strong> ${record.register_date}</p>
-                                ${record.last_update ? `<p><strong>Última Atualização:</strong> ${formatarDataBR(record.last_update)}</p>` : ''}
+                                ${record.last_update ? `<p><strong>Última Atualização:</strong> ${new Date(record.last_update).toLocaleString('pt-BR')}</p>` : ''}
                             </div>
 
                         <div class="row mt-6">
