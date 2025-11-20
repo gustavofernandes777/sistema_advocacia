@@ -543,6 +543,7 @@ async function loadCurrentUser() {
         if (currentUser.type !== 'admin') {
             document.getElementById('reportsLink').style.display = 'none';
             document.getElementById('userListLink').style.display = 'none';
+            document.getElementById('adminDropdown').style.display = 'none';
         }
     } catch (error) {
         logout();

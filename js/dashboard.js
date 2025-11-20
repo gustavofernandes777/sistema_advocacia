@@ -168,6 +168,7 @@ async function loadUserData() {
     if (currentUser.type !== 'admin') {
         document.getElementById('newUserBtn').style.display = 'none';
         document.getElementById('addRecordBtn').style.display = 'none';
+        document.getElementById('adminDropdown').style.display = 'none';
         document.getElementById('reportsLink').style.display = 'none';
         document.getElementById('userListLink').style.display = 'none';
     }

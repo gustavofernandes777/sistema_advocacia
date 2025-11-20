@@ -148,7 +148,7 @@ function loadUserData() {
 
     if (currentUser.type !== 'admin') {
         document.getElementById('reportsLink').style.display = 'none';
-        document.getElementById('').style.display = 'none';
+        document.getElementById('adminDropdown').style.display = 'none';
     }
 }
 
