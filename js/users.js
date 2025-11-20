@@ -113,6 +113,13 @@ async function checkAuth() {
             }
 
             currentUser = data;
+
+            if (currentUser.type !== 'admin') {
+                alert('Acesso restrito a administradores');
+                window.location.href = 'index.html';
+                return;
+            }
+
             loadUserData();
             loadUsersList();
             return true;
