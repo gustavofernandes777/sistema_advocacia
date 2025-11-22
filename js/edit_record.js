@@ -145,7 +145,7 @@ const attachmentTemplate = (index, data = null) => {
                 <label class="form-label">Título</label>
                 ${isExisting ?
             `<div class="form-control-plaintext">${title}</div>` :
-            `<input type="text" class="form-control attachment-title-input" placeholder="Título do anexo" required>`
+            `<input type="text" id = "attachment-title" class="form-control attachment-title-input" placeholder="Título do anexo" required>`
         }
             </div>
             <div class="col-md-4">
@@ -587,6 +587,14 @@ async function saveAllChanges() {
         const hasMail = document.getElementById('hasMail');
         const attachmentsCost= document.getElementById("attachments-container");
         const attachmentsCostChildrenCount = attachmentsCost.children.length;
+        let mailCount
+        attachmentsCost.querySelectorAll("#attachment-title").forEach(input => {
+            mailCount++
+        });
+
+        print('mailCount', mailCount)
+
+        
 
         const hasCostsDiv = document.getElementById('hasCostsDiv');
         const hasCosts = document.getElementById('hasCosts');
