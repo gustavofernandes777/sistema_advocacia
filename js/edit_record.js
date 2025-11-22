@@ -804,9 +804,11 @@ async function checkStatus() {
     let status = document.getElementById('edit-status').value;
 
     if (status === 'entregue') {
+        document.getElementById('hasMailDiv').style.display = 'block';
         document.getElementById('hasCostsDiv').style.display = 'block';
         document.getElementById('hasExpensesDiv').style.display = 'block';
     } else {
+        document.getElementById('hasMailDiv').style.display = 'none';
         document.getElementById('hasCostsDiv').style.display = 'none';
         document.getElementById('hasExpensesDiv').style.display = 'none';
     }
