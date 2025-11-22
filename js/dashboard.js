@@ -515,24 +515,19 @@ document.addEventListener('DOMContentLoaded', async () => {
         await loadClients();
         await loadRecords();
 
-        const datatablesSimple = document.getElementById('datatablesSimple');
-        if (datatablesSimple) {
-            new simpleDatatables.DataTable(datatablesSimple);
-        }
-
         const links = document.querySelectorAll('.ver-detalhes');
-
-        links.forEach(link => {
-            link.addEventListener('click', function (e) {
-                e.preventDefault();
-                const status = this.getAttribute('data-status');
-                filterRecords(status);
-            });
+    
+    links.forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            const status = this.getAttribute('data-status');
+            filterRecords(status);
         });
-
+    });
+    
         setupEventListeners();
 
-        //window.initDataTable();
+        window.initDataTable();
     } catch (error) {
         showError(error);
     }
