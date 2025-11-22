@@ -529,7 +529,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         window.initDataTable();
         setTimeout(() => {
-            const newTbody = table.querySelector('tbody');
+            const newTbody = document.getElementById('datatablesSimple').querySelector('tbody');
             if (newTbody) newTbody.id = "records-body";
         }, 0);
 
