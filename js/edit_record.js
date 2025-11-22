@@ -586,8 +586,8 @@ async function saveAllChanges() {
         const hasMailDiv = document.getElementById('hasMailDiv');
         const hasMail = document.getElementById('hasMail');
         const attachmentsCost= document.getElementById("attachments-container");
-        const attachmentsCostChildrenCount = attachmentsCost.children.length;
-        let mailCount
+        //const attachmentsCostChildrenCount = attachmentsCost.children.length;
+        let mailCount = 0
         attachmentsCost.querySelectorAll("#attachment-title").forEach(input => {
             if (document.getElementById('attachment-title').value.toLowerCase() == 'postagem correios'){
                 mailCount++
@@ -596,8 +596,6 @@ async function saveAllChanges() {
         });
 
         print('mailCount', mailCount)
-
-        
 
         const hasCostsDiv = document.getElementById('hasCostsDiv');
         const hasCosts = document.getElementById('hasCosts');
@@ -609,7 +607,7 @@ async function saveAllChanges() {
         const parentExpense= document.getElementById('expenses-container');
         const expenseChildrenCount = parentExpense.children.length;
 
-        if (statusSelect.value === 'entregue' && hasMailDiv && hasMail.checked && attachmentsCostChildrenCount == 0 ) {
+        if (statusSelect.value === 'entregue' && hasMailDiv && hasMail.checked && mailCount == 0 ) {
             throw new Error('Ao marcar a opção "Tem postagem nos correios?", é obrigatório adicionar o comprovante da postagem para mudar a diligências para "Entregue".');
         }
 
