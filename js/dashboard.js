@@ -545,6 +545,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         await loadProviders();
         await loadClients();
         await loadRecords();
+        initGridJS();
 
         const links = document.querySelectorAll('.ver-detalhes');
     
@@ -557,7 +558,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
     
         setupEventListeners();
-        initGridJS();
 
     } catch (error) {
         showError(error);
