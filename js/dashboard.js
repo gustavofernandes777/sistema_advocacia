@@ -532,7 +532,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         setupEventListeners();
 
-        //window.initDataTable();
+        window.initDataTable();
     } catch (error) {
         showError(error);
     }
