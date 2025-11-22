@@ -321,6 +321,7 @@ async function loadRecords() {
 
         renderRecords(recordsData);
         updateStatusCounts();
+        initGridJS();
 
     } catch (error) {
         console.error('❌ Erro ao carregar registros:', error);
@@ -337,6 +338,37 @@ async function loadRecords() {
         loadingElement.style.display = 'none';
     }
 }
+
+function initGridJS() {
+
+    const table = document.getElementById("datatablesSimple");
+
+    // Remover Grid anterior (se existir)
+    const wrapper = document.getElementById("grid-wrapper");
+    wrapper.innerHTML = "";  // limpa a div (removendo tabela antiga)
+
+    new gridjs.Grid({
+        from: table,    // ← pega sua tabela atual e converte
+        search: true,
+        sort: true,
+        pagination: {
+            enabled: true,
+            limit: 10
+        },
+        language: {
+            search: {
+                placeholder: "Buscar..."
+            },
+            pagination: {
+                previous: "Anterior",
+                next: "Próximo",
+                showing: "Mostrando",
+                results: () => "registros"
+            }
+        }
+    }).render(wrapper);
+}
+
 
 function formatarDataBR(dataISO) {
   const [ano, mes, dia] = dataISO.split('-').map(Number);
@@ -526,8 +558,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
     
         setupEventListeners();
-
-        //window.initDataTable();
 
     } catch (error) {
         showError(error);
