@@ -525,9 +525,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     });
     
-        setupEventListeners();
-
         window.initDataTable();
+        setupEventListeners();
+        
     } catch (error) {
         showError(error);
     }
