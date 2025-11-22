@@ -595,8 +595,6 @@ async function saveAllChanges() {
             
         });
 
-        print('mailCount', mailCount)
-
         const hasCostsDiv = document.getElementById('hasCostsDiv');
         const hasCosts = document.getElementById('hasCosts');
         const parentCost= document.getElementById('costs-container');
