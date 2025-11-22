@@ -342,11 +342,12 @@ function initGridJS() {
 
     const table = document.getElementById("datatablesSimple");
 
+    // Remover Grid anterior (se existir)
     const wrapper = document.getElementById("grid-wrapper");
-    wrapper.innerHTML = "";  
+    wrapper.innerHTML = "";  // limpa a div (removendo tabela antiga)
 
     new gridjs.Grid({
-        from: table, 
+        from: table,    // ← pega sua tabela atual e converte
         search: true,
         sort: true,
         pagination: {
@@ -555,8 +556,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     });
     
-        initGridJS();
         setupEventListeners();
+        initGridJS();
 
     } catch (error) {
         showError(error);
@@ -687,21 +688,21 @@ function setupEventListeners() {
     });
 
     // Delegation para botões de ação na tabela
-    document.getElementById('records-body').addEventListener('click', async (e) => {
-        const recordId = e.target.closest('button')?.dataset?.id;
-        if (!recordId) return;
+    document.addEventListener('click', async (e) => {
+        const btn = e.target.closest('button');
+        if (!btn || !btn.dataset.id) return;
 
+        const recordId = btn.dataset.id;
         const record = recordsData.find(r => r.id == recordId);
         if (!record) return;
 
-        if (e.target.closest('.view-btn')) {
+        if (btn.classList.contains('view-btn')) {
             showRecordModal(record);
         }
-        else if (e.target.closest('.edit-btn')) {
-            const recordId = e.target.closest('button').dataset.id;
+        else if (btn.classList.contains('edit-btn')) {
             window.location.href = `edit_record.html?id=${recordId}`;
         }
-        else if (e.target.closest('.delete-btn') && currentUser.type === 'admin') {
+        else if (btn.classList.contains('delete-btn') && currentUser.type === 'admin') {
             const record = recordsData.find(r => r.id == recordId);
             let message = `Deseja realmente excluir o registro ${record.record_id}?`;
 
