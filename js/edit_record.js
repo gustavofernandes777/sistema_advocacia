@@ -585,11 +585,11 @@ async function saveAllChanges() {
 
         const hasMailDiv = document.getElementById('hasMailDiv');
         const hasMail = document.getElementById('hasMail');
-        const attachmentsCost= document.getElementById("attachments-container");
-        //const attachmentsCostChildrenCount = attachmentsCost.children.length;
+        const parentAttachments= document.getElementById("attachments-container");
+        //const attachmentsCostChildrenCount = parentAttachments.children.length;
         let mailCount = 0
-        attachmentsCost.querySelectorAll("#attachment-title").forEach(input => {
-            if (document.getElementById('attachment-title').value.toLowerCase() == 'postagem correios'){
+        parentAttachments.querySelectorAll("#attachment-title").forEach(element => {
+            if (element.value.toLowerCase() == 'postagem correios'){
                 mailCount++
             }
             
