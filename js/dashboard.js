@@ -321,7 +321,6 @@ async function loadRecords() {
 
         renderRecords(recordsData);
         updateStatusCounts();
-        initGridJS();
 
     } catch (error) {
         console.error('❌ Erro ao carregar registros:', error);
@@ -558,6 +557,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
     
         setupEventListeners();
+        initGridJS();
 
     } catch (error) {
         showError(error);
