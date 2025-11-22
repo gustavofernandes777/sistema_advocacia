@@ -772,8 +772,8 @@ function setupEventListeners() {
                 cancelButtonText: 'Cancelar'
             }).then((result) => {
                 if (result.isConfirmed) {
-                    group.style.display = 'none';
                     group.removeAttribute('required');
+                    group.style.display = 'none';
                     group.setAttribute('data-removed', 'true');
 
                     button.disabled = true;
