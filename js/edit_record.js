@@ -772,7 +772,9 @@ function setupEventListeners() {
                 cancelButtonText: 'Cancelar'
             }).then((result) => {
                 if (result.isConfirmed) {
-                    group.removeAttribute('required');
+                    group.querySelectorAll('input[required]').forEach(input => {
+                        input.removeAttribute('required');
+                    });
                     group.style.display = 'none';
                     group.setAttribute('data-removed', 'true');
 
