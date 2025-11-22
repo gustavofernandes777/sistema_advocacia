@@ -514,6 +514,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         await loadProviders();
         await loadClients();
         await loadRecords();
+        
+        window.initDataTable();
+
+        const datatablesSimple = document.getElementById('datatablesSimple');
+        if (datatablesSimple) {
+            new simpleDatatables.DataTable(datatablesSimple);
+        }
 
         const links = document.querySelectorAll('.ver-detalhes');
     
