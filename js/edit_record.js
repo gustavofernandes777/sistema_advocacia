@@ -773,6 +773,7 @@ function setupEventListeners() {
             }).then((result) => {
                 if (result.isConfirmed) {
                     group.style.display = 'none';
+                    group.removeAttribute('required');
                     group.setAttribute('data-removed', 'true');
 
                     button.disabled = true;
