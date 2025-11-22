@@ -527,11 +527,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     
         setupEventListeners();
 
-        window.initDataTable();
-        setTimeout(() => {
-            const newTbody = document.getElementById('datatablesSimple').querySelector('tbody');
-            if (newTbody) newTbody.id = "records-body";
-        }, 0);
+        //window.initDataTable();
 
     } catch (error) {
         showError(error);
