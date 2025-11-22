@@ -474,6 +474,28 @@ function updateStatusCounts() {
     document.getElementById('completed-count').textContent = counts['finalizada'];
 }
 
+// Inicializa DataTable NAO USADA
+function initDataTable() {
+    dataTable = new simpleDatatables.DataTable("#recordsTable", {
+        perPage: 10,
+        labels: {
+            placeholder: "Pesquisar...",
+            perPage: "{select} registros por página",
+            noRows: "Nenhum registro encontrado",
+            info: "Mostrando {start} a {end} de {rows} registros",
+        }
+    });
+}
+//NAO USADA
+function handleApiError(error) {
+    if (error.message.includes('401') || error.message.includes('Não autorizado')) {
+        localStorage.removeItem('access_token');
+        window.location.href = 'login.html';
+    } else {
+        showError('Erro: ' + error.message);
+    }
+}
+
 // Filtra registros por status NAO USADA
 function filterRecords(status) {
     const filtered = recordsData.filter(record => record.status === status);
