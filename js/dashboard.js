@@ -525,9 +525,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     });
     
-        window.initDataTable();
         setupEventListeners();
-        
+
+        window.initDataTable();
+        setTimeout(() => {
+            const newTbody = table.querySelector('tbody');
+            if (newTbody) newTbody.id = "records-body";
+        }, 0);
+
     } catch (error) {
         showError(error);
     }
