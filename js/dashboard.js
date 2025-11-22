@@ -342,12 +342,11 @@ function initGridJS() {
 
     const table = document.getElementById("datatablesSimple");
 
-    // Remover Grid anterior (se existir)
     const wrapper = document.getElementById("grid-wrapper");
-    wrapper.innerHTML = "";  // limpa a div (removendo tabela antiga)
+    wrapper.innerHTML = "";  
 
     new gridjs.Grid({
-        from: table,    // ← pega sua tabela atual e converte
+        from: table, 
         search: true,
         sort: true,
         pagination: {
@@ -556,8 +555,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     });
     
-        setupEventListeners();
         initGridJS();
+        setupEventListeners();
 
     } catch (error) {
         showError(error);
