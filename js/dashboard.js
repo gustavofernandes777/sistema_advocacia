@@ -406,6 +406,7 @@ function renderRecords(records) {
             <td><i class="fas ${priorityIcon}"></i> ${record.priority.charAt(0).toUpperCase() + record.priority.slice(1)}</td>
             <td>${record.document_type}</td>
             <td>${record.client.name}</td>
+            <td>${record.city}/${record.state.toUpperCase()}</td>
             <td>${record.researchedName}</td>
             <td>${formatarDataBR(record.register_date)}</td>
             <td>${record.last_update ? new Date(record.last_update).toLocaleString('pt-BR') : 'N/A'}</td>
