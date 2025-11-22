@@ -606,7 +606,7 @@ async function saveAllChanges() {
         const expenseChildrenCount = parentExpense.children.length;
 
         if (statusSelect.value === 'entregue' && hasMailDiv && hasMail.checked && mailCount == 0 ) {
-            throw new Error('Ao marcar a opção "Tem postagem nos correios?", é obrigatório adicionar o comprovante da postagem para mudar a diligências para "Entregue".');
+            throw new Error('Ao marcar a opção "Tem postagem nos correios?", é obrigatório adicionar o comprovante da postagem, com o título "Postagem correios", para mudar a diligências para "Entregue".');
         }
 
         if (statusSelect.value === 'entregue' && hasCostsDiv && hasCosts.checked && costChildrenCount == 0 ) {
