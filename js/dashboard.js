@@ -294,66 +294,93 @@ async function createClient() {
 
 // Carrega Registros da API
 async function loadRecords() {
-    const loadingElement = document.getElementById('loading-records');
-    const tableBody = document.getElementById('records-body');
+    const loading = document.getElementById("loading-records");
+    const tbody = document.getElementById("records-body");
+
+    tbody.innerHTML = "";
+    loading.style.display = "flex";
 
     try {
-        loadingElement.style.display = 'flex';
-        tableBody.innerHTML = '';
+        const records = await fetchRecordsFromAPI();
 
-        console.log('🔄 Carregando registros...');
-        
-        const token = localStorage.getItem('access_token');
-        if (!token) {
-            throw new Error('Token não encontrado');
-        }
+        let html = "";
 
-        recordsData = await apiFetch(`${apiBaseUrl}/records/`);
-        console.log(`✅ ${recordsData.length} registros carregados`);
+        records.forEach(r => {
+            html += `
+                <tr>
+                    <td>${r.record_id}</td>
+                    <td>${r.status}</td>
+                    <td>${r.provider?.name || "N/A"}</td>
+                    <td>${r.priority}</td>
+                    <td>${r.document_type}</td>
+                    <td>${r.client?.name || "N/A"}</td>
+                    <td>${r.researchedName || "Não Pesquisado"}</td>
+                    <td>${formatarDataBR(r.register_date)}</td>
+                    <td>${r.last_update ? new Date(r.last_update).toLocaleString("pt-BR") : "N/A"}</td>
+                    <td>
+                        <button 
+                            class="btn btn-primary btn-sm ver-detalhes" 
+                            data-id="${r.record_id}"
+                            data-status="${r.status}">
+                            Ver
+                        </button>
+                    </td>
+                </tr>
+            `;
+        });
 
-        // Filtra os registros no frontend também para consistência
-        if (currentUser && currentUser.type !== 'admin') {
-            recordsData = recordsData.filter(record =>
-                record.provider?.id === currentUser.id
-            );
-            console.log(`📊 ${recordsData.length} registros após filtro`);
-        }
+        tbody.innerHTML = html;
 
-        renderRecords(recordsData);
-        updateStatusCounts();
+        initGridJS(records);
 
-    } catch (error) {
-        console.error('❌ Erro ao carregar registros:', error);
-        showError(error.message);
-        
-        // Se for erro de autenticação, redirecionar para login
-        if (error.message.includes('Não autorizado') || error.message.includes('401')) {
-            localStorage.removeItem('access_token');
-            setTimeout(() => {
-                window.location.href = 'login.html';
-            }, 2000);
-        }
+    } catch (err) {
+        console.error(err);
+        alert("Erro ao carregar registros.");
     } finally {
-        loadingElement.style.display = 'none';
+        loading.style.display = "none";
     }
 }
 
-function initGridJS() {
+function initGridJS(records) {
 
-    const table = document.getElementById("datatablesSimple");
+    const container = document.getElementById("grid-container");
 
-    // Remover Grid anterior (se existir)
-    const wrapper = document.getElementById("grid-wrapper");
-    wrapper.innerHTML = "";  // limpa a div (removendo tabela antiga)
+    // Limpa renderização anterior, se existir
+    container.innerHTML = "";
+
+    // Prepara os dados para o Grid.js
+    const gridData = records.map(r => [
+        r.record_id,
+        r.status,
+        r.provider?.name || "N/A",
+        r.priority,
+        r.document_type,
+        r.client?.name || "N/A",
+        r.researchedName || "Não Pesquisado",
+        formatarDataBR(r.register_date),
+        r.last_update ? new Date(r.last_update).toLocaleString("pt-BR") : "N/A",
+        `<button class='btn btn-primary btn-sm ver-detalhes' 
+            data-id='${r.record_id}' 
+            data-status='${r.status}'>Ver</button>`
+    ]);
 
     new gridjs.Grid({
-        from: table,    // ← pega sua tabela atual e converte
+        columns: [
+            "ID",
+            "Status",
+            "Prestador",
+            "Prioridade",
+            "Tipo",
+            "Cliente",
+            "Pesquisado",
+            "Cadastrado em",
+            "Última Atualização",
+            "Ações"
+        ],
+        data: gridData,
         search: true,
         sort: true,
-        pagination: {
-            enabled: true,
-            limit: 10
-        },
+        pagination: { limit: 10 },
         language: {
             search: {
                 placeholder: "Buscar..."
@@ -365,9 +392,8 @@ function initGridJS() {
                 results: () => "registros"
             }
         }
-    }).render(wrapper);
+    }).render(container);
 }
-
 
 function formatarDataBR(dataISO) {
   const [ano, mes, dia] = dataISO.split('-').map(Number);
@@ -545,7 +571,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         await loadProviders();
         await loadClients();
         await loadRecords();
-        initGridJS();
 
         const links = document.querySelectorAll('.ver-detalhes');
     
