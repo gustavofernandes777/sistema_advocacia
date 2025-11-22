@@ -734,17 +734,10 @@ async function removeMarkedItems() {
 }
 
 function setupEventListeners() {
-    const saveButton = document.getElementById('save-edit');
-    if (saveButton) {
-        saveButton.addEventListener('click', async (e) => {
-            e.preventDefault();
-            await saveAllChanges();
-        });
-    }
-
     const form = document.getElementById('editRecordForm');
     if (form) {
         form.addEventListener('submit', async (e) => {
+            if (!form.checkValidity()) return;
             e.preventDefault();
             await saveAllChanges();
         });
