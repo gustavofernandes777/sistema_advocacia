@@ -514,8 +514,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         await loadProviders();
         await loadClients();
         await loadRecords();
-        
-        window.initDataTable();
 
         const datatablesSimple = document.getElementById('datatablesSimple');
         if (datatablesSimple) {
@@ -523,16 +521,18 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         const links = document.querySelectorAll('.ver-detalhes');
-    
-    links.forEach(link => {
-        link.addEventListener('click', function(e) {
-            e.preventDefault();
-            const status = this.getAttribute('data-status');
-            filterRecords(status);
+
+        links.forEach(link => {
+            link.addEventListener('click', function (e) {
+                e.preventDefault();
+                const status = this.getAttribute('data-status');
+                filterRecords(status);
+            });
         });
-    });
-    
+
         setupEventListeners();
+
+        window.initDataTable();
     } catch (error) {
         showError(error);
     }
