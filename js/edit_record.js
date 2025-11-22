@@ -589,7 +589,10 @@ async function saveAllChanges() {
         const attachmentsCostChildrenCount = attachmentsCost.children.length;
         let mailCount
         attachmentsCost.querySelectorAll("#attachment-title").forEach(input => {
-            mailCount++
+            if (document.getElementById('attachment-title') == 'Postagem correios'){
+                mailCount++
+            }
+            
         });
 
         print('mailCount', mailCount)
