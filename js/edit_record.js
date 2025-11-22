@@ -582,18 +582,28 @@ function setupProviderUI() {
 async function saveAllChanges() {
     try {
         const statusSelect = document.getElementById('edit-status');
-        const hasCostsDiv = document.getElementById('hasCostsDiv');
-        const hasExpensesDiv = document.getElementById('hasExpensesDiv');
-        const hasCosts = document.getElementById('hasCosts');
-        const hasExpenses = document.getElementById('hasExpenses');
 
+        const hasMailDiv = document.getElementById('hasMailDiv');
+        const hasMail = document.getElementById('hasMail');
+        const attachmentsCost= document.getElementById("attachments-container");
+        const attachmentsCostChildrenCount = attachmentsCost.children.length;
+
+        const hasCostsDiv = document.getElementById('hasCostsDiv');
+        const hasCosts = document.getElementById('hasCosts');
         const parentCost= document.getElementById('costs-container');
         const costChildrenCount = parentCost.children.length;
+
+        const hasExpensesDiv = document.getElementById('hasExpensesDiv');
+        const hasExpenses = document.getElementById('hasExpenses');
         const parentExpense= document.getElementById('expenses-container');
         const expenseChildrenCount = parentExpense.children.length;
 
+        if (statusSelect.value === 'entregue' && hasMailDiv && hasMail.checked && attachmentsCostChildrenCount == 0 ) {
+            throw new Error('Ao marcar a opção "Tem postagem nos correios?", é obrigatório adicionar o comprovante da postagem para mudar a diligências para "Entregue".');
+        }
+
         if (statusSelect.value === 'entregue' && hasCostsDiv && hasCosts.checked && costChildrenCount == 0 ) {
-            throw new Error('Ao marcar a opção "Tem custas?", é obrigatório adicionar as custas mudar a diligências para "Entregue".');
+            throw new Error('Ao marcar a opção "Tem custas?", é obrigatório adicionar as custas para mudar a diligências para "Entregue".');
         }
 
         if (statusSelect.value === 'entregue' && hasExpensesDiv && hasExpenses.checked && expenseChildrenCount == 0) {
