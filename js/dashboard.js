@@ -560,7 +560,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         setupEventListeners();
         initGridJS();
         document.querySelector('tbody').setAttribute('id', 'records-body');
-        records-body
 
     } catch (error) {
         showError(error);
