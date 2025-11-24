@@ -896,7 +896,7 @@ function showRecordModal(record) {
                         <div class="row mt-3">
                             <div class="col-12">
                                 <h6>Informações Adicionais</h6>
-                                <p style="white-space: pre-wrap;">${record.info || 'Nenhuma informação adicional'}</p>
+                                <p style="white-space: pre-wrap">${record.info || 'Nenhuma informação adicional'}</p>
                             </div>
                         </div>
 
