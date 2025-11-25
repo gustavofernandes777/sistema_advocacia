@@ -642,7 +642,9 @@ async function saveAllChanges() {
         await removeMarkedItems();
 
         const record_id = document.getElementById('edit-record-id').value;
-        const providerSelect = document.getElementById('edit-provider-id').options[document.getElementById('edit-provider-id').value].text
+
+        const providerSelectIndex = document.getElementById('edit-provider-id');
+        const providerSelect = providerSelectIndex.options[providerSelectIndex.selectedIndex].text;
         const citySelect = document.getElementById('edit-city').value;
         const stateSelect = document.getElementById('edit-state').value;
 
