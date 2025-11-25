@@ -5,6 +5,7 @@ let clientsData = [];
 let recordsData = [];
 let dataTable;
 const apiBaseUrl = CONFIG.API_URL;
+const loadingElement = document.getElementById('loading-records');
 import { postMessageToSlack } from './postToSlack.js'
 
 function getTokenInfo() {
@@ -294,11 +295,11 @@ async function createClient() {
 
 // Carrega Registros da API
 async function loadRecords() {
-    const loadingElement = document.getElementById('loading-records');
+    const loading = loadingElement.style.display = 'block'
     const tableBody = document.getElementById('records-body');
 
     try {
-        if (loadingElement != null){loadingElement.style.display = 'flex';}
+        loading.style.display = 'flex';
         tableBody.innerHTML = '';
 
         console.log('🔄 Carregando registros...');
@@ -334,7 +335,7 @@ async function loadRecords() {
             }, 2000);
         }
     } finally {
-        if (loadingElement != null){loadingElement.style.display = 'none';}
+        loading.style.display = 'none';
     }
 }
 
