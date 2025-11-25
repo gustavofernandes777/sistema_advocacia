@@ -295,7 +295,7 @@ async function createClient() {
 
 // Carrega Registros da API
 async function loadRecords() {
-    const loading = loadingElement.style.display = 'block'
+    const loading = loadingElement
     const tableBody = document.getElementById('records-body');
 
     try {
