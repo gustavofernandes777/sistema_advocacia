@@ -298,7 +298,7 @@ async function loadRecords() {
     const tableBody = document.getElementById('records-body');
 
     try {
-        loadingElement.style.display = 'flex';
+        if (loadingElement != null){loadingElement.style.display = 'flex';}
         tableBody.innerHTML = '';
 
         console.log('🔄 Carregando registros...');
@@ -334,7 +334,7 @@ async function loadRecords() {
             }, 2000);
         }
     } finally {
-        loadingElement.style.display = 'none';
+        if (loadingElement != null){loadingElement.style.display = 'none';}
     }
 }
 
