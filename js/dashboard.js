@@ -5,7 +5,6 @@ let clientsData = [];
 let recordsData = [];
 let dataTable;
 const apiBaseUrl = CONFIG.API_URL;
-const loadingElement = document.getElementById('loading-records');
 import { postMessageToSlack } from './postToSlack.js'
 
 function getTokenInfo() {
@@ -295,11 +294,11 @@ async function createClient() {
 
 // Carrega Registros da API
 async function loadRecords() {
-    const loading = loadingElement
+    const loadingElement = document.getElementById('loading-records');
     const tableBody = document.getElementById('records-body');
 
     try {
-        loading.style.display = 'flex';
+        loadingElement.style.display = 'flex';
         tableBody.innerHTML = '';
 
         console.log('🔄 Carregando registros...');
@@ -335,7 +334,7 @@ async function loadRecords() {
             }, 2000);
         }
     } finally {
-        loading.style.display = 'none';
+        loadingElement.style.display = 'none';
     }
 }
 
@@ -679,7 +678,7 @@ function setupEventListeners() {
             await postMessageToSlack('notificacao', `:heavy_plus_sign: *Uma nova diligência foi criada*: ID: ${recordData.record_id}, Prestador: *${providerName}*, Cidade: ${recordData.city}/${recordData.state.toUpperCase()}, Prioridade: ${recordData.priority}`);
 
             bootstrap.Modal.getInstance(document.getElementById('recordModal')).hide();
-            await loadRecords();
+            location.reload();
         } catch (error) {
             console.error('Erro detalhado:', error);
             Swal.fire({
@@ -740,7 +739,7 @@ function setupEventListeners() {
 
                     await postMessageToSlack('notificacao', `:x: *Uma diligência foi removida*: ID: ${record.record_id}.`);
 
-                    await loadRecords();
+                    location.reload();
                 } catch (error) {
                     Swal.fire({
                         icon: 'error',
