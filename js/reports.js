@@ -1526,7 +1526,7 @@ function showFinancialFormModal(recordId, record_id, expense, financialData) {
                             <div class="mb-3">
                                 <label class="form-label">Pagamento do Prestador (R$)</label>
                                 <input type="number" step="0.01" class="form-control" id="providerPayment" 
-                                       value="${financialData ? financialData._payment : ''}" required>
+                                       value="${financialData ? financialData.provider_payment : ''}" required>
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Despesas</label>
