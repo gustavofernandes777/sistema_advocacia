@@ -1534,7 +1534,7 @@ function showFinancialFormModal(recordId, record_id, expense, financialData) {
                             </div>
                             ${financialData ? `
                             <div class="alert alert-info">
-                                <strong>Lucro Calculado:</strong> R$ ${financialData.profit.toLocaleString('pt-BR')}
+                                <strong>Lucro Calculado:</strong> R$ ${financialData.profit ? `R$ ${financialData.profit.toLocaleString('pt-BR')}` : 'R$ 0,00'}
                             </div>
                             ` : ''}
                         </form>
