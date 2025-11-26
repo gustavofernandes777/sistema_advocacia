@@ -420,6 +420,7 @@ function updateTable() {
 
         // Colunas básicas para todos os registros
         tr.innerHTML = `
+            <td>${item.record_id}</td>
             <td>${formatDate(item.date)}</td>
             <td>${item.company}</td>
             <td>${item.city}/${item.state.toUpperCase()}</td>
@@ -1489,7 +1490,7 @@ async function showFinancialModal(recordId) {
     const diligenceValue = diligenceValueInput ? parseFloat(diligenceValueInput.value) : 0;
     const providerPayment = providerPaymentInput ? parseFloat(providerPaymentInput.value) : 0;
 
-    showFinancialFormModal(recordId, record.expense, {
+    showFinancialFormModal(recordId, record.record_id ,record.expense, {
         diligence_value: diligenceValue,
         provider_payment: providerPayment,
         profit: diligenceValue - record.expense - providerPayment
@@ -1497,14 +1498,17 @@ async function showFinancialModal(recordId) {
 }
 
 // Função para mostrar formulário de finanças
-function showFinancialFormModal(recordId, expense, financialData) {
+function showFinancialFormModal(record_id, recordId, expense, financialData) {
     const modalHTML = `
         <div class="modal fade" id="financialModal" tabindex="-1">
             <div class="modal-dialog">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title">Informações Financeiras e Fechamento</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        <div class="header-text">
+                            <h5 class="modal-title">Informações Financeiras e Fechamento</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <h6>ID: ${record_id}</h6>
                     </div>
                     <div class="modal-body">
                         <div class="alert alert-info">

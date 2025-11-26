@@ -6262,7 +6262,6 @@ fieldset:disabled .btn {
 }
 
 .modal-header {
-  display: flex;
   flex-shrink: 0;
   align-items: center;
   justify-content: space-between;
@@ -6270,6 +6269,10 @@ fieldset:disabled .btn {
   border-bottom: var(--bs-modal-header-border-width) solid var(--bs-modal-header-border-color);
   border-top-left-radius: var(--bs-modal-inner-border-radius);
   border-top-right-radius: var(--bs-modal-inner-border-radius);
+}
+
+.header-text{
+  display: flex;
 }
 
 .modal-header .btn-close {
