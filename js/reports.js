@@ -1498,7 +1498,7 @@ async function showFinancialModal(recordId) {
 }
 
 // Função para mostrar formulário de finanças
-function showFinancialFormModal(record_id, recordId, expense, financialData) {
+function showFinancialFormModal(recordId, record_id, expense, financialData) {
     const modalHTML = `
         <div class="modal fade" id="financialModal" tabindex="-1">
             <div class="modal-dialog">
@@ -1508,8 +1508,8 @@ function showFinancialFormModal(record_id, recordId, expense, financialData) {
                             <h5 class="modal-title">Informações Financeiras e Fechamento</h5>
                             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                         </div>
-                        <h6>ID: ${record_id}</h6>
                     </div>
+                    <h6>ID: ${record_id}</h6>
                     <div class="modal-body">
                         <div class="alert alert-info">
                             <i class="bi bi-info-circle"></i> 
