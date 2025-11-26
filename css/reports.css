@@ -137,7 +137,7 @@ tr[data-status="fechada"] td {
 }
 
 .header-text{
-  display: flex;
+  display: flex !important;
 }
 
 .modal-title {
