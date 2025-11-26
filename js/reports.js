@@ -1508,8 +1508,8 @@ function showFinancialFormModal(recordId, record_id, expense, financialData) {
                             <h5 class="modal-title">Informações Financeiras e Fechamento</h5>
                             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                         </div>
-                    </div>
                     <h6>ID: ${record_id}</h6>
+                    </div>
                     <div class="modal-body">
                         <div class="alert alert-info">
                             <i class="bi bi-info-circle"></i> 
