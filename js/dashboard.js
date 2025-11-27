@@ -574,6 +574,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     
         setupEventListeners();
         initGridJS();
+        marcarUrgentes();
         document.querySelector('tbody').setAttribute('id', 'records-body');
 
     } catch (error) {
@@ -877,8 +878,6 @@ document.getElementById('addExpenseBtn').addEventListener('click', function () {
 
     container.insertBefore(newGroup, this);
 });
-
-marcarUrgentes();
 
 function showRecordModal(record) {
     const statusText = ({ 'ativa': 'Ativa', 'suspensa': 'Suspensa', 'entregue': 'Entregue', 'finalizada': 'Finalizada' }[record.status] || record.status);
