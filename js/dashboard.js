@@ -400,7 +400,7 @@ function renderRecords(records) {
         }[record.priority] || '';
 
         const capitalized = record.status.charAt(0).toUpperCase() + record.status.slice(1);
-        const priorityClass = record.priority === "urgent" ? "priority-urgent" : "";
+        const priorityClass = record.priority === "urgente" ? "priority-urgent" : "";
 
         row.innerHTML = `
             <td>${record.record_id}</td>
