@@ -348,12 +348,12 @@ function initGridJS() {
     new gridjs.Grid({
         from: table,
         columns: {
-            0: { // índice da coluna de prioridade
+            3: { // índice da coluna de prioridade
                 formatter: (cell) => {
                     const el = document.createElement("span");
-                    const text = String(cell).trim(); // remove espaços no fim
+                    const text = String(cell).trim();
 
-                    el.innerHTML = cell; // mantém o conteúdo original (ícone, etc)
+                    el.innerHTML = cell;
 
                     if (text === "Urgente") {
                         el.classList.add("priority-urgent");
