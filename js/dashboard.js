@@ -367,6 +367,8 @@ function initGridJS() {
             }
         }
     }).render(wrapper);
+
+    marcarUrgentes();
 }
 
 function marcarUrgentes() {
@@ -574,7 +576,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     
         setupEventListeners();
         initGridJS();
-        marcarUrgentes();
         document.querySelector('tbody').setAttribute('id', 'records-body');
 
     } catch (error) {
