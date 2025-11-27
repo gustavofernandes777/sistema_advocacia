@@ -341,6 +341,7 @@ async function loadRecords() {
 function initGridJS() {
 
     const table = document.getElementById("datatablesSimple");
+
     const wrapper = document.getElementById("grid-wrapper");
     wrapper.innerHTML = "";
 
@@ -353,28 +354,6 @@ function initGridJS() {
             enabled: true,
             limit: 10
         },
-        columns: [
-            null,
-            null,
-            null,
-            {
-                name: "Prioridade",
-                formatter: cell => {
-                    const valor = (cell || "").trim().toLowerCase();
-                    if (valor === "urgente") {
-                        return gridjs.html(`<span class="prioridade-urgente">${cell}</span>`);
-                    }
-                    return cell;
-                }
-            },
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null
-        ],
         language: {
             search: {
                 placeholder: "Buscar..."
