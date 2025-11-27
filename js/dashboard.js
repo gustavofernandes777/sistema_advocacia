@@ -250,8 +250,6 @@ async function loadClients() {
         return clientsData;
         
     } catch (error) {
-        console.error('❌ Erro ao carregar clientes:', error);
-        
         if (error.message.includes('Não autorizado') || error.message.includes('401')) {
             localStorage.removeItem('access_token');
             window.location.href = 'login.html';
@@ -288,7 +286,7 @@ async function createClient() {
         bootstrap.Modal.getInstance(document.getElementById('clientModal')).hide();
 
     } catch (error) {
-        showError(error);
+        showError(error.message);
     }
 }
 
@@ -323,7 +321,6 @@ async function loadRecords() {
         updateStatusCounts();
 
     } catch (error) {
-        console.error('❌ Erro ao carregar registros:', error);
         showError(error.message);
         
         // Se for erro de autenticação, redirecionar para login
@@ -681,7 +678,11 @@ function setupEventListeners() {
             bootstrap.Modal.getInstance(document.getElementById('recordModal')).hide();
             location.reload();
         } catch (error) {
-            showError('Erro ao cadastrar o registro: ' + error.message);
+            let errorMessage
+            if (error == '[object Object],[object Object]'){
+                errorMessage = "Há campos não preenchidos."
+            }
+            showError('Erro ao cadastrar o registro: ' + errorMessage);
         }
     });
 
@@ -752,8 +753,6 @@ function setupEventListeners() {
 
 // Função para mostrar erro detalhado
 function showError(error) {
-    console.error('Erro completo:', error);
-
     let errorMessage = error.message;
     
     Swal.fire({
