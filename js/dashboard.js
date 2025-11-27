@@ -398,12 +398,16 @@ function renderRecords(records) {
         }[record.priority] || '';
 
         const capitalized = record.status.charAt(0).toUpperCase() + record.status.slice(1);
+        const priorityClass = ""
+        if (record.priority.toLowerCase() == "urgente"){
+            priorityClass = 'priority-urgent'
+        }
 
         row.innerHTML = `
             <td>${record.record_id}</td>
             <td><span class="badge ${statusClass}">${capitalized}</span></td>
             <td>${record.provider?.name || 'N/A'}</td>
-            <td><i class="fas ${priorityIcon}"></i> ${record.priority.charAt(0).toUpperCase() + record.priority.slice(1)}</td>
+            <td><p class="${priorityClass}"><i class="fas ${priorityIcon}"></i> ${record.priority.charAt(0).toUpperCase() + record.priority.slice(1)}</p></td>
             <td>${record.document_type}</td>
             <td>${record.client.name}</td>
             <td>${record.city}/${record.state.toUpperCase()}</td>
