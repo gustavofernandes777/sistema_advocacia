@@ -394,7 +394,8 @@ function renderRecords(records) {
         const priorityIcon = {
             'baixa': 'fa-arrow-down',
             'media': 'fa-equals',
-            'alta': 'fa-arrow-up'
+            'alta': 'fa-arrow-up',
+            'urgente': 'fa-triangle-exclamation'
         }[record.priority] || '';
 
         const capitalized = record.status.charAt(0).toUpperCase() + record.status.slice(1);
