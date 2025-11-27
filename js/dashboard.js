@@ -339,59 +339,47 @@ async function loadRecords() {
 }
 
 function initGridJS() {
-  const table = document.getElementById("datatablesSimple");
-  const wrapper = document.getElementById("grid-wrapper");
-  wrapper.innerHTML = ""; // limpa tabela antiga
 
-  new gridjs.Grid({
-    from: table,
-    columns: {
-      3: {
-        formatter: (cell) => {
-          const el = document.createElement("span");
+    const table = document.getElementById("datatablesSimple");
 
-          let htmlContent = "";
-          if (cell && typeof cell === "object" && cell.nodeType === 1) {
-            htmlContent = cell.innerHTML;
-          } else {
-            htmlContent = String(cell == null ? "" : cell);
-          }
+    const wrapper = document.getElementById("grid-wrapper");
+    wrapper.innerHTML = "";
 
-          el.innerHTML = htmlContent;
+    new gridjs.Grid({
+        from: table,
+        columns: {
+            3: {
+                formatter: (cell) => {
+                    const span = document.createElement("span");
 
-          const tmp = document.createElement("div");
-          tmp.innerHTML = htmlContent;
-          const visibleText = (tmp.textContent || "").trim();
+                    let text = "";
 
-          if (visibleText === "Urgente") {
-            el.classList.add("priority-urgent");
-          }
+                    if (cell instanceof Element) {
+                        text = cell.textContent.trim();
+                        span.innerHTML = cell.innerHTML;
+                    } else {
+                        text = String(cell).trim();
+                        span.textContent = text;
+                    }
 
-          console.log("formatter cell:", { cell, htmlContent, visibleText });
+                    if (text === "Urgente") {
+                        span.classList.add("priority-urgent");
+                    }
 
-          return el;
+                    return span;
+                }
+            }
+        },
+        search: true,
+        resizable: true,
+        sort: true,
+        pagination: {
+            enabled: true,
+            limit: 10
         }
-      }
-    },
-    search: true,
-    resizable: true,
-    sort: true,
-    pagination: {
-      enabled: true,
-      limit: 10
-    },
-    language: {
-      search: { placeholder: "Buscar..." },
-      pagination: {
-        previous: "Anterior",
-        next: "Próximo",
-        showing: "Mostrando",
-        results: () => "registros"
-      }
-    }
-  }).render(wrapper);
-}
+    }).render(wrapper);
 
+}
 
 
 function formatarDataBR(dataISO) {
