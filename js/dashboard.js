@@ -339,51 +339,76 @@ async function loadRecords() {
 }
 
 function initGridJS() {
+  const table = document.getElementById("datatablesSimple");
+  const wrapper = document.getElementById("grid-wrapper");
+  wrapper.innerHTML = ""; // limpa container antigo
 
-    const table = document.getElementById("datatablesSimple");
+  // util: escapa texto para usar em HTML quando for string simples
+  function escapeHtml(str) {
+    return String(str)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
 
-    // Remover Grid anterior (se existir)
-    const wrapper = document.getElementById("grid-wrapper");
-    wrapper.innerHTML = "";  // limpa a div (removendo tabela antiga)
+  new gridjs.Grid({
+    from: table,
+    columns: {
+      3: {
+        formatter: (cell) => {
+          let visibleText = "";
+          let innerHtml = null;
 
-    new gridjs.Grid({
-        from: table,
-        columns: [
-            null,
-            null,
-            null,
-            {
-                name: 'Prioridade',
-                formatter: cell => {
-                    const text = (cell || "").trim().toLowerCase();
-                    const el = gridjs.html(`<span>${cell}</span>`);
-                    if (text.includes("urgente")) {
-                        el.classList.add("priority-urgent");
-                    }
-                    return el;
-                }
-            }
-        ],
-        search: true,
-        resizable: true,
-        sort: true,
-        pagination: {
-            enabled: true,
-            limit: 10
-        },
-        language: {
-            search: {
-                placeholder: "Buscar..."
-            },
-            pagination: {
-                previous: "Anterior",
-                next: "Próximo",
-                showing: "Mostrando",
-                results: () => "registros"
-            }
+          if (cell && typeof cell === "object" && cell.nodeType === 1) {
+            visibleText = (cell.textContent || "").trim();
+            innerHtml = cell.innerHTML;
+          } else if (typeof cell === "string") {
+            const trimmed = cell.trim();
+            const looksLikeHtml = /<[a-z][\s\S]*>/i.test(trimmed);
+            visibleText = (function() {
+              if (looksLikeHtml) {
+                const tmp = document.createElement("div");
+                tmp.innerHTML = trimmed;
+                return (tmp.textContent || "").trim();
+              }
+              return trimmed;
+            })();
+            innerHtml = looksLikeHtml ? trimmed : null;
+          } else {
+            visibleText = String(cell == null ? "" : cell).trim();
+            innerHtml = null;
+          }
+
+          const isUrgent = visibleText === "Urgente";
+          if (innerHtml != null) {
+            const spanHtml = `<span class="${isUrgent ? "priority-urgent" : ""}">${innerHtml}</span>`;
+            return gridjs.html(spanHtml);
+          } else {
+            const spanHtml = `<span class="${isUrgent ? "priority-urgent" : ""}">${escapeHtml(visibleText)}</span>`;
+            return gridjs.html(spanHtml);
+          }
         }
-    }).render(wrapper);
-
+      }
+    },
+    search: true,
+    resizable: true,
+    sort: true,
+    pagination: {
+      enabled: true,
+      limit: 10
+    },
+    language: {
+      search: { placeholder: "Buscar..." },
+      pagination: {
+        previous: "Anterior",
+        next: "Próximo",
+        showing: "Mostrando",
+        results: () => "registros"
+      }
+    }
+  }).render(wrapper);
 }
 
 function formatarDataBR(dataISO) {
