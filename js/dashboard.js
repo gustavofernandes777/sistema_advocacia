@@ -406,7 +406,7 @@ function renderRecords(records) {
             <td>${record.record_id}</td>
             <td><span class="badge ${statusClass}">${capitalized}</span></td>
             <td>${record.provider?.name || 'N/A'}</td>
-            <td class="${priorityClass}">${record.priority.charAt(0).toUpperCase() + record.priority.slice(1)}<i class="fas ${priorityIcon}"></i></td>
+            <td class="${priorityClass}"><i class="fas ${priorityIcon}"></i> ${record.priority.charAt(0).toUpperCase() + record.priority.slice(1)}</td>
             <td>${record.document_type}</td>
             <td>${record.client.name}</td>
             <td>${record.city}/${record.state.toUpperCase()}</td>

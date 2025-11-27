@@ -13221,3 +13221,9 @@ body {
 .text-info small {
     font-size: 0.875rem;
 }
+
+.priority-urgent{
+  font-size: 120%;
+  font-weight: bold;
+  color: red;
+}
