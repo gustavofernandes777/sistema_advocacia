@@ -560,7 +560,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.querySelector('tbody').setAttribute('id', 'records-body');
 
     } catch (error) {
-        showError(error);
+        showError(error.message);
     }
 });
 
@@ -753,12 +753,11 @@ function setupEventListeners() {
 
 // Função para mostrar erro detalhado
 function showError(error) {
-    let errorMessage = error.message;
     
     Swal.fire({
         icon: 'error',
         title: 'Erro',
-        text: errorMessage,
+        text: error,
         confirmButtonText: 'OK'
     });
 }
