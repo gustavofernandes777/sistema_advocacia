@@ -678,8 +678,8 @@ function setupEventListeners() {
             bootstrap.Modal.getInstance(document.getElementById('recordModal')).hide();
             location.reload();
         } catch (error) {
-            let errorMessage
-            if (error == '[object Object],[object Object]'){
+            let errorMessage = ""
+            if (error.message == '[object Object],[object Object]'){
                 errorMessage = "Há campos não preenchidos."
             }
             showError('Erro ao cadastrar o registro: ' + errorMessage);
