@@ -342,43 +342,31 @@ function initGridJS() {
 
     const table = document.getElementById("datatablesSimple");
 
+    // Remover Grid anterior (se existir)
     const wrapper = document.getElementById("grid-wrapper");
-    wrapper.innerHTML = "";
+    wrapper.innerHTML = "";  // limpa a div (removendo tabela antiga)
 
     new gridjs.Grid({
         from: table,
-        columns: {
-            3: {
-                formatter: (cell) => {
-                    const span = document.createElement("span");
-
-                    let text = "";
-
-                    if (cell instanceof Element) {
-                        text = cell.textContent.trim();
-                        span.innerHTML = cell.innerHTML;
-                    } else {
-                        text = String(cell).trim();
-                        span.textContent = text;
-                    }
-
-                    if (text === "Urgente") {
-                        span.classList.add("priority-urgent");
-                    }
-
-                    return span;
-                }
-            }
-        },
         search: true,
         resizable: true,
         sort: true,
         pagination: {
             enabled: true,
             limit: 10
+        },
+        language: {
+            search: {
+                placeholder: "Buscar..."
+            },
+            pagination: {
+                previous: "Anterior",
+                next: "Próximo",
+                showing: "Mostrando",
+                results: () => "registros"
+            }
         }
     }).render(wrapper);
-
 }
 
 
@@ -408,7 +396,7 @@ function renderRecords(records) {
             'baixa': 'fa-arrow-down',
             'media': 'fa-equals',
             'alta': 'fa-arrow-up',
-            'urgente': ''
+            'urgente': 'priority-urgent'
         }[record.priority] || '';
 
         const capitalized = record.status.charAt(0).toUpperCase() + record.status.slice(1);
@@ -417,7 +405,7 @@ function renderRecords(records) {
             <td>${record.record_id}</td>
             <td><span class="badge ${statusClass}">${capitalized}</span></td>
             <td>${record.provider?.name || 'N/A'}</td>
-            <td>${record.priority.charAt(0).toUpperCase() + record.priority.slice(1)} <i class="fas ${priorityIcon}"></i></td>
+            <td><i class="fas ${priorityIcon}"></i> ${record.priority.charAt(0).toUpperCase() + record.priority.slice(1)}</td>
             <td>${record.document_type}</td>
             <td>${record.client.name}</td>
             <td>${record.city}/${record.state.toUpperCase()}</td>
