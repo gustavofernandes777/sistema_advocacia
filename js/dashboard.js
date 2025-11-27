@@ -339,40 +339,59 @@ async function loadRecords() {
 }
 
 function initGridJS() {
+  const table = document.getElementById("datatablesSimple");
+  const wrapper = document.getElementById("grid-wrapper");
+  wrapper.innerHTML = ""; // limpa tabela antiga
 
-    const table = document.getElementById("datatablesSimple");
+  new gridjs.Grid({
+    from: table,
+    columns: {
+      3: {
+        formatter: (cell) => {
+          const el = document.createElement("span");
 
-    const wrapper = document.getElementById("grid-wrapper");
-    wrapper.innerHTML = "";
+          let htmlContent = "";
+          if (cell && typeof cell === "object" && cell.nodeType === 1) {
+            htmlContent = cell.innerHTML;
+          } else {
+            htmlContent = String(cell == null ? "" : cell);
+          }
 
-    new gridjs.Grid({
-        from: table,
-        columns: {
-            3: { // índice da coluna de prioridade
-                formatter: (cell) => {
-                    const el = document.createElement("span");
-                    const text = String(cell).trim();
+          el.innerHTML = htmlContent;
 
-                    el.innerHTML = cell;
+          const tmp = document.createElement("div");
+          tmp.innerHTML = htmlContent;
+          const visibleText = (tmp.textContent || "").trim();
 
-                    if (text === "Urgente") {
-                        el.classList.add("priority-urgent");
-                    }
+          if (visibleText === "Urgente") {
+            el.classList.add("priority-urgent");
+          }
 
-                    return el;
-                }
-            }
-        },
-        search: true,
-        resizable: true,
-        sort: true,
-        pagination: {
-            enabled: true,
-            limit: 10
+          console.log("formatter cell:", { cell, htmlContent, visibleText });
+
+          return el;
         }
-    }).render(wrapper);
-
+      }
+    },
+    search: true,
+    resizable: true,
+    sort: true,
+    pagination: {
+      enabled: true,
+      limit: 10
+    },
+    language: {
+      search: { placeholder: "Buscar..." },
+      pagination: {
+        previous: "Anterior",
+        next: "Próximo",
+        showing: "Mostrando",
+        results: () => "registros"
+      }
+    }
+  }).render(wrapper);
 }
+
 
 
 function formatarDataBR(dataISO) {
