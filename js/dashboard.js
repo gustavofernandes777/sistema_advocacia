@@ -681,12 +681,7 @@ function setupEventListeners() {
             bootstrap.Modal.getInstance(document.getElementById('recordModal')).hide();
             location.reload();
         } catch (error) {
-            console.error('Erro detalhado:', error);
-            Swal.fire({
-                icon: 'error',
-                title: 'Erro',
-                text: error.message
-            });
+            showError('Erro ao cadastrar o registro: ' + error.message);
         }
     });
 
