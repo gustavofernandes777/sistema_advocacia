@@ -342,31 +342,35 @@ function initGridJS() {
 
     const table = document.getElementById("datatablesSimple");
 
-    // Remover Grid anterior (se existir)
     const wrapper = document.getElementById("grid-wrapper");
-    wrapper.innerHTML = "";  // limpa a div (removendo tabela antiga)
+    wrapper.innerHTML = ""; 
 
     new gridjs.Grid({
         from: table,
+        columns: {
+            0: {
+                formatter: (cell) => {
+                    const el = document.createElement("span");
+                    const label = cell.charAt(0).toUpperCase() + cell.slice(1);
+
+                    el.innerHTML = `${label}`;
+
+                    if (cell === "urgent") {
+                        el.classList.add("priority-urgent");
+                    }
+                    return el;
+                }
+            }
+        },
         search: true,
         resizable: true,
         sort: true,
         pagination: {
             enabled: true,
             limit: 10
-        },
-        language: {
-            search: {
-                placeholder: "Buscar..."
-            },
-            pagination: {
-                previous: "Anterior",
-                next: "Próximo",
-                showing: "Mostrando",
-                results: () => "registros"
-            }
         }
     }).render(wrapper);
+
 }
 
 
@@ -400,13 +404,12 @@ function renderRecords(records) {
         }[record.priority] || '';
 
         const capitalized = record.status.charAt(0).toUpperCase() + record.status.slice(1);
-        const priorityClass = record.priority === "urgente" ? "priority-urgent" : "";
 
         row.innerHTML = `
             <td>${record.record_id}</td>
             <td><span class="badge ${statusClass}">${capitalized}</span></td>
             <td>${record.provider?.name || 'N/A'}</td>
-            <td class="${priorityClass}"><i class="fas ${priorityIcon}"></i> ${record.priority.charAt(0).toUpperCase() + record.priority.slice(1)}</td>
+            <td>${record.priority.charAt(0).toUpperCase() + record.priority.slice(1)} <i class="fas ${priorityIcon}"></i></td>
             <td>${record.document_type}</td>
             <td>${record.client.name}</td>
             <td>${record.city}/${record.state.toUpperCase()}</td>
