@@ -355,7 +355,7 @@ function initGridJS() {
 
                     el.innerHTML = `${label}`;
 
-                    if (cell === "urgent") {
+                    if (cell === "Urgente ") {
                         el.classList.add("priority-urgent");
                     }
                     return el;
@@ -400,7 +400,7 @@ function renderRecords(records) {
             'baixa': 'fa-arrow-down',
             'media': 'fa-equals',
             'alta': 'fa-arrow-up',
-            'urgente': 'fa-triangle-exclamation'
+            'urgente': ''
         }[record.priority] || '';
 
         const capitalized = record.status.charAt(0).toUpperCase() + record.status.slice(1);
