@@ -343,21 +343,22 @@ function initGridJS() {
     const table = document.getElementById("datatablesSimple");
 
     const wrapper = document.getElementById("grid-wrapper");
-    wrapper.innerHTML = ""; 
+    wrapper.innerHTML = "";
 
     new gridjs.Grid({
         from: table,
         columns: {
-            0: {
+            0: { // índice da coluna de prioridade
                 formatter: (cell) => {
                     const el = document.createElement("span");
-                    const label = cell.charAt(0).toUpperCase() + cell.slice(1);
+                    const text = String(cell).trim(); // remove espaços no fim
 
-                    el.innerHTML = `${label}`;
+                    el.innerHTML = cell; // mantém o conteúdo original (ícone, etc)
 
-                    if (cell === "Urgente ") {
+                    if (text === "Urgente") {
                         el.classList.add("priority-urgent");
                     }
+
                     return el;
                 }
             }
