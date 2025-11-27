@@ -341,31 +341,53 @@ async function loadRecords() {
 function initGridJS() {
 
     const table = document.getElementById("datatablesSimple");
-
-    // Remover Grid anterior (se existir)
     const wrapper = document.getElementById("grid-wrapper");
-    wrapper.innerHTML = "";  // limpa a div (removendo tabela antiga)
+    wrapper.innerHTML = "";
 
     new gridjs.Grid({
-  columns: [
-    'ID',
-    'Status',
-    'Responsável',
-    {
-      name: 'Prioridade',
-      formatter: (cell) => {
-        const valor = (cell || '').trim().toLowerCase();
-        if (valor === 'urgente') {
-          return gridjs.html(`<td class="urgente">${cell}</td>`);
+        from: table,
+        search: true,
+        resizable: true,
+        sort: true,
+        pagination: {
+            enabled: true,
+            limit: 10
+        },
+        columns: [
+            null,
+            null,
+            null,
+            {
+                name: "Prioridade",
+                formatter: cell => {
+                    const valor = (cell || "").trim().toLowerCase();
+                    if (valor === "urgente") {
+                        return gridjs.html(`<span class="prioridade-urgente">${cell}</span>`);
+                    }
+                    return cell;
+                }
+            },
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+        ],
+        language: {
+            search: {
+                placeholder: "Buscar..."
+            },
+            pagination: {
+                previous: "Anterior",
+                next: "Próximo",
+                showing: "Mostrando",
+                results: () => "registros"
+            }
         }
-        return cell;
-      }
-    },
-    'Tipo',
-    'Origem'
-  ],
-  data: dados,
-}).render(document.getElementById("wrapper"));
+    }).render(wrapper);
+}
 
 function formatarDataBR(dataISO) {
   const [ano, mes, dia] = dataISO.split('-').map(Number);
