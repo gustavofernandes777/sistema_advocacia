@@ -369,6 +369,20 @@ function initGridJS() {
     }).render(wrapper);
 }
 
+function marcarUrgentes() {
+    const linhas = document.querySelectorAll("table tbody tr");
+
+    linhas.forEach(linha => {
+        const colunas = linha.querySelectorAll("td");
+        colunas.forEach(td => {
+            const texto = td.textContent.trim().toLowerCase();
+            if (texto.includes("urgente")) {
+                linha.classList.add("priority-urgent");
+            }
+        });
+    });
+}
+
 
 function formatarDataBR(dataISO) {
   const [ano, mes, dia] = dataISO.split('-').map(Number);
@@ -396,7 +410,7 @@ function renderRecords(records) {
             'baixa': 'fa-arrow-down',
             'media': 'fa-equals',
             'alta': 'fa-arrow-up',
-            'urgente': 'priority-urgent'
+            'urgente': ''
         }[record.priority] || '';
 
         const capitalized = record.status.charAt(0).toUpperCase() + record.status.slice(1);
@@ -561,6 +575,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     
         setupEventListeners();
         initGridJS();
+        marcarUrgentes();
         document.querySelector('tbody').setAttribute('id', 'records-body');
 
     } catch (error) {
