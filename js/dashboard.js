@@ -14,9 +14,9 @@ function getTokenInfo() {
     console.log('DEBUG localStorage keys:', keys);
 
     const token = localStorage.getItem('access_token')
-               || localStorage.getItem('token')
-               || localStorage.getItem('auth_token')
-               || null;
+        || localStorage.getItem('token')
+        || localStorage.getItem('auth_token')
+        || null;
 
     const tokenType = localStorage.getItem('token_type') || 'Bearer';
     console.log('DEBUG token found?', !!token, 'tokenType:', tokenType);
@@ -70,7 +70,7 @@ async function checkAuth() {
         // Tentar parsear como JSON
         try {
             const data = JSON.parse(text);
-            
+
             if (!resp.ok) {
                 throw new Error(data.detail || `Erro HTTP ${resp.status}`);
             }
@@ -78,23 +78,23 @@ async function checkAuth() {
             console.log('✅ Autenticação válida. Usuário:', data.email || data.name);
             currentUser = data;
             return true;
-            
+
         } catch (jsonError) {
             console.error('❌ Falha ao parsear JSON:', jsonError);
             throw new Error('Resposta inválida do servidor');
         }
-        
+
     } catch (err) {
         console.error('❌ Erro na autenticação:', err.message);
-        
+
         localStorage.removeItem('access_token');
         localStorage.removeItem('token');
         localStorage.removeItem('token_type');
-        
+
         setTimeout(() => {
             window.location.href = 'login.html';
         }, 1000);
-        
+
         return false;
     }
 }
@@ -238,7 +238,7 @@ function openUserModal() {
 async function loadClients() {
     try {
         console.log('🔄 Carregando clientes...');
-        
+
         const token = localStorage.getItem('access_token');
         if (!token) {
             throw new Error('Token não encontrado');
@@ -248,17 +248,17 @@ async function loadClients() {
         console.log(`✅ ${clientsData.length} clientes carregados`);
         updateClientSelect();
         return clientsData;
-        
+
     } catch (error) {
         console.error('❌ Erro ao carregar clientes:', error);
-        
+
         if (error.message.includes('Não autorizado') || error.message.includes('401')) {
             localStorage.removeItem('access_token');
             window.location.href = 'login.html';
         } else {
             showError('Erro ao carregar clientes: ' + error.message);
         }
-        
+
         return [];
     }
 }
@@ -302,7 +302,7 @@ async function loadRecords() {
         tableBody.innerHTML = '';
 
         console.log('🔄 Carregando registros...');
-        
+
         const token = localStorage.getItem('access_token');
         if (!token) {
             throw new Error('Token não encontrado');
@@ -325,7 +325,7 @@ async function loadRecords() {
     } catch (error) {
         console.error('❌ Erro ao carregar registros:', error);
         showError(error.message);
-        
+
         // Se for erro de autenticação, redirecionar para login
         if (error.message.includes('Não autorizado') || error.message.includes('401')) {
             localStorage.removeItem('access_token');
@@ -348,6 +348,22 @@ function initGridJS() {
 
     new gridjs.Grid({
         from: table,
+        columns: [
+            null,
+            null,
+            null,
+            {
+                name: 'Prioridade',
+                formatter: cell => {
+                    const text = (cell || "").trim().toLowerCase();
+                    const el = gridjs.html(`<span>${cell}</span>`);
+                    if (text.includes("urgente")) {
+                        el.classList.add("priority-urgent");
+                    }
+                    return el;
+                }
+            }
+        ],
         search: true,
         resizable: true,
         sort: true,
@@ -368,26 +384,11 @@ function initGridJS() {
         }
     }).render(wrapper);
 
-    marcarUrgentes();
-}
-
-function marcarUrgentes() {
-    const linhas = document.querySelectorAll("table tbody tr");
-
-    linhas.forEach(linha => {
-        const colunas = linha.querySelectorAll("td");
-        colunas.forEach(td => {
-            const texto = td.textContent.trim().toLowerCase();
-            if (texto.includes("urgente")) {
-                linha.classList.add("priority-urgent");
-            }
-        });
-    });
 }
 
 function formatarDataBR(dataISO) {
-  const [ano, mes, dia] = dataISO.split('-').map(Number);
-  return new Date(ano, mes - 1, dia).toLocaleDateString('pt-BR');
+    const [ano, mes, dia] = dataISO.split('-').map(Number);
+    return new Date(ano, mes - 1, dia).toLocaleDateString('pt-BR');
 }
 
 // Renderiza registros na tabela
@@ -466,7 +467,7 @@ async function loadProviders() {
 
         // Limpar select
         providerSelect.innerHTML = '<option value="">Selecione um prestador</option>';
-        
+
         // Adicionar prestadores
         users.forEach(user => {
             if (user.type === 'prestador' || user.type === 'admin') {
@@ -481,7 +482,7 @@ async function loadProviders() {
 
     } catch (error) {
         console.error('Erro ao carregar prestadores:', error);
-        
+
         if (error.message.includes('Não autorizado') || error.message.includes('401')) {
             localStorage.removeItem('access_token');
             window.location.href = 'login.html';
@@ -565,15 +566,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         await loadRecords();
 
         const links = document.querySelectorAll('.ver-detalhes');
-    
-    links.forEach(link => {
-        link.addEventListener('click', function(e) {
-            e.preventDefault();
-            const status = this.getAttribute('data-status');
-            filterRecords(status);
+
+        links.forEach(link => {
+            link.addEventListener('click', function (e) {
+                e.preventDefault();
+                const status = this.getAttribute('data-status');
+                filterRecords(status);
+            });
         });
-    });
-    
+
         setupEventListeners();
         initGridJS();
         document.querySelector('tbody').setAttribute('id', 'records-body');
@@ -691,7 +692,7 @@ function setupEventListeners() {
 
             const sel = document.getElementById('provider_id')
             const providerName = sel.options[sel.selectedIndex].text.split(' (')[0]
-            
+
             await postMessageToSlack('notificacao', `:heavy_plus_sign: *Uma nova diligência foi criada*: ID: ${recordData.record_id}, Prestador: *${providerName}*, Cidade: ${recordData.city}/${recordData.state.toUpperCase()}, Prioridade: ${recordData.priority}`);
 
             bootstrap.Modal.getInstance(document.getElementById('recordModal')).hide();
@@ -776,7 +777,7 @@ function showError(error) {
     console.error('Erro completo:', error);
 
     let errorMessage = error.message;
-    
+
     Swal.fire({
         icon: 'error',
         title: 'Erro',
