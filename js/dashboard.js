@@ -347,8 +347,9 @@ function initGridJS() {
     wrapper.innerHTML = "";  // limpa a div (removendo tabela antiga)
 
     new gridjs.Grid({
-        from: table,    // ← pega sua tabela atual e converte
+        from: table,
         search: true,
+        resizable: true,
         sort: true,
         pagination: {
             enabled: true,
@@ -399,12 +400,13 @@ function renderRecords(records) {
         }[record.priority] || '';
 
         const capitalized = record.status.charAt(0).toUpperCase() + record.status.slice(1);
+        const priorityClass = record.priority === "urgent" ? "priority-urgent" : "";
 
         row.innerHTML = `
             <td>${record.record_id}</td>
             <td><span class="badge ${statusClass}">${capitalized}</span></td>
             <td>${record.provider?.name || 'N/A'}</td>
-            <td><i class="fas ${priorityIcon}"></i> ${record.priority.charAt(0).toUpperCase() + record.priority.slice(1)}</td>
+            <td class="${priorityClass}">${record.priority.charAt(0).toUpperCase() + record.priority.slice(1)}<i class="fas ${priorityIcon}"></i></td>
             <td>${record.document_type}</td>
             <td>${record.client.name}</td>
             <td>${record.city}/${record.state.toUpperCase()}</td>
