@@ -23,7 +23,6 @@ async function checkAuth() {
     const { token, tokenType } = getTokenInfo();
 
     if (!token) {
-        console.warn('❌ Nenhum token no localStorage — redirecionando');
         window.location.href = 'login.html';
         return false;
     }
@@ -47,7 +46,6 @@ async function checkAuth() {
 
         const text = await resp.text();
         if (text.includes('ngrok') || text.includes('<!DOCTYPE')) {
-            console.error('❌ Ngrok interceptando a requisição');
             throw new Error('Ngrok bloqueando acesso');
         }
 
@@ -62,13 +60,10 @@ async function checkAuth() {
             return true;
             
         } catch (jsonError) {
-            console.error('❌ Falha ao parsear JSON:', jsonError);
             throw new Error('Resposta inválida do servidor');
         }
         
     } catch (err) {
-        console.error('❌ Erro na autenticação:', err.message);
-        
         localStorage.removeItem('access_token');
         localStorage.removeItem('token');
         localStorage.removeItem('token_type');
@@ -127,7 +122,6 @@ async function apiFetch(url, options = {}) {
         return data;
 
     } catch (error) {
-        console.error('❌ apiFetch error:', error);
         throw error;
     }
 }
@@ -446,7 +440,7 @@ async function loadClients() {
         } 
         
     } catch (error) {
-        console.error('Erro ao carregar clientes:', error);
+        throw error;
     }
 }
 
@@ -473,7 +467,7 @@ async function loadProviders() {
             providerSelect.value = currentUser.id;
         }
     } catch (error) {
-        console.error('Erro ao carregar prestadores:', error);
+        throw error;
     }
 }
 
@@ -746,7 +740,7 @@ async function removeMarkedItems() {
             try {
                 await removeItem(type, title);
             } catch (error) {
-                console.error(`Erro ao remover ${type} "${title}":`, error);
+                throw error;
             }
         }
     }

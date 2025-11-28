@@ -81,7 +81,6 @@ async function apiFetch(url, options = {}) {
         return data;
 
     } catch (error) {
-        console.error('❌ apiFetch error:', error);
         throw error;
     }
 }
@@ -201,7 +200,6 @@ async function loadDataFromAPI() {
         hideLoading();
 
     } catch (error) {
-        console.error('Erro ao carregar dados:', error);
         hideLoading();
         showNotification('Erro ao carregar dados: ' + error.message, 'error');
     }
@@ -220,7 +218,7 @@ async function transformRecordsData(records) {
                     const financialResponse = await apiFetch(`${apiBaseUrl}/records/${record.id}/financial`);
                     financialData = financialResponse;
                 } catch (error) {
-                    console.error('Erro ao buscar dados financeiros:', error);
+                    throw error;
                 }
             }
 
@@ -250,7 +248,7 @@ async function transformRecordsData(records) {
             });
 
         } catch (error) {
-            console.error('Erro ao transformar registro:', record.id, error);
+            throw error;
         }
     }
 
@@ -598,7 +596,6 @@ async function viewRecordDetails(recordId) {
         showRecordModal(response);
 
     } catch (error) {
-        console.error('Erro ao carregar detalhes:', error);
         showNotification('Erro ao carregar detalhes do registro: ' + error.message, 'error');
     }
 
@@ -1048,7 +1045,6 @@ async function exportToExcel() {
 
     } catch (error) {
         hideLoading();
-        console.error('Erro ao exportar para Excel:', error);
         showNotification('Erro ao exportar para Excel: ' + error.message, 'error');
     }
 }
@@ -1117,7 +1113,6 @@ async function exportToPDF() {
 
     } catch (error) {
         hideLoading();
-        console.error('Erro ao exportar para PDF:', error);
         showNotification('Erro ao exportar para PDF: ' + error.message, 'error');
     }
 }
@@ -1457,9 +1452,7 @@ async function saveFinancialData(recordId) {
             loadDataFromAPI();
         }, 1000);
 
-    } catch (error) {
-        console.error('Erro detalhado ao salvar dados financeiros:', error);
-        
+    } catch (error) {   
         let errorMessage = error.message;
         if (error.message.includes('Failed to fetch')) {
             errorMessage = 'Erro de conexão com o servidor. Verifique se a API está rodando.';

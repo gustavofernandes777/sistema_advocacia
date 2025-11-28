@@ -63,7 +63,6 @@ async function apiFetch(url, options = {}) {
         return data;
 
     } catch (error) {
-        console.error('❌ apiFetch error:', error);
         throw error;
     }
 }
@@ -72,7 +71,6 @@ async function checkAuth() {
     const { token, tokenType } = getTokenInfo();
 
     if (!token) {
-        console.warn('❌ Nenhum token no localStorage — redirecionando');
         window.location.href = 'login.html';
         return false;
     }
@@ -100,7 +98,6 @@ async function checkAuth() {
 
         // Verificar se é a página do ngrok
         if (text.includes('ngrok') || text.includes('<!DOCTYPE')) {
-            console.error('❌ Ngrok interceptando a requisição');
             throw new Error('Ngrok bloqueando acesso');
         }
 
@@ -117,13 +114,10 @@ async function checkAuth() {
             return true;
             
         } catch (jsonError) {
-            console.error('❌ Falha ao parsear JSON:', jsonError);
             throw new Error('Resposta inválida do servidor');
         }
         
     } catch (err) {
-        console.error('❌ Erro na autenticação:', err.message);
-        
         localStorage.removeItem('access_token');
         localStorage.removeItem('token');
         localStorage.removeItem('token_type');

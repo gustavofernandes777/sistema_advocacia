@@ -10,26 +10,19 @@ import { postMessageToSlack } from './postToSlack.js'
 function getTokenInfo() {
     const keys = [];
     for (let i = 0; i < localStorage.length; i++) keys.push(localStorage.key(i));
-    console.log('DEBUG origin:', location.origin, 'href:', location.href);
-    console.log('DEBUG localStorage keys:', keys);
-
     const token = localStorage.getItem('access_token')
                || localStorage.getItem('token')
                || localStorage.getItem('auth_token')
                || null;
 
     const tokenType = localStorage.getItem('token_type') || 'Bearer';
-    console.log('DEBUG token found?', !!token, 'tokenType:', tokenType);
     return { token, tokenType };
 }
 
-// Verifica autenticação
 async function checkAuth() {
-    console.log('🔐 checkAuth() start');
     const { token, tokenType } = getTokenInfo();
 
     if (!token) {
-        console.warn('❌ Nenhum token no localStorage — redirecionando');
         window.location.href = 'login.html';
         return false;
     }
@@ -37,9 +30,6 @@ async function checkAuth() {
     try {
         const authHeader = `Bearer ${token}`;
 
-        console.log('🔄 Fazendo requisição para:', `${apiBaseUrl}/users/me/`);
-
-        // Headers específicos para evitar a página do ngrok
         const resp = await fetch(`${apiBaseUrl}/users/me/`, {
             method: 'GET',
             mode: 'cors',
@@ -55,19 +45,11 @@ async function checkAuth() {
             }
         });
 
-        console.log('✅ Status:', resp.status);
-        console.log('✅ Content-Type:', resp.headers.get('content-type'));
-
         const text = await resp.text();
-        console.log('✅ Conteúdo bruto (início):', text.substring(0, 200));
-
-        // Verificar se é a página do ngrok
         if (text.includes('ngrok') || text.includes('<!DOCTYPE')) {
-            console.error('❌ Ngrok interceptando a requisição');
             throw new Error('Ngrok bloqueando acesso');
         }
 
-        // Tentar parsear como JSON
         try {
             const data = JSON.parse(text);
             
@@ -75,18 +57,14 @@ async function checkAuth() {
                 throw new Error(data.detail || `Erro HTTP ${resp.status}`);
             }
 
-            console.log('✅ Autenticação válida. Usuário:', data.email || data.name);
             currentUser = data;
             return true;
             
         } catch (jsonError) {
-            console.error('❌ Falha ao parsear JSON:', jsonError);
             throw new Error('Resposta inválida do servidor');
         }
         
     } catch (err) {
-        console.error('❌ Erro na autenticação:', err.message);
-        
         localStorage.removeItem('access_token');
         localStorage.removeItem('token');
         localStorage.removeItem('token_type');
@@ -153,18 +131,15 @@ async function apiFetch(url, options = {}) {
         }
 
     } catch (error) {
-        console.error('❌ apiFetch error:', error);
         throw error;
     }
 }
 
-// Carrega dados do usuário
 async function loadUserData() {
     if (!currentUser) return;
 
     document.getElementById('navbar-username').textContent = currentUser.name;
 
-    // Controle de visibilidade baseado no tipo de usuário
     if (currentUser.type !== 'admin') {
         document.getElementById('newUserBtn').style.display = 'none';
         document.getElementById('addRecordBtn').style.display = 'none';
@@ -174,15 +149,12 @@ async function loadUserData() {
     }
 }
 
-// Função de logout
 function logout() {
-    console.log('🚪 Efetuando logout...');
     localStorage.removeItem('access_token');
     localStorage.removeItem('token_type');
     window.location.href = 'login.html';
 }
 
-// Função para criar usuário
 async function createUser() {
     const userData = {
         name: document.getElementById('user_name').value,
@@ -234,18 +206,14 @@ function openUserModal() {
     modal.show();
 }
 
-// Função para carregar clientes
 async function loadClients() {
     try {
-        console.log('🔄 Carregando clientes...');
-        
         const token = localStorage.getItem('access_token');
         if (!token) {
             throw new Error('Token não encontrado');
         }
 
         clientsData = await apiFetch(`${apiBaseUrl}/clients/`);
-        console.log(`✅ ${clientsData.length} clientes carregados`);
         updateClientSelect();
         return clientsData;
         
@@ -299,22 +267,16 @@ async function loadRecords() {
         loadingElement.style.display = 'flex';
         tableBody.innerHTML = '';
 
-        console.log('🔄 Carregando registros...');
-        
         const token = localStorage.getItem('access_token');
         if (!token) {
             throw new Error('Token não encontrado');
         }
 
         recordsData = await apiFetch(`${apiBaseUrl}/records/`);
-        console.log(`✅ ${recordsData.length} registros carregados`);
-
-        // Filtra os registros no frontend também para consistência
         if (currentUser && currentUser.type !== 'admin') {
             recordsData = recordsData.filter(record =>
                 record.provider?.id === currentUser.id
             );
-            console.log(`📊 ${recordsData.length} registros após filtro`);
         }
 
         renderRecords(recordsData);
@@ -323,7 +285,6 @@ async function loadRecords() {
     } catch (error) {
         showError(error);
         
-        // Se for erro de autenticação, redirecionar para login
         if (error.includes('Não autorizado') || error.includes('401')) {
             localStorage.removeItem('access_token');
             setTimeout(() => {
@@ -374,7 +335,6 @@ function formatarDataBR(dataISO) {
 function renderRecords(records) {
     const tableBody = document.getElementById('records-body');
     if (!tableBody) {
-        console.error('Elemento records-body não encontrado');
         return;
     }
 
@@ -436,12 +396,10 @@ async function loadProviders() {
             return;
         }
 
-        console.log('🔄 Carregando prestadores...');
         const users = await apiFetch(`${apiBaseUrl}/users/`);
         const providerSelect = document.getElementById('provider_id');
 
         if (!providerSelect) {
-            console.error('❌ Elemento provider_id não encontrado no DOM');
             return;
         }
 
@@ -458,11 +416,7 @@ async function loadProviders() {
             }
         });
 
-        console.log('✅ Prestadores carregados com sucesso');
-
     } catch (error) {
-        console.error('Erro ao carregar prestadores:', error);
-        
         if (error.includes('Não autorizado') || error.includes('401')) {
             localStorage.removeItem('access_token');
             window.location.href = 'login.html';
@@ -766,19 +720,19 @@ function registerRecordErrorMessage(error) {
             errorMessage += "O Campo 'ID da diligência' não foi preenchido. "
         }
         if (error.includes('register_date')) {
-            errorMessage = "O Campo 'Data da diligência' não foi preenchido. "
+            errorMessage += "O Campo 'Data da diligência' não foi preenchido. "
         }
         if (error.includes('document_type')) {
-            errorMessage = "O Campo 'Tipo do documento' não foi preenchido. "
+            errorMessage += "O Campo 'Tipo do documento' não foi preenchido. "
         }
         if (error.includes('agency')) {
-            errorMessage = "O Campo 'Órgão' não foi preenchido. "
+            errorMessage += "O Campo 'Órgão' não foi preenchido. "
         }
         if (error.includes('researchedName')) {
-            errorMessage = "O Campo 'Nome do pesquisado' não foi preenchido. "
+            errorMessage += "O Campo 'Nome do pesquisado' não foi preenchido. "
         }
         if (error.includes('researchedCpf_cnpj')) {
-            errorMessage = "O Campo 'CPF/CNPJ do Pesquisado' precisa ter, no mínimo 11 caractéres. "
+            errorMessage += "O Campo 'CPF/CNPJ do Pesquisado' precisa ter, no mínimo 11 caractéres. "
 
         }
     }

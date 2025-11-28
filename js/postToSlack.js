@@ -4,8 +4,6 @@ const apiBaseUrl = CONFIG.API_URL;
 function getTokenInfo() {
     const keys = [];
     for (let i = 0; i < localStorage.length; i++) keys.push(localStorage.key(i));
-    console.log('DEBUG origin:', location.origin, 'href:', location.href);
-    console.log('DEBUG localStorage keys:', keys);
 
     const token = localStorage.getItem('access_token')
         || localStorage.getItem('token')
@@ -13,7 +11,6 @@ function getTokenInfo() {
         || null;
 
     const tokenType = localStorage.getItem('token_type') || 'Bearer';
-    console.log('DEBUG token found?', !!token, 'tokenType:', tokenType);
     return { token, tokenType };
 }
 
@@ -29,7 +26,6 @@ async function apiFetch(url, options = {}) {
         'User-Agent': 'MyApp/1.0'
     };
 
-    // Não adicionar Content-Type para FormData
     if (!(options.body instanceof FormData)) {
         defaultHeaders['Content-Type'] = 'application/json';
     }
@@ -70,7 +66,6 @@ async function apiFetch(url, options = {}) {
         }
 
     } catch (error) {
-        console.error('❌ apiFetch error:', error);
         throw error;
     }
 }
@@ -82,8 +77,7 @@ export async function postMessageToSlack(type, mensagem) {
             body: JSON.stringify({type: type, message: mensagem }),
         });
 
-        console.log("✅ Mensagem enviada com sucesso!");
     } catch (error) {
-        console.error("🚨 Erro na requisição:", error);
+        throw error;
     }
 }
