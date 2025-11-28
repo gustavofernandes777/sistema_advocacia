@@ -760,7 +760,7 @@ function showError(error) {
 }
 
 function registerRecordErrorMessage(error) {
-    errorMessage = ""
+    let errorMessage = ""
     if (error.includes('validation error')) {
         if (error.includes('record_id')) {
             errorMessage += "O Campo 'ID da diligência' não foi preenchido. "
