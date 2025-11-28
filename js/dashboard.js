@@ -223,7 +223,7 @@ async function createUser() {
         Swal.fire({
             icon: 'error',
             title: 'Erro',
-            text: error.message
+            text: error
         });
     }
 }
@@ -250,11 +250,11 @@ async function loadClients() {
         return clientsData;
         
     } catch (error) {
-        if (error.message.includes('Não autorizado') || error.message.includes('401')) {
+        if (error.includes('Não autorizado') || error.includes('401')) {
             localStorage.removeItem('access_token');
             window.location.href = 'login.html';
         } else {
-            showError('Erro ao carregar clientes: ' + error.message);
+            showError('Erro ao carregar clientes: ' + error);
         }
         
         return [];
@@ -286,7 +286,7 @@ async function createClient() {
         bootstrap.Modal.getInstance(document.getElementById('clientModal')).hide();
 
     } catch (error) {
-        showError(error.message);
+        showError(error);
     }
 }
 
@@ -321,10 +321,10 @@ async function loadRecords() {
         updateStatusCounts();
 
     } catch (error) {
-        showError(error.message);
+        showError(error);
         
         // Se for erro de autenticação, redirecionar para login
-        if (error.message.includes('Não autorizado') || error.message.includes('401')) {
+        if (error.includes('Não autorizado') || error.includes('401')) {
             localStorage.removeItem('access_token');
             setTimeout(() => {
                 window.location.href = 'login.html';
@@ -463,11 +463,11 @@ async function loadProviders() {
     } catch (error) {
         console.error('Erro ao carregar prestadores:', error);
         
-        if (error.message.includes('Não autorizado') || error.message.includes('401')) {
+        if (error.includes('Não autorizado') || error.includes('401')) {
             localStorage.removeItem('access_token');
             window.location.href = 'login.html';
         } else {
-            showError('Erro ao carregar lista de prestadores: ' + error.message);
+            showError('Erro ao carregar lista de prestadores: ' + error);
         }
     }
 }
@@ -518,11 +518,11 @@ function initDataTable() {
 }
 //NAO USADA
 function handleApiError(error) {
-    if (error.message.includes('401') || error.message.includes('Não autorizado')) {
+    if (error.includes('401') || error.includes('Não autorizado')) {
         localStorage.removeItem('access_token');
         window.location.href = 'login.html';
     } else {
-        showError('Erro: ' + error.message);
+        showError('Erro: ' + error);
     }
 }
 
@@ -560,7 +560,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.querySelector('tbody').setAttribute('id', 'records-body');
 
     } catch (error) {
-        showError(error.message);
+        showError(error);
     }
 });
 
@@ -678,10 +678,7 @@ function setupEventListeners() {
             bootstrap.Modal.getInstance(document.getElementById('recordModal')).hide();
             location.reload();
         } catch (error) {
-            let errorMessage = ""
-            if (error.message == '[object Object],[object Object]'){
-                errorMessage = "Há campos não preenchidos."
-            }
+            let errorMessage = registerRecordErrorMessage(error)
             showError('Erro ao cadastrar o registro: ' + errorMessage);
         }
     });
@@ -741,7 +738,7 @@ function setupEventListeners() {
                     Swal.fire({
                         icon: 'error',
                         title: 'Erro',
-                        text: error.message
+                        text: error
                     });
                 }
             }
@@ -760,6 +757,37 @@ function showError(error) {
         text: error,
         confirmButtonText: 'OK'
     });
+}
+
+function registerRecordErrorMessage(error) {
+    errorMessage = ""
+    if (error.includes('validation error')) {
+        if (error.includes('record_id')) {
+            errorMessage += "O Campo 'ID da diligência' não foi preenchido. "
+        }
+        if (error.includes('register_date')) {
+            errorMessage = "O Campo 'Data da diligência' não foi preenchido. "
+        }
+        if (error.includes('document_type')) {
+            errorMessage = "O Campo 'Tipo do documento' não foi preenchido. "
+        }
+        if (error.includes('agency')) {
+            errorMessage = "O Campo 'Órgão' não foi preenchido. "
+        }
+        if (error.includes('researchedName')) {
+            errorMessage = "O Campo 'Nome do pesquisado' não foi preenchido. "
+        }
+        if (error.includes('researchedCpf_cnpj')) {
+            errorMessage = "O Campo 'CPF/CNPJ do Pesquisado' precisa ter, no mínimo 11 caractéres. "
+
+        }
+    }
+    if (error.includes('[object Object]')) {
+        errorMessage = "Os campos 'Cliente' ou 'Provedores' não estão preenchidos."
+    }
+
+    return errorMessage
+
 }
 
 // Toggles para anexos, custas e despesas
