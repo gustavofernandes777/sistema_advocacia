@@ -241,7 +241,6 @@ async function loadRecordData(recordId) {
         }
 
         populateForm();
-        return await response;
     } catch (error) {
         Swal.fire({
             icon: 'error',
@@ -439,7 +438,6 @@ async function loadClients() {
         if (currentRecord.client && currentRecord.client.id) {
             clientSelect.value = currentRecord.client.id;
         } 
-        return await response;
         
     } catch (error) {
         throw error;
@@ -468,8 +466,6 @@ async function loadProviders() {
         } else if (currentUser && currentUser.type !== 'admin') {
             providerSelect.value = currentUser.id;
         }
-
-        return await response;
     } catch (error) {
         throw error;
     }
@@ -838,8 +834,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     try {
         await checkAuth();
         await loadCurrentUser();
+        await loadRecordData(recordId),
         await Promise.all([
-            loadRecordData(recordId),
             loadClients(),
             loadProviders()
         ]);
