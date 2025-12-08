@@ -328,7 +328,7 @@ function applyFilters() {
             if (prestador !== 'todas') {
                 const prestadorSelect = document.getElementById('prestador');
                 const prestadorNome = prestadorSelect.options[prestadorSelect.selectedIndex].text;
-                if (item.provider !== prestadorNome) return false;
+                if (item.provider.trim() !== prestadorNome.trim()) return false;
             }
 
             // Filtrar por período
