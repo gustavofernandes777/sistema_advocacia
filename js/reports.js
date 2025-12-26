@@ -420,6 +420,7 @@ function updateTable() {
         tr.innerHTML = `
             <td>${item.record_id}</td>
             <td>${formatDate(item.date)}</td>
+            td>${formatDate(item.last_update)}</td>
             <td>${item.company}</td>
             <td>${item.city}/${item.state.toUpperCase()}</td>
             <td>${item.provider}</td>
