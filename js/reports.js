@@ -332,7 +332,7 @@ function applyFilters() {
             }
 
             // Filtrar por período
-            const itemDate = new Date(item.date);
+            const itemDate = new Date(item.last_update);
             let startDate, endDate;
 
             if (periodo === 'custom') {
