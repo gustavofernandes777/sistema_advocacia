@@ -20,9 +20,9 @@ const statusMap = {
 // Inicialização
 document.addEventListener('DOMContentLoaded', async () => {
     await checkAuth();
-    loadUserData();
+    await loadUserData();
     setupEventListeners();
-    loadDataFromAPI();
+    await loadDataFromAPI();
 });
 
 // Função para obter informações do token
@@ -208,36 +208,39 @@ async function loadDataFromAPI() {
 // Transformar dados da API para o formato do relatório
 async function transformRecordsData(records) {
     const token = localStorage.getItem('access_token');
-    const transformedData = [];
 
-    for (const record of records) {
-        try {
+    return Promise.all(
+        records.map(async (record) => {
             let financialData = null;
+
             if (record.status === 'fechada') {
                 try {
-                    const financialResponse = await apiFetch(`${apiBaseUrl}/records/${record.id}/financial`);
-                    financialData = financialResponse;
-                } catch (error) {
-                    throw error;
+                    financialData = await apiFetch(
+                        `${apiBaseUrl}/records/${record.id}/financial`
+                    );
+                } catch (err) {
+                    console.error(`Erro financeiro do registro ${record.id}`, err);
                 }
             }
 
-            // Calcular totais de despesas (excluindo custas)
-            const totalExpenses = record.expenses && record.expenses.length > 0
-                ? record.expenses.reduce((sum, expense) => sum + parseFloat(expense.value || 0), 0)
+            const totalExpenses = Array.isArray(record.expenses)
+                ? record.expenses.reduce(
+                    (sum, { value }) => sum + Number(value || 0),
+                    0
+                )
                 : 0;
 
-            transformedData.push({
+            return {
                 id: record.id,
                 record_id: record.record_id,
                 date: record.register_date,
-                company: record.client.name,
+                company: record.client?.name ?? '',
                 city: record.city,
                 state: record.state,
                 expense: totalExpenses,
                 status: record.status,
                 document_type: record.document_type,
-                provider: record.provider.name,
+                provider: record.provider?.name ?? '',
                 researchedName: record.researchedName,
                 researchedCpf_cnpj: record.researchedCpf_cnpj,
                 info: record.info,
@@ -245,15 +248,11 @@ async function transformRecordsData(records) {
                 last_update: record.last_update,
                 financial: financialData,
                 expenses: record.expenses || []
-            });
-
-        } catch (error) {
-            throw error;
-        }
-    }
-
-    return transformedData;
+            };
+        })
+    );
 }
+
 
 // Atualizar filtro de clientes
 function updateClientFilter(clients) {
