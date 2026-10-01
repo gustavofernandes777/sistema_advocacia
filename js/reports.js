@@ -3,6 +3,19 @@ import { CONFIG } from "./config.js";
 let charts = {};
 let allData = [];
 let filteredData = [];
+let currentPage = 1;
+let pageSize = 20;
+const financialDrafts = new Map();
+
+function updatePagination() {
+    const pages = Math.max(1, Math.ceil(filteredData.length / pageSize));
+    currentPage = Math.min(currentPage, pages);
+    document.getElementById('reportsPageInfo').textContent =
+        `Página ${currentPage} de ${pages} · ${filteredData.length} registros`;
+    document.getElementById('reportsPrevious').disabled = currentPage === 1;
+    document.getElementById('reportsNext').disabled = currentPage === pages;
+}
+
 let previousPeriodData = [];
 let currentPeriodData = [];
 let currentUser = null;
@@ -188,8 +201,10 @@ async function loadDataFromAPI() {
         const users = usersResponse;
 
         // Transformar dados
-        allData = await transformRecordsData(records);
-        filteredData = [...allData];
+        allData = transformRecordsData(records);
+        currentPage = 1;
+        currentPage = 1;
+    filteredData = [...allData];
 
         // Atualizar filtro de clientes
         updateClientFilter(clients);
@@ -206,22 +221,9 @@ async function loadDataFromAPI() {
 }
 
 // Transformar dados da API para o formato do relatório
-async function transformRecordsData(records) {
-    const token = localStorage.getItem('access_token');
-
-    return Promise.all(
-        records.map(async (record) => {
-            let financialData = null;
-
-            if (record.status === 'fechada') {
-                try {
-                    financialData = await apiFetch(
-                        `${apiBaseUrl}/records/${record.id}/financial`
-                    );
-                } catch (err) {
-                    console.error(`Erro financeiro do registro ${record.id}`, err);
-                }
-            }
+function transformRecordsData(records) {
+    return records.map(record => {
+            const financialData = record.status === 'fechada' ? record.financial : null;
 
             const totalExpenses = Array.isArray(record.expenses)
                 ? record.expenses.reduce(
@@ -249,8 +251,7 @@ async function transformRecordsData(records) {
                 financial: financialData,
                 expenses: record.expenses || []
             };
-        })
-    );
+        });
 }
 
 
@@ -303,6 +304,7 @@ function applyFilters() {
         const estado = document.getElementById('estado').value;
         const prestador = document.getElementById('prestador').value;
 
+        currentPage = 1;
         filteredData = allData.filter(item => {
             // Filtrar por empresa
             if (empresa !== 'todas') {
@@ -351,11 +353,20 @@ function applyFilters() {
         updateDashboard();
         updateCharts();
         hideLoading();
-    }, 500);
+    }, 0);
 }
 
 // Configurar event listeners
 function setupEventListeners() {
+    document.getElementById('reportsPrevious').addEventListener('click', () => {
+        if (currentPage > 1) { currentPage--; updateTable(); }
+    });
+    document.getElementById('reportsNext').addEventListener('click', () => {
+        if (currentPage * pageSize < filteredData.length) { currentPage++; updateTable(); }
+    });
+    document.getElementById('reportsPageSize').addEventListener('change', event => {
+        pageSize = Number(event.target.value); currentPage = 1; updateTable();
+    });
     // Filtro de período
     document.getElementById('periodo').addEventListener('change', function () {
         toggleCustomDateFields(this.value === 'custom');
@@ -394,6 +405,7 @@ function clearFilters() {
 
     // Limpar dados anteriores também
     previousPeriodData = [];
+    currentPage = 1;
     filteredData = [...allData];
 
     updateDashboard();
@@ -405,7 +417,10 @@ function updateTable() {
     const tbody = document.querySelector('#detalhesTable tbody');
     tbody.innerHTML = '';
 
-    filteredData.forEach(item => {
+    updatePagination();
+    const pageData = filteredData.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+    const fragment = document.createDocumentFragment();
+    pageData.forEach(item => {
         const tr = document.createElement('tr');
         const statusClass = `badge-${item.status}`;
         const statusText = getStatusText(item.status);
@@ -455,7 +470,7 @@ function updateTable() {
                     <td>${financialInfo ? `R$ ${financialInfo.provider_payment.toLocaleString('pt-BR')}` :
                         `<input type="number" step="0.01" class="form-control form-control-sm provider-payment" 
                                placeholder="R$ 0,00" data-id="${item.id}" style="width: 100px;">`}
-                               <span class="provider-percentage" style="font-size: 80%; display: none">${financialInfo ? `${financialInfo.provider_percentage.toLocaleString('pt-BR')}` : '0 %'} da diligência</span>
+                               <span class="provider-percentage" style="font-size: 80%; display: none">${financialInfo ? `${(financialInfo.diligence_value ? financialInfo.provider_payment * 100 / financialInfo.diligence_value : 0).toLocaleString('pt-BR')}` : '0 %'} da diligência</span>
                     </td>
                     <td>${financialInfo ? `R$ ${financialInfo.diligence_value.toLocaleString('pt-BR')}` :
                         `<input type="number" step="0.01" class="form-control form-control-sm diligence-value" 
@@ -482,9 +497,17 @@ function updateTable() {
             tr.setAttribute('data-status', 'fechada');
         }
 
-        tbody.appendChild(tr);
+        fragment.appendChild(tr);
     });
 
+    tbody.appendChild(fragment);
+    tbody.querySelectorAll('.diligence-value, .provider-payment').forEach(input => {
+        const draft = financialDrafts.get(input.dataset.id);
+        if (draft && draft[input.classList.contains('diligence-value') ? 'diligence' : 'provider'] !== undefined) {
+            input.value = draft[input.classList.contains('diligence-value') ? 'diligence' : 'provider'];
+            calculateProfit(input);
+        }
+    });
     // Adicionar event listeners
     addTableEventListeners();
 
@@ -497,6 +520,9 @@ function addFinancialInputListeners() {
     document.querySelectorAll('.diligence-value, .provider-payment').forEach(input => {
         input.addEventListener('input', function () {
             const recordId = this.getAttribute('data-id');
+            const draft = financialDrafts.get(recordId) || {};
+            draft[this.classList.contains('diligence-value') ? 'diligence' : 'provider'] = this.value;
+            financialDrafts.set(recordId, draft);
             const record = filteredData.find(item => item.id == recordId);
 
             if (record && record.status !== 'fechada') {
@@ -796,6 +822,7 @@ function getStatusText(status) {
 
 // Criar gráficos
 function createCharts() {
+    Object.values(charts).forEach(chart => chart?.destroy());
     // Gráfico de Evolução Mensal
     const evolucaoCtx = document.getElementById('evolucaoMensalChart').getContext('2d');
     charts.evolucao = new Chart(evolucaoCtx, {

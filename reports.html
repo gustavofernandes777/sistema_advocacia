@@ -416,6 +416,16 @@
                             <!-- Os dados serão preenchidos via JavaScript -->
                         </tbody>
                     </table>
+                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mt-3" aria-label="Paginação dos relatórios">
+                        <label>Linhas por página <select id="reportsPageSize" class="form-select form-select-sm d-inline-block w-auto">
+                            <option>10</option><option selected>20</option><option>50</option><option>100</option>
+                        </select></label>
+                        <span id="reportsPageInfo" role="status" aria-live="polite"></span>
+                        <div class="btn-group">
+                            <button type="button" id="reportsPrevious" class="btn btn-outline-primary btn-sm">Anterior</button>
+                            <button type="button" id="reportsNext" class="btn btn-outline-primary btn-sm">Próxima</button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
